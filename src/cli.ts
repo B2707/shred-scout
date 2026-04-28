@@ -9,16 +9,22 @@ import { assertTTY, isTTY } from './lib/tty.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Read version from package.json at runtime so --version stays in sync
-const pkg = JSON.parse(
-  readFileSync(join(__dirname, '../package.json'), 'utf-8'),
-) as { version: string };
+let pkgVersion = '0.0.0';
+try {
+  const pkg = JSON.parse(
+    readFileSync(join(__dirname, '../package.json'), 'utf-8'),
+  ) as { version: string };
+  pkgVersion = pkg.version;
+} catch {
+  // package.json unreadable — fall back to placeholder
+}
 
 const program = new Command();
 
 program
   .name('shred-scout')
   .description('Agentic terminal UI for finding compatible snowboard gear deals')
-  .version(`shred-scout ${pkg.version}`, '-v, --version', 'Print version and exit')
+  .version(`shred-scout ${pkgVersion}`, '-v, --version', 'Print version and exit')
   .helpOption('-h, --help', 'Show help');
 
 program
