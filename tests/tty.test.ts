@@ -20,6 +20,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.resetModules(); // force fresh ESM module instance for each test
 });
 
 describe('isTTY()', () => {
