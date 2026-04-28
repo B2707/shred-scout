@@ -1,4 +1,23 @@
-node_modules/
+# Build output
 dist/
-*.tgz
+
+# Dependencies
+node_modules/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# OS artifacts
 .DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+
+# npm pack output (verify then delete)
+*.tgz
+
+# Environment
+.env
+.env.local
