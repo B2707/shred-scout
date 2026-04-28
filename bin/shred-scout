@@ -1,2 +1,9 @@
 #!/usr/bin/env node
-import('../dist/cli.js');
+import('../dist/cli.js').catch((err) => {
+  if (err.code === 'ERR_MODULE_NOT_FOUND' && err.message.includes('dist/cli.js')) {
+    process.stderr.write('Error: shred-scout is not built. Run `npm run build` first.\n');
+    process.exit(1);
+  }
+  process.stderr.write(`Error: ${err.message}\n`);
+  process.exit(1);
+});
