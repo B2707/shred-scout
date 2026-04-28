@@ -6,5 +6,6 @@ export default defineConfig({
     pool: 'forks',
     globals: false,
     testTimeout: 15000,
+    typecheck: { tsconfig: './tsconfig.test.json' },
   },
 });
