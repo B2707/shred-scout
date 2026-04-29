@@ -428,7 +428,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Good match', reason: 'Flex ratings align.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Good match', reason: 'Flex ratings align.' } }],
           }),
         };
       },
@@ -443,7 +443,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Good match', reason: 'Flex ratings align.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Good match', reason: 'Flex ratings align.' } }],
           }),
         };
       },
@@ -458,7 +458,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Good match', reason: 'Flex ratings align.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Good match', reason: 'Flex ratings align.' } }],
           }),
         };
       },
@@ -473,7 +473,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Good match', reason: 'Flex ratings align.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Good match', reason: 'Flex ratings align.' } }],
           }),
         };
       },
@@ -488,7 +488,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Stiff match', reason: 'Expert setup.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Stiff match', reason: 'Expert setup.' } }],
           }),
         };
       },
@@ -503,7 +503,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Unknown flex', reason: 'Cannot assess.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Unknown flex', reason: 'Cannot assess.' } }],
           }),
         };
       },
@@ -590,7 +590,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Good', reason: 'Aligns.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Good', reason: 'Aligns.' } }],
           }),
         };
       },
@@ -605,7 +605,7 @@ describe('flexPairing()', () => {
       default: class {
         messages = {
           create: vi.fn().mockResolvedValue({
-            content: [{ type: 'tool_use', input: { recommendation: 'Park setup', reason: 'Soft flex matches freestyle.' } }],
+            content: [{ type: 'tool_use', input: { verdict: 'pass', recommendation: 'Park setup', reason: 'Soft flex matches freestyle.' } }],
           }),
         };
       },
