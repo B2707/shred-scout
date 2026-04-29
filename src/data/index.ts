@@ -25,6 +25,7 @@ export { normalizeProduct, detectGearCategory, inferMountPattern, parsePriceCent
 export { openDatabase } from './db.js';
 
 // Repositories
+export { makeProductRepo } from './repos/productRepo.js';
 export type { PriceObservation } from './repos/priceRepo.js';
 export { makePriceRepo } from './repos/priceRepo.js';
 export { makeRiderRepo } from './repos/riderRepo.js';
