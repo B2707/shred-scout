@@ -21,23 +21,11 @@ interface RiderRow {
 
 /**
  * Creates a riderRepo bound to the given Database instance.
- * The rider_profile table is created here (not in openDatabase migrations) since
- * it is a supplemental table that mirrors the conf store; adding it to main migrations
- * would create a dependency on rider profile for all database users.
+ * The rider_profile table is created by the 002_rider_profile migration in db.ts —
+ * openDatabase() must be called before makeRiderRepo().
  * @param db - Initialized Database from openDatabase()
  */
 export function makeRiderRepo(db: Database.Database) {
-  // Create rider_profile table — single-row table enforced by CHECK (id = 1)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS rider_profile (
-      id            INTEGER PRIMARY KEY CHECK (id = 1),
-      boot_size     REAL    NOT NULL,
-      height_cm     REAL    NOT NULL,
-      weight_kg     REAL    NOT NULL,
-      riding_style  TEXT    NOT NULL
-    )
-  `);
-
   const upsertStmt = db.prepare(`
     INSERT INTO rider_profile (id, boot_size, height_cm, weight_kg, riding_style)
     VALUES (1, @bootSize, @heightCm, @weightKg, @ridingStyle)

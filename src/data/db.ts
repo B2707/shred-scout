@@ -64,6 +64,21 @@ CREATE TABLE IF NOT EXISTS saved_setups (
 );
     `.trim(),
   },
+  {
+    // WR-04: rider_profile moved from makeRiderRepo() into migration system so the
+    // table is version-tracked and exists for all database users regardless of whether
+    // makeRiderRepo() is called.
+    name: '002_rider_profile',
+    sql: `
+CREATE TABLE IF NOT EXISTS rider_profile (
+  id            INTEGER PRIMARY KEY CHECK (id = 1),
+  boot_size     REAL    NOT NULL,
+  height_cm     REAL    NOT NULL,
+  weight_kg     REAL    NOT NULL,
+  riding_style  TEXT    NOT NULL
+);
+    `.trim(),
+  },
 ];
 
 /**
@@ -89,13 +104,20 @@ export function openDatabase(dbPath: string): Database.Database {
     (db.prepare('SELECT name FROM schema_versions').all() as { name: string }[]).map(r => r.name)
   );
 
+  const insertVersion = db.prepare(
+    'INSERT INTO schema_versions (name, applied_at) VALUES (?, ?)'
+  );
+
   for (const migration of MIGRATIONS) {
     if (applied.has(migration.name)) continue;
-    db.exec(migration.sql);
-    db.prepare('INSERT INTO schema_versions (name, applied_at) VALUES (?, ?)').run(
-      migration.name,
-      Date.now()
-    );
+    // Wrap DDL + version tracking in a single transaction so a crash between
+    // db.exec() and the INSERT cannot leave the DB in a corrupt state where the
+    // schema has changed but the version row was never written.
+    const runMigration = db.transaction(() => {
+      db.exec(migration.sql);
+      insertVersion.run(migration.name, Date.now());
+    });
+    runMigration();
   }
 
   return db;
