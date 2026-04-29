@@ -35,8 +35,10 @@ program
     const { render } = await import('ink');
     const { App } = await import('./components/App.js');
     const { createElement } = await import('react');
-    const { waitUntilExit } = render(createElement(App, null));
-    await waitUntilExit();
+    render(createElement(App, null));
+    // waitUntilExit() resolves prematurely with React 19 + Ink 6 — rely on
+    // process.exit(0) from the global 'q' useInput handler to terminate instead.
+    await new Promise<never>(() => {});
   });
 
 // Show help when invoked with no arguments and running in a TTY.
