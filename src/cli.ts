@@ -30,10 +30,13 @@ program
 program
   .command('search', { isDefault: true })
   .description('Search for compatible snowboard gear (interactive)')
-  .action(() => {
+  .action(async () => {
     assertTTY(); // Gate: only enforce TTY for interactive commands
-    // Phase 1+: mount Ink app here
-    process.stdout.write('Interactive search coming in Phase 1\n');
+    const { render } = await import('ink');
+    const { App } = await import('./components/App.js');
+    const { createElement } = await import('react');
+    const { waitUntilExit } = render(createElement(App, null));
+    await waitUntilExit();
   });
 
 // Show help when invoked with no arguments and running in a TTY.
