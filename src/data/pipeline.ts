@@ -63,7 +63,7 @@ export class RequestPipeline {
     const timeout = this.timeout;
     const userAgent = this.userAgent;
 
-    return queue.add(() =>
+    const result = await (queue.add(() =>
       pRetry(
         async () => {
           const controller = new AbortController();
@@ -87,9 +87,14 @@ export class RequestPipeline {
           retries: 3,
           minTimeout: 1_000,
           factor: 2, // 1s → 2s → 4s
-          shouldRetry: ({ error }) => !(error instanceof AbortError),
+          // p-retry v8 automatically stops retrying when AbortError is thrown —
+          // no shouldRetry guard is needed. The throw new AbortError(...) above
+          // is the real abort fence; shouldRetry is never called for AbortErrors.
         },
       ),
-    ) as Promise<Response>;
+    ) as Promise<Response | undefined>);
+    // PQueue.add() can resolve to undefined if the queue is paused/item dropped.
+    if (!result) throw new Error(`Queue returned no response for ${url}`);
+    return result;
   }
 }
