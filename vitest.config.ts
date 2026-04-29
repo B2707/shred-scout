@@ -7,5 +7,8 @@ export default defineConfig({
     globals: false,
     testTimeout: 15000,
     typecheck: { tsconfig: './tsconfig.test.json' },
+    // Setup file runs in each worker before tests — sets IS_REACT_ACT_ENVIRONMENT
+    // global to suppress React 19 "not configured to support act()" warnings.
+    setupFiles: ['./tests/setup.ts'],
   },
 });
