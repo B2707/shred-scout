@@ -87,11 +87,16 @@ export async function flexPairing(
     );
     if (!toolBlock) return UNKNOWN_RESULT;
 
-    const input = toolBlock.input as { recommendation: string; reason: string };
+    const input = toolBlock.input as Record<string, unknown>;
+    const recommendation = typeof input['recommendation'] === 'string' ? input['recommendation'] : null;
+    const reason = typeof input['reason'] === 'string' ? input['reason'] : null;
+
+    if (!recommendation || !reason) return UNKNOWN_RESULT;
+
     return {
       ruleId: 'flex-pairing',
       verdict: 'pass',
-      reason: `${input.recommendation} ${input.reason}`,
+      reason: `${recommendation} ${reason}`,
       advisory: true,
     };
   } catch {
