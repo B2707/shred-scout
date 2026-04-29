@@ -100,10 +100,12 @@ export function detectGearCategory(
   if (BINDING_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'binding';
   if (BOARD_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'board';
 
-  // Layer 2: tags
-  if (allTags.some(t => BOARD_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'board';
-  if (allTags.some(t => BINDING_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'binding';
+  // Layer 2: tags — same priority order as layer 1: boot > binding > board.
+  // "Snowboard Boots" tags contain 'snowboard' (a BOARD keyword) so boot must
+  // be checked first to prevent false board classification.
   if (allTags.some(t => BOOT_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'boot';
+  if (allTags.some(t => BINDING_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'binding';
+  if (allTags.some(t => BOARD_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'board';
 
   // Layer 3: title keywords
   if (BOARD_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'board';
@@ -218,6 +220,9 @@ export function normalizeProduct(
     mount_pattern: mountPattern,
     mount_pattern_raw: mountPatternRaw,
     image_url: raw.images[0]?.src ?? null,
+    // Infinity → no variants present (reduce over empty array). We store 0 as the
+    // sentinel; downstream callers must check variants_json length to distinguish
+    // "free product (price = 0)" from "no variants yet (price = 0)".
     price_cents: Number.isFinite(priceCents) ? priceCents : 0,
     variants_json: JSON.stringify(raw.variants),
     fetched_at: Date.now(),
