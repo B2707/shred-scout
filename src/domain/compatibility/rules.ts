@@ -32,6 +32,22 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
     };
   }
 
+  if (sizeUS <= 0) {
+    return {
+      ruleId: 'boot-to-binding-size',
+      verdict: 'fail',
+      reason: `Boot size must be a positive number — got ${sizeUS}`,
+    };
+  }
+
+  if (min >= max) {
+    return {
+      ruleId: 'boot-to-binding-size',
+      verdict: 'fail',
+      reason: `Binding size range is invalid ([${min}–${max}] US) — min must be less than max`,
+    };
+  }
+
   if (sizeUS < min || sizeUS > max) {
     return {
       ruleId: 'boot-to-binding-size',
@@ -75,6 +91,14 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
     };
   }
 
+  if (waistWidthMm <= 0) {
+    return {
+      ruleId: 'boot-to-board-waist',
+      verdict: 'fail',
+      reason: `Invalid waist width ${waistWidthMm}mm — must be positive`,
+    };
+  }
+
   const bootLengthMm = sizeUS * 8.1 + 209;
 
   if (waistWidthMm < bootLengthMm - 25) {
@@ -114,11 +138,12 @@ export function discToMount(setup: GearSetup): RuleResult {
   const { mountingPattern } = setup.board;
   const { discPattern } = setup.binding;
 
-  if (!mountingPattern || !discPattern) {
+  const VALID_PATTERNS = new Set<string>(['4x4', '2x4', 'channel']);
+  if (!mountingPattern || !discPattern || !VALID_PATTERNS.has(mountingPattern) || !VALID_PATTERNS.has(discPattern)) {
     return {
       ruleId: 'binding-disc-to-mount',
       verdict: 'fail',
-      reason: `Invalid input — mountingPattern=${String(mountingPattern)}, discPattern=${String(discPattern)}`,
+      reason: `Unrecognized mounting pattern — mountingPattern=${String(mountingPattern)}, discPattern=${String(discPattern)}`,
     };
   }
 
