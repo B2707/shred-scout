@@ -27,6 +27,11 @@ const FLEX_PAIRING_TOOL: Anthropic.Tool = {
   input_schema: {
     type: 'object' as const,
     properties: {
+      verdict: {
+        type: 'string',
+        enum: ['pass', 'warn'],
+        description: 'pass if flex pairing is acceptable, warn if flex ratings are mismatched',
+      },
       recommendation: {
         type: 'string',
         description: 'One-sentence verdict on whether the flex pairing suits this rider',
@@ -36,7 +41,7 @@ const FLEX_PAIRING_TOOL: Anthropic.Tool = {
         description: 'Two-sentence explanation of the pairing quality and any concern',
       },
     },
-    required: ['recommendation', 'reason'],
+    required: ['verdict', 'recommendation', 'reason'],
   },
 };
 
@@ -63,7 +68,7 @@ export async function flexPairing(
   apiKey: string,
 ): Promise<RuleResult> {
   try {
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, timeout: 10_000, maxRetries: 0 });
 
     const userMessage = JSON.stringify({
       boardFlexRating: setup.board.flexRating ?? 'unknown',
@@ -88,14 +93,16 @@ export async function flexPairing(
     if (!toolBlock) return UNKNOWN_RESULT;
 
     const input = toolBlock.input as Record<string, unknown>;
+    const verdictRaw = typeof input['verdict'] === 'string' ? input['verdict'] : null;
     const recommendation = typeof input['recommendation'] === 'string' ? input['recommendation'] : null;
     const reason = typeof input['reason'] === 'string' ? input['reason'] : null;
 
-    if (!recommendation || !reason) return UNKNOWN_RESULT;
+    if (!verdictRaw || !recommendation || !reason) return UNKNOWN_RESULT;
+    const verdict = verdictRaw === 'warn' ? 'warn' : 'pass';
 
     return {
       ruleId: 'flex-pairing',
-      verdict: 'pass',
+      verdict,
       reason: `${recommendation} ${reason}`,
       advisory: true,
     };
