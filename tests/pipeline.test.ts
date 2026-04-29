@@ -74,18 +74,18 @@ describe('RequestPipeline', () => {
     expect(res.status).toBe(200);
   });
 
-  it('fetch() throws AbortError (no retry) on HTTP 404', async () => {
+  it('fetch() throws immediately (no retry) on HTTP 404', async () => {
     const { RequestPipeline } = await import('../src/data/pipeline.js');
-    const { AbortError } = await import('p-retry');
     const pipeline = new RequestPipeline({ timeout: 5000 });
 
     const pool = mockAgent.get('https://www.evo.com');
-    // Only one intercept — AbortError must NOT trigger a second attempt
+    // Only one intercept — permanent 4xx must NOT trigger a second attempt.
+    // p-retry unwraps AbortError and throws AbortError.originalError (plain Error with same message).
     pool
       .intercept({ path: '/missing', method: 'GET' })
       .reply(404, 'Not Found', { headers: { 'content-type': 'text/plain' } });
 
-    await expect(pipeline.fetch('https://www.evo.com/missing')).rejects.toBeInstanceOf(AbortError);
+    await expect(pipeline.fetch('https://www.evo.com/missing')).rejects.toThrow('Permanent HTTP 404');
   });
 
   it('fetch() throws on HTTP 500 after retries exhausted', async () => {
