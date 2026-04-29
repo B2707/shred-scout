@@ -79,7 +79,15 @@ export function makeSetupRepo(db: Database.Database) {
         boardId: row.board_id,
         bindingId: row.binding_id,
         bootId: row.boot_id,
-        compatibility: row.compatibility ? (JSON.parse(row.compatibility) as RuleResult[]) : null,
+        compatibility: (() => {
+          if (!row.compatibility) return null;
+          try {
+            return JSON.parse(row.compatibility) as RuleResult[];
+          } catch {
+            // Corrupt or manually-edited row — treat as no compatibility data
+            return null;
+          }
+        })(),
         savedAt: row.saved_at,
       }));
     },
