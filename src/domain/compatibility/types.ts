@@ -6,7 +6,14 @@
  * No runtime code lives here — types only.
  */
 
-/** Mounting pattern for boards and binding discs. */
+/**
+ * Mounting pattern for boards and binding discs.
+ *
+ * IMPORTANT: 'channel' means Burton Channel (EST/Re:Flex) ONLY.
+ * Non-Burton channel systems (Nitro 3D, Sparks track) are NOT cross-compatible
+ * with Burton Channel boards/bindings and MUST be mapped to '4x4' or '2x4'
+ * during product ingestion (Phase 3) to prevent false-pass verdicts in discToMount().
+ */
 export type MountPattern = '4x4' | '2x4' | 'channel';
 
 /** Compatibility verdict severity — 'unknown' is reserved for advisory-only results. */
@@ -49,14 +56,25 @@ export interface GearSetup {
 /**
  * Result of a single compatibility rule evaluation.
  * ruleId is stable and human-readable — used as badge key in Phase 5.
+ *
+ * Hard vs advisory contract:
+ *   - Hard rules (bootToBindingSize, bootToBoardWaist, discToMount) via runRules() NEVER emit
+ *     verdict 'unknown' and NEVER set advisory:true. Their advisory field is absent (undefined).
+ *   - flexPairing is the ONLY source of 'unknown' verdicts and always sets advisory:true.
+ *   - Phase 5 badge rendering should check `result.advisory === true` to identify advisory results.
+ *     Checking `!result.advisory` treats both explicit false AND undefined as "hard rule" — which
+ *     is correct given the contract above, but relying on it implicitly is fragile.
  */
 export interface RuleResult {
   /** Stable kebab-case rule identifier: 'boot-to-binding-size' | 'boot-to-board-waist' | 'binding-disc-to-mount' | 'flex-pairing' */
   ruleId: string;
-  /** Verdict severity. Hard rules return pass/warn/fail. flexPairing returns pass or unknown. */
+  /** Verdict severity. Hard rules return pass/warn/fail only. flexPairing returns pass or unknown. */
   verdict: Verdict;
   /** Human-readable reason string — rendered directly as badge tooltip/label in Phase 5. */
   reason: string;
-  /** True only for flexPairing advisory — distinguishes soft recommendations from hard rules. */
+  /**
+   * True only for flexPairing advisory — distinguishes soft recommendations from hard rules.
+   * Absent (undefined) on all hard-rule results. Use `advisory === true` for strict checks.
+   */
   advisory?: boolean;
 }

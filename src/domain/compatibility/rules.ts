@@ -24,6 +24,14 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
   const { sizeUS } = setup.boot;
   const [min, max] = setup.binding.sizeRange;
 
+  if (!Number.isFinite(sizeUS) || !Number.isFinite(min) || !Number.isFinite(max)) {
+    return {
+      ruleId: 'boot-to-binding-size',
+      verdict: 'fail',
+      reason: `Invalid numeric input — sizeUS=${sizeUS}, range=[${min}–${max}]`,
+    };
+  }
+
   if (sizeUS < min || sizeUS > max) {
     return {
       ruleId: 'boot-to-binding-size',
@@ -58,6 +66,15 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
 export function bootToBoardWaist(setup: GearSetup): RuleResult {
   const { sizeUS } = setup.boot;
   const { waistWidthMm } = setup.board;
+
+  if (!Number.isFinite(sizeUS) || !Number.isFinite(waistWidthMm)) {
+    return {
+      ruleId: 'boot-to-board-waist',
+      verdict: 'fail',
+      reason: `Invalid numeric input — sizeUS=${sizeUS}, waistWidthMm=${waistWidthMm}`,
+    };
+  }
+
   const bootLengthMm = sizeUS * 8.1 + 209;
 
   if (waistWidthMm < bootLengthMm - 25) {
@@ -88,10 +105,22 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
  *       Channel boards require Burton EST/Re:Flex only; channel bindings have no screw disc.
  * Pass: both channel, or both non-channel (4x4+4x4, 4x4+2x4, 2x4+4x4, 2x4+2x4 all pass).
  * Note: no warn tier for disc mismatch — incompatibility is always a hard fail.
+ *
+ * IMPORTANT: 'channel' here means Burton Channel (EST/Re:Flex) ONLY.
+ * Non-Burton channel systems (Nitro 3D, Sparks track) must be mapped to '4x4'
+ * during product ingestion (Phase 3) to avoid false-pass verdicts here.
  */
 export function discToMount(setup: GearSetup): RuleResult {
   const { mountingPattern } = setup.board;
   const { discPattern } = setup.binding;
+
+  if (!mountingPattern || !discPattern) {
+    return {
+      ruleId: 'binding-disc-to-mount',
+      verdict: 'fail',
+      reason: `Invalid input — mountingPattern=${String(mountingPattern)}, discPattern=${String(discPattern)}`,
+    };
+  }
 
   const isChannelBoard = mountingPattern === 'channel';
   const isChannelBinding = discPattern === 'channel';
@@ -99,7 +128,7 @@ export function discToMount(setup: GearSetup): RuleResult {
   if (isChannelBoard !== isChannelBinding) {
     const detail = isChannelBoard
       ? `Channel board requires Burton EST/Re:Flex bindings — got ${discPattern} disc`
-      : `${discPattern} binding disc cannot mount on a Channel board`;
+      : `channel binding disc (Burton EST/Re:Flex) cannot mount on a ${mountingPattern} board`;
     return { ruleId: 'binding-disc-to-mount', verdict: 'fail', reason: detail };
   }
 
