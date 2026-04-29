@@ -10,8 +10,8 @@
  */
 import { describe, it, expect } from 'vitest';
 
-// Guard: skip when running in CI or when CI env var is set
-const RUN_E2E = !process.env['CI'];
+// Guard: only run when E2E=1 is explicitly set — never runs in CI or standard npm test
+const RUN_E2E = process.env['E2E'] === '1';
 
 describe.skipIf(!RUN_E2E)('e2e: fetchAllProducts() pagination (DATA-02)', () => {
   it(
