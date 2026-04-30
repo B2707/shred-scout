@@ -17,6 +17,14 @@ type Screen = 'onboarding' | 'search' | 'results';
 export function App(): React.JSX.Element {
   // readProfile() is synchronous — safe to call at render time (no useEffect needed)
   const existingProfile = readProfile();
+
+  // Detect image protocol support once at mount — cached boolean passed down as prop.
+  // iTerm2: TERM_PROGRAM === 'iTerm.app'; Kitty: KITTY_WINDOW_ID is set.
+  // Evaluated once (constant, not state) — no re-render triggered. Locked decision: CONTEXT.md.
+  const supportsImages =
+    process.env['TERM_PROGRAM'] === 'iTerm.app' ||
+    process.env['KITTY_WINDOW_ID'] !== undefined;
+
   const [screen, setScreen] = useState<Screen>(
     existingProfile ? 'search' : 'onboarding',
   );
@@ -58,7 +66,7 @@ export function App(): React.JSX.Element {
     return (
       <>
         <Header profile={profile} />
-        <SearchView agentLoop={agentLoop} profile={profile} />
+        <SearchView agentLoop={agentLoop} profile={profile} supportsImages={supportsImages} />
       </>
     );
   }
