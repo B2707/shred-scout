@@ -27,6 +27,16 @@ program
   .version(`shred-scout ${pkgVersion}`, '-v, --version', 'Print version and exit')
   .helpOption('-h, --help', 'Show help');
 
+program.addHelpText('after', [
+  '',
+  'Getting started:',
+  '  npm run setup     One-time install — enables `shred-scout` globally',
+  '  shred-scout       Run after setup',
+  '',
+  'Without installing:',
+  '  npm start         Run directly (no global install needed)',
+].join('\n'));
+
 program
   .command('search', { isDefault: true })
   .description('Search for compatible snowboard gear (interactive)')
