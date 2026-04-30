@@ -27,6 +27,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/cli.ts",
+    "setup": "npm run build && npm link",
+    "start": "node bin/shred-scout",
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",
