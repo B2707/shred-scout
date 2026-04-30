@@ -15,6 +15,8 @@ import Anthropic, {
   APIUserAbortError,
   AuthenticationError,
   PermissionDeniedError,
+  BadRequestError,
+  RateLimitError,
 } from '@anthropic-ai/sdk';
 import type {
   MessageParam,
@@ -172,6 +174,18 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
           // rather than showing a generic stream_error.
           if (err instanceof AuthenticationError || err instanceof PermissionDeniedError) {
             this.emit('error', { code: 'auth_error' });
+            return;
+          }
+          if (err instanceof RateLimitError) {
+            this.emit('error', { code: 'rate_limit', message: 'Rate limit reached — wait a moment and try again' });
+            return;
+          }
+          if (
+            err instanceof BadRequestError &&
+            typeof err.message === 'string' &&
+            err.message.includes('credit balance is too low')
+          ) {
+            this.emit('error', { code: 'billing_error', message: 'Anthropic account has no credits — add credits at console.anthropic.com' });
             return;
           }
           this.emit('error', {
