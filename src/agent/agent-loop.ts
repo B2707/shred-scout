@@ -153,7 +153,12 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
           );
           stream.on('text', (delta: string) => this.emit('token', delta));
           finalMsg = await stream.finalMessage();
-        } catch {
+        } catch (err) {
+          // AbortError is expected (user cancelled) — do not surface as error.
+          if (err instanceof Error && err.name === 'AbortError') {
+            this.emit('done');
+            return;
+          }
           this.emit('error', { code: 'stream_error' });
           return;
         }
