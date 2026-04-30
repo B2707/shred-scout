@@ -126,6 +126,7 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
     // Reset per-run state. Allow re-running the same instance.
     this.#controller = new AbortController();
     this.#messages = [{ role: 'user', content: userMessage }];
+    this.#totalCostUsd = 0; // reset per run so independent queries get a fresh cost ceiling
 
     try {
       for (let turn = 0; turn < this.#maxTurns; turn++) {
