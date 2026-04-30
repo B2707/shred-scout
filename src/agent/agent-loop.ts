@@ -237,7 +237,18 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
       }
 
       if (block.name === 'refine_results') {
-        const spec = (block.input ?? {}) as FilterSpec;
+        const raw = (block.input ?? {}) as Record<string, unknown>;
+        const spec: FilterSpec = {
+          ...(typeof raw['priceMax'] === 'number' ? { priceMax: raw['priceMax'] } : {}),
+          ...(raw['flex'] === 'soft' || raw['flex'] === 'medium' || raw['flex'] === 'stiff'
+            ? { flex: raw['flex'] as FilterSpec['flex'] }
+            : {}),
+          ...(typeof raw['color'] === 'string' ? { color: raw['color'] } : {}),
+          ...(raw['gearType'] === 'board' || raw['gearType'] === 'binding' || raw['gearType'] === 'boot'
+            ? { gearType: raw['gearType'] as FilterSpec['gearType'] }
+            : {}),
+          ...(typeof raw['retailer'] === 'string' ? { retailer: raw['retailer'] } : {}),
+        };
         const filtered = applyFilterSpec(this.#workingSet, spec);
         this.#workingSet = filtered;
         this.emit('result', filtered);
