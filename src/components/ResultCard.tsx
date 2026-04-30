@@ -64,20 +64,6 @@ function detectSale(
     }
   }
 
-  // Fallback: if exact match not found, check any variant with compare_at_price > price
-  if (compareAtCents === 0) {
-    for (const v of variants) {
-      if (v.compare_at_price) {
-        const cac = Math.round(parseFloat(v.compare_at_price) * 100);
-        const vpc = Math.round(parseFloat(v.price) * 100);
-        if (cac > vpc && cac > currentPriceCents) {
-          compareAtCents = cac;
-          break;
-        }
-      }
-    }
-  }
-
   return { isSale: compareAtCents > 0, compareAtCents };
 }
 
