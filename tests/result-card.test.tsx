@@ -2,7 +2,7 @@
  * ResultCard component tests — covers PRES-01.
  * terminal-image is mocked to return a fixed ANSI string — no real terminal required.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { render } from 'ink-testing-library';
 
@@ -17,7 +17,12 @@ vi.mock('terminal-image', () => ({
 const mockFetch = vi.fn().mockResolvedValue({
   arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
 });
-vi.stubGlobal('fetch', mockFetch);
+
+// Re-stub fetch before each test so vi.unstubAllGlobals() in afterEach does not
+// permanently remove the stub for subsequent tests that rely on it.
+beforeEach(() => {
+  vi.stubGlobal('fetch', mockFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
