@@ -67,7 +67,7 @@ describe('useAgent()', () => {
     r.unmount();
   });
 
-  it('cleanup calls abort() before removing individual listeners on unmount', async () => {
+  it('cleanup removes individual listeners before calling abort() on unmount', async () => {
     const { useAgent } = await import('../src/hooks/useAgent.js');
     const loop = makeMockAgentLoop();
     const callOrder: string[] = [];
@@ -85,16 +85,16 @@ describe('useAgent()', () => {
     }
     const r = render(<Probe />);
     r.unmount();
-    // abort() must fire before any listener removal
-    expect(callOrder[0]).toBe('abort');
-    // All 4 listeners must be removed after abort
+    // listeners must be removed before abort() fires (WR-03: prevent dispatch into unmounted component)
+    expect(callOrder[callOrder.length - 1]).toBe('abort');
+    // All 4 listeners must be removed before abort
     expect(offSpy).toHaveBeenCalledTimes(4);
     expect(callOrder).toContain('off:token');
     expect(callOrder).toContain('off:result');
     expect(callOrder).toContain('off:error');
     expect(callOrder).toContain('off:done');
-    // Verify abort was first
-    expect(callOrder.indexOf('abort')).toBeLessThan(callOrder.indexOf('off:token'));
+    // Verify abort is last (listeners removed before abort — WR-03)
+    expect(callOrder.indexOf('abort')).toBeGreaterThan(callOrder.indexOf('off:token'));
   });
 
   it('dispatches ERROR action with code and sets status to error', async () => {

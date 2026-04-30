@@ -37,7 +37,7 @@ function agentReducer(state: AgentState, action: AgentAction): AgentState {
     case 'TOKEN':
       return { ...state, tokens: state.tokens + action.delta, status: 'running' };
     case 'RESULT':
-      return { ...state, products: action.products, status: 'running' };
+      return { ...state, products: [...state.products, ...action.products], status: 'running' };
     case 'ERROR':
       return { ...state, error: action.error, status: 'error' };
     case 'DONE':
@@ -66,11 +66,11 @@ export function useAgent(agentLoop: AgentLoop | null): AgentState {
     agentLoop.on('done', onDone);
 
     return () => {
-      agentLoop.abort();
       agentLoop.off('token', onToken);
       agentLoop.off('result', onResult);
       agentLoop.off('error', onError);
       agentLoop.off('done', onDone);
+      agentLoop.abort();
     };
   }, [agentLoop]);
 
