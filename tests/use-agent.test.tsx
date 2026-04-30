@@ -67,18 +67,34 @@ describe('useAgent()', () => {
     r.unmount();
   });
 
-  it('cleanup function calls agentLoop.abort() and removeAllListeners() on unmount', async () => {
+  it('cleanup calls abort() before removing individual listeners on unmount', async () => {
     const { useAgent } = await import('../src/hooks/useAgent.js');
     const loop = makeMockAgentLoop();
-    const removeAllSpy = vi.spyOn(loop as unknown as EventEmitter, 'removeAllListeners');
+    const callOrder: string[] = [];
+    // Track abort() call order
+    vi.spyOn(loop, 'abort').mockImplementation(() => { callOrder.push('abort'); });
+    // Track individual off() calls
+    const emitter = loop as unknown as EventEmitter;
+    const offSpy = vi.spyOn(emitter, 'off').mockImplementation((...args) => {
+      callOrder.push(`off:${String(args[0])}`);
+      return emitter;
+    });
     function Probe(): React.JSX.Element {
       useAgent(loop);
       return <Text>probe</Text>;
     }
     const r = render(<Probe />);
     r.unmount();
-    expect((loop as unknown as { abort: ReturnType<typeof vi.fn> }).abort).toHaveBeenCalledTimes(1);
-    expect(removeAllSpy).toHaveBeenCalledTimes(1);
+    // abort() must fire before any listener removal
+    expect(callOrder[0]).toBe('abort');
+    // All 4 listeners must be removed after abort
+    expect(offSpy).toHaveBeenCalledTimes(4);
+    expect(callOrder).toContain('off:token');
+    expect(callOrder).toContain('off:result');
+    expect(callOrder).toContain('off:error');
+    expect(callOrder).toContain('off:done');
+    // Verify abort was first
+    expect(callOrder.indexOf('abort')).toBeLessThan(callOrder.indexOf('off:token'));
   });
 
   it('dispatches ERROR action with code and sets status to error', async () => {
