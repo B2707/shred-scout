@@ -1,9 +1,9 @@
 /**
  * useAgent — EventEmitter → useReducer bridge for AgentLoop.
  *
- * Subscribes to AgentLoop events in useEffect; cleanup calls
- * agentLoop.abort() + removeAllListeners() to prevent listener leaks
- * (RESEARCH Pitfall 4) and cancel in-flight streaming.
+ * Subscribes to AgentLoop events in useEffect; cleanup removes only the
+ * specific listeners registered by this hook instance (RESEARCH Pitfall 4)
+ * and calls abort() to cancel in-flight streaming.
  *
  * Pure: no stdout writes. Tokens reset on 'done' so each turn starts fresh.
  */
@@ -67,7 +67,10 @@ export function useAgent(agentLoop: AgentLoop | null): AgentState {
 
     return () => {
       agentLoop.abort();
-      agentLoop.removeAllListeners();
+      agentLoop.off('token', onToken);
+      agentLoop.off('result', onResult);
+      agentLoop.off('error', onError);
+      agentLoop.off('done', onDone);
     };
   }, [agentLoop]);
 
