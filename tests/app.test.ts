@@ -7,6 +7,9 @@ import { render } from 'ink-testing-library';
 vi.mock('../src/lib/profile.js', () => ({
   readProfile: vi.fn().mockReturnValue(null),
   writeProfile: vi.fn(),
+  readApiKey: vi.fn().mockReturnValue(null),
+  writeApiKey: vi.fn(),
+  loadApiKeyToEnv: vi.fn(),
   validateBootSize: vi.fn().mockImplementation((v: number) => !isNaN(v) && v >= 4.0 && v <= 18.0),
   validateHeightCm: vi.fn().mockImplementation((cm: number) => !isNaN(cm) && cm >= 120 && cm <= 250),
   validateWeightKg: vi.fn().mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
@@ -37,10 +40,13 @@ beforeEach(() => {
   vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
   // Reset readProfile mock to return null by default
   (readProfile as ReturnType<typeof vi.fn>).mockReturnValue(null);
+  // Simulate key already set so tests that expect 'search' screen aren't blocked by api-key screen
+  process.env['ANTHROPIC_API_KEY'] = 'sk-ant-test-00000000000000000000';
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  delete process.env['ANTHROPIC_API_KEY'];
 });
 
 // Helper to submit text value using act to flush React state updates
