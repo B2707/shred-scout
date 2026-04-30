@@ -5,8 +5,11 @@
  * Phase 5: grouped product rendering via groupProducts() + useMemo,
  * ResultCard for single-retailer products, ComparisonGroup for multi-retailer matches,
  * empty state when no products have arrived, and supportsImages prop threading.
+ *
+ * auth_error recovery: when the agent emits auth_error (invalid API key), the
+ * onAuthError callback is invoked so App.tsx can navigate back to the api-key screen.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Box, Text, Static } from 'ink';
 import { TextInput } from '@inkjs/ui';
 import type { AgentLoop } from '../agent/agent-loop.js';
@@ -21,10 +24,21 @@ export interface SearchViewProps {
   agentLoop: AgentLoop;
   profile: RiderProfile;
   supportsImages: boolean;
+  /** Called when the agent reports an auth_error so App can navigate to the api-key screen. */
+  onAuthError: () => void;
 }
 
-export function SearchView({ agentLoop, supportsImages }: SearchViewProps): React.JSX.Element {
+export function SearchView({ agentLoop, supportsImages, onAuthError }: SearchViewProps): React.JSX.Element {
   const state = useAgent(agentLoop);
+
+  // Navigate to api-key screen on auth_error so the user can update their key.
+  // useEffect ensures the callback fires after React has committed the error state,
+  // avoiding state updates inside a render cycle.
+  useEffect(() => {
+    if (state.error?.code === 'auth_error') {
+      onAuthError();
+    }
+  }, [state.error, onAuthError]);
 
   const groups = React.useMemo<ProductGroup[]>(
     () => groupProducts(state.products),
@@ -69,9 +83,9 @@ export function SearchView({ agentLoop, supportsImages }: SearchViewProps): Reac
           <Text dimColor>{state.tokens}</Text>
         </Box>
       )}
-      {state.error !== null && (
+      {state.error !== null && state.error.code !== 'auth_error' && (
         <Box>
-          <Text color="red">Error: {state.error.code}</Text>
+          <Text color="red">Error: {state.error.code}{typeof state.error['message'] === 'string' ? ` — ${state.error['message']}` : ''}</Text>
         </Box>
       )}
       <Box marginTop={1}>
