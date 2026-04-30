@@ -14,10 +14,11 @@ import { EventEmitter } from 'node:events';
 import Anthropic from '@anthropic-ai/sdk';
 import type {
   MessageParam,
+  ContentBlock,
   ToolUseBlock,
   TextBlockParam,
   ToolResultBlockParam,
-} from '@anthropic-ai/sdk/resources/messages.js';
+} from '@anthropic-ai/sdk/resources/messages/messages.js';
 import type Database from 'better-sqlite3';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
@@ -171,7 +172,7 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
             return;
 
           case 'tool_use': {
-            const toolUseBlocks = finalMsg.content.filter(
+            const toolUseBlocks = (finalMsg.content as ContentBlock[]).filter(
               (b): b is ToolUseBlock => b.type === 'tool_use',
             );
             // Dispatch all tool_use blocks in parallel (RESEARCH Pitfall 7)

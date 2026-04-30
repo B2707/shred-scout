@@ -9,6 +9,9 @@
  *
  * Run once at startup — pass the returned Database instance to all repo factory functions.
  */
+import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import Database from 'better-sqlite3';
 
 /** A single migration entry — name must be stable (used as PK in schema_versions). */
@@ -82,12 +85,39 @@ CREATE TABLE IF NOT EXISTS rider_profile (
 ];
 
 /**
+ * Returns the platform-appropriate default path for the Shred Scout SQLite database.
+ *
+ * Uses the same base directory as the `conf` profile store:
+ *   macOS:  ~/Library/Preferences/shred-scout/shred-scout.db
+ *   Linux:  ~/.config/shred-scout/shred-scout.db
+ *   Windows: %APPDATA%/shred-scout/shred-scout.db
+ */
+export function defaultDatabasePath(): string {
+  const platform = process.platform;
+  let base: string;
+  if (platform === 'win32') {
+    base = process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming');
+  } else if (platform === 'darwin') {
+    base = join(homedir(), 'Library', 'Preferences');
+  } else {
+    base = process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config');
+  }
+  return join(base, 'shred-scout', 'shred-scout.db');
+}
+
+/**
  * Opens (or creates) the Shred Scout SQLite database and runs all pending migrations.
  *
  * @param dbPath - File path for the database, or ':memory:' for in-memory (tests).
+ *                 Defaults to the platform-appropriate data directory.
  * @returns Initialized better-sqlite3 Database instance ready for use.
  */
-export function openDatabase(dbPath: string): Database.Database {
+export function openDatabase(dbPath: string = defaultDatabasePath()): Database.Database {
+  // Ensure the parent directory exists before opening/creating the file
+  if (dbPath !== ':memory:') {
+    const dir = join(dbPath, '..');
+    mkdirSync(dir, { recursive: true });
+  }
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');

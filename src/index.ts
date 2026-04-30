@@ -22,3 +22,17 @@ export { openDatabase } from './data/db.js';
 export { makeRiderRepo } from './data/repos/riderRepo.js';
 export { makeSetupRepo } from './data/repos/setupRepo.js';
 export { makePriceRepo } from './data/repos/priceRepo.js';
+
+// Phase 4 public exports
+export type { FilterSpec } from './agent/filter-spec.js';
+export { applyFilterSpec } from './agent/filter-spec.js';
+export type { AgentLoopOptions, AgentLoopEvents } from './agent/agent-loop.js';
+export {
+  AgentLoop,
+  MAX_AGENT_TURNS,
+  INPUT_PRICE_PER_MTOK,
+  OUTPUT_PRICE_PER_MTOK,
+  DEFAULT_COST_CEILING_USD,
+} from './agent/agent-loop.js';
+export { useAgent } from './hooks/useAgent.js';
+export type { AgentState, AgentAction } from './hooks/useAgent.js';
