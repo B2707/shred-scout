@@ -11,7 +11,11 @@
  * correct values below are used.
  */
 import { EventEmitter } from 'node:events';
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, {
+  APIUserAbortError,
+  AuthenticationError,
+  PermissionDeniedError,
+} from '@anthropic-ai/sdk';
 import type {
   MessageParam,
   ContentBlock,
@@ -155,12 +159,25 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
           stream.on('text', (delta: string) => this.emit('token', delta));
           finalMsg = await stream.finalMessage();
         } catch (err) {
-          // AbortError is expected (user cancelled) — do not surface as error.
-          if (err instanceof Error && err.name === 'AbortError') {
+          // APIUserAbortError is thrown by the SDK's MessageStream when the
+          // AbortController fires (component unmount or explicit abort() call).
+          // The old check for err.name === 'AbortError' never matched because the
+          // SDK wraps native AbortErrors into APIUserAbortError before rethrowing.
+          if (err instanceof APIUserAbortError) {
             this.emit('done');
             return;
           }
-          this.emit('error', { code: 'stream_error' });
+          // Authentication failures (401 invalid key, 403 permission denied) need
+          // a distinct error code so the UI can prompt the user to update their key
+          // rather than showing a generic stream_error.
+          if (err instanceof AuthenticationError || err instanceof PermissionDeniedError) {
+            this.emit('error', { code: 'auth_error' });
+            return;
+          }
+          this.emit('error', {
+            code: 'stream_error',
+            message: err instanceof Error ? err.message : String(err),
+          });
           return;
         }
 
@@ -218,8 +235,11 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
 
       // Loop fell through all maxTurns without end_turn — hard cap reached
       this.emit('error', { code: 'max_turns', limit: this.#maxTurns });
-    } catch {
-      this.emit('error', { code: 'stream_error' });
+    } catch (err) {
+      this.emit('error', {
+        code: 'stream_error',
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
