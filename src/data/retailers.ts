@@ -14,11 +14,11 @@ export interface Retailer {
 }
 
 /**
- * Hardcoded list of Shopify snowboard retailers with public products.json endpoints.
- * All three stores confirmed to expose unauthenticated products.json.
+ * Shopify snowboard retailers with confirmed public products.json endpoints.
+ * Verified 2026-04-30: evo/tactics/the-house are dead (403/redirect/404).
  */
 export const RETAILERS: readonly Retailer[] = [
-  { name: 'evo', baseUrl: 'https://www.evo.com' },
-  { name: 'tactics', baseUrl: 'https://www.tactics.com' },
-  { name: 'the-house', baseUrl: 'https://www.the-house.com' },
+  { name: 'stoked', baseUrl: 'https://stokedboardshop.com' },
+  { name: 'thirtytwo', baseUrl: 'https://www.thirtytwo.com' },
+  { name: 'nidecker', baseUrl: 'https://www.nidecker.com' },
 ] as const;
