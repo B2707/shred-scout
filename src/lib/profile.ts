@@ -10,7 +10,7 @@
 import Conf from 'conf';
 import type { RiderProfile } from '../types/profile.js';
 
-type StoreShape = { riderProfile: RiderProfile };
+type StoreShape = { riderProfile: RiderProfile; apiKey?: string };
 
 // Module-level singleton — conf reads config file once at module init.
 // projectSuffix: '' prevents conf from appending '-nodejs' to the directory name.
@@ -34,6 +34,31 @@ export function readProfile(): RiderProfile | null {
  */
 export function writeProfile(profile: RiderProfile): void {
   store.set('riderProfile', profile);
+}
+
+/**
+ * Reads the saved Anthropic API key. Returns null if not yet saved.
+ */
+export function readApiKey(): string | null {
+  if (!store.has('apiKey')) return null;
+  return store.get('apiKey') ?? null;
+}
+
+/**
+ * Saves the Anthropic API key to the platform config store.
+ */
+export function writeApiKey(key: string): void {
+  store.set('apiKey', key);
+}
+
+/**
+ * Loads the saved API key into process.env if not already set.
+ * Safe to call multiple times — no-ops if key is already in env.
+ */
+export function loadApiKeyToEnv(): void {
+  if (process.env['ANTHROPIC_API_KEY']) return;
+  const saved = readApiKey();
+  if (saved) process.env['ANTHROPIC_API_KEY'] = saved;
 }
 
 /**
