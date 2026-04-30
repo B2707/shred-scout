@@ -300,11 +300,12 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
         content: `Unknown tool: ${block.name}`,
         is_error: true,
       };
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       return {
         type: 'tool_result' as const,
         tool_use_id: block.id,
-        content: 'Tool execution failed',
+        content: `Tool execution failed: ${msg}`,
         is_error: true,
       };
     }
