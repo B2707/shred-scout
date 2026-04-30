@@ -12,6 +12,22 @@ vi.mock('../src/lib/profile.js', () => ({
   validateWeightKg: vi.fn().mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
 }));
 
+// Mock openDatabase and AgentLoop to avoid real DB / API key requirements in App tests.
+vi.mock('../src/data/index.js', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../src/data/index.js')>();
+  return { ...mod, openDatabase: vi.fn().mockReturnValue({}) };
+});
+
+vi.mock('../src/agent/agent-loop.js', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../src/agent/agent-loop.js')>();
+  const { EventEmitter } = await import('node:events');
+  class MockAgentLoop extends EventEmitter {
+    run = vi.fn();
+    abort = vi.fn();
+  }
+  return { ...mod, AgentLoop: MockAgentLoop };
+});
+
 // Import after vi.mock (vi.mock is hoisted so mocks are applied before these imports)
 import { App } from '../src/components/App.js';
 import { readProfile } from '../src/lib/profile.js';
@@ -81,12 +97,14 @@ describe('App — screen routing', () => {
 });
 
 describe('App — global quit handler', () => {
-  it('calls process.exit(0) when q is pressed', async () => {
+  it('exits via ink useApp().exit() when q is pressed — does not call process.exit directly', async () => {
+    // Ink's exit() terminates the app cleanly; process.exit is NOT called directly.
+    // We verify process.exit is NOT called (the old behavior that bypassed Ink cleanup).
     (readProfile as ReturnType<typeof vi.fn>).mockReturnValue(null);
     const { stdin } = render(React.createElement(App));
     await act(async () => {
       stdin.write('q');
     });
-    expect(process.exit).toHaveBeenCalledWith(0);
+    expect(process.exit).not.toHaveBeenCalled();
   });
 });

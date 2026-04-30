@@ -3,7 +3,7 @@
  * Reads existing profile synchronously at render time to determine initial screen.
  */
 import React, { useState, useMemo } from 'react';
-import { Text, useInput } from 'ink';
+import { Text, useInput, useApp } from 'ink';
 import type { RiderProfile } from '../types/profile.js';
 import { readProfile } from '../lib/profile.js';
 import { WizardScreen } from './wizard/WizardScreen.js';
@@ -24,20 +24,22 @@ export function App(): React.JSX.Element {
 
   // Lazy-construct AgentLoop once when profile is available.
   // useMemo with [profile] dep ensures a fresh AgentLoop if profile changes.
-  const agentLoop = useMemo(() => {
-    if (!profile) return null;
+  // Returns both the loop and any construction error so the UI can display failures.
+  const [agentLoop, initError] = useMemo<[import('../agent/agent-loop.js').AgentLoop | null, string | null]>(() => {
+    if (!profile) return [null, null];
     try {
       const db = openDatabase();
-      return new AgentLoop(profile, db);
-    } catch {
-      return null;
+      return [new AgentLoop(profile, db), null];
+    } catch (err) {
+      return [null, err instanceof Error ? err.message : 'Failed to initialize'];
     }
   }, [profile]);
 
+  const { exit } = useApp();
   // Global quit handler — always active, no isActive toggling
   useInput((input: string) => {
     if (input === 'q') {
-      process.exit(0);
+      exit();
     }
   });
 
@@ -59,6 +61,10 @@ export function App(): React.JSX.Element {
         <SearchView agentLoop={agentLoop} profile={profile} />
       </>
     );
+  }
+
+  if (initError) {
+    return <Text color="red">Initialization error: {initError}</Text>;
   }
 
   return (
