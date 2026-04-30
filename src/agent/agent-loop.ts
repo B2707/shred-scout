@@ -277,7 +277,25 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
   }
 
   async #dispatchSearchProducts(input: unknown): Promise<NormalizedProduct[]> {
-    const args = (input ?? {}) as { query?: string; filters?: FilterSpec };
+    const raw = (input ?? {}) as Record<string, unknown>;
+    // Validate query is a string (declared required in tool schema but guard at runtime)
+    const query: string | undefined = typeof raw['query'] === 'string' ? raw['query'] : undefined;
+    // Validate filters using same field-by-field guard as refine_results
+    const rawFilters = raw['filters'] as Record<string, unknown> | undefined;
+    const filters: FilterSpec | undefined = rawFilters
+      ? {
+          ...(typeof rawFilters['priceMax'] === 'number' ? { priceMax: rawFilters['priceMax'] } : {}),
+          ...(rawFilters['flex'] === 'soft' || rawFilters['flex'] === 'medium' || rawFilters['flex'] === 'stiff'
+            ? { flex: rawFilters['flex'] as FilterSpec['flex'] }
+            : {}),
+          ...(typeof rawFilters['color'] === 'string' ? { color: rawFilters['color'] } : {}),
+          ...(rawFilters['gearType'] === 'board' || rawFilters['gearType'] === 'binding' || rawFilters['gearType'] === 'boot'
+            ? { gearType: rawFilters['gearType'] as FilterSpec['gearType'] }
+            : {}),
+          ...(typeof rawFilters['retailer'] === 'string' ? { retailer: rawFilters['retailer'] } : {}),
+        }
+      : undefined;
+    void query; // query is available for future use (e.g. semantic filtering, logging)
     const pipeline = new RequestPipeline();
     const productRepo = makeProductRepo(this.#db);
     const all: NormalizedProduct[] = [];
@@ -293,8 +311,8 @@ export class AgentLoop extends EventEmitter<AgentLoopEvents> {
       }
     }
 
-    if (args.filters) {
-      return applyFilterSpec(all, args.filters);
+    if (filters) {
+      return applyFilterSpec(all, filters);
     }
     return all;
   }
