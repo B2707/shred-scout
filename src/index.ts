@@ -11,7 +11,6 @@ export { readProfile, writeProfile } from './lib/profile.js';
 // Phase 2 public exports
 export type { GearSetup, Board, Binding, Boot, RuleResult, MountPattern, Verdict } from './domain/compatibility/types.js';
 export { runRules } from './domain/compatibility/engine.js';
-export { flexPairing } from './domain/compatibility/flex-pairing.js';
 
 // Phase 3 public exports
 export type { NormalizedProduct } from './data/normalizer.js';
@@ -26,13 +25,7 @@ export { makePriceRepo } from './data/repos/priceRepo.js';
 // Phase 4 public exports
 export type { FilterSpec } from './agent/filter-spec.js';
 export { applyFilterSpec } from './agent/filter-spec.js';
-export type { AgentLoopOptions, AgentLoopEvents } from './agent/agent-loop.js';
-export {
-  AgentLoop,
-  MAX_AGENT_TURNS,
-  INPUT_PRICE_PER_MTOK,
-  OUTPUT_PRICE_PER_MTOK,
-  DEFAULT_COST_CEILING_USD,
-} from './agent/agent-loop.js';
-export { useAgent } from './hooks/useAgent.js';
-export type { AgentState, AgentAction } from './hooks/useAgent.js';
+
+// Phase 8 public exports
+export { flexAdvisory } from './domain/compatibility/flex-advisory.js';
+export { runSearch } from './agent/search-pipeline.js';
