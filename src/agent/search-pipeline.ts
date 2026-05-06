@@ -34,18 +34,22 @@ export async function runSearch(
   const all: NormalizedProduct[] = [];
   const errors: string[] = [];
 
-  for (const retailer of RETAILERS) {
-    try {
-      const raws = await fetchAllProducts(retailer.baseUrl, pipeline);
-      for (const raw of raws) {
-        const normalized = normalizeProduct(raw, retailer.name);
-        productRepo.upsert(normalized);
-        all.push(normalized);
+  try {
+    for (const retailer of RETAILERS) {
+      try {
+        const raws = await fetchAllProducts(retailer.baseUrl, pipeline);
+        for (const raw of raws) {
+          const normalized = normalizeProduct(raw, retailer.name);
+          productRepo.upsert(normalized);
+          all.push(normalized);
+        }
+      } catch (err) {
+        errors.push(`${retailer.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
-    } catch (err) {
-      errors.push(`${retailer.name}: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }
 
-  return { products: all, errors };
+    return { products: all, errors };
+  } finally {
+    db.close();
+  }
 }
