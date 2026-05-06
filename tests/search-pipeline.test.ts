@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RiderProfile } from '../src/types/profile.js';
+import type { RequestPipeline } from '../src/data/pipeline.js';
 
 vi.mock('../src/data/shopify.js', () => ({
   fetchAllProducts: vi.fn().mockResolvedValue([
@@ -53,8 +54,11 @@ vi.mock('../src/data/retailers.js', () => ({
 }));
 
 vi.mock('../src/data/pipeline.js', () => ({
-  RequestPipeline: vi.fn().mockImplementation(() => ({})),
+  RequestPipeline: class MockRequestPipeline {},
 }));
+
+import { fetchAllProducts } from '../src/data/shopify.js';
+import { runSearch } from '../src/agent/search-pipeline.js';
 
 function makeProfile(): RiderProfile {
   return {
@@ -65,26 +69,34 @@ function makeProfile(): RiderProfile {
   };
 }
 
+// Pipeline is passed through to fetchAllProducts which is mocked — a plain object suffices
+const mockPipeline = {} as RequestPipeline;
+
+const defaultProduct = {
+  id: 1,
+  title: 'Test Board',
+  handle: 'test-board',
+  product_type: 'Snowboard',
+  vendor: 'Burton',
+  tags: [],
+  images: [],
+  variants: [{ price: '499.00', compare_at_price: null, option1: 'L' }],
+};
+
 describe('runSearch', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.mocked(fetchAllProducts).mockResolvedValue([defaultProduct]);
   });
 
   it('returns products array from mocked fetchAllProducts', async () => {
-    const { runSearch } = await import('../src/agent/search-pipeline.js');
-    const { RequestPipeline } = await import('../src/data/pipeline.js');
-    const pipeline = new (RequestPipeline as new () => object)() as object;
-    const { products, errors } = await runSearch('board', makeProfile(), pipeline as import('../src/data/pipeline.js').RequestPipeline);
+    const { products, errors } = await runSearch('board', makeProfile(), mockPipeline);
     expect(Array.isArray(products)).toBe(true);
     expect(products.length).toBeGreaterThan(0);
     expect(errors).toEqual([]);
   });
 
   it('returns { products, errors } shape', async () => {
-    const { runSearch } = await import('../src/agent/search-pipeline.js');
-    const { RequestPipeline } = await import('../src/data/pipeline.js');
-    const pipeline = new (RequestPipeline as new () => object)() as object;
-    const result = await runSearch('board', makeProfile(), pipeline as import('../src/data/pipeline.js').RequestPipeline);
+    const result = await runSearch('board', makeProfile(), mockPipeline);
     expect(result).toHaveProperty('products');
     expect(result).toHaveProperty('errors');
     expect(Array.isArray(result.products)).toBe(true);
@@ -92,23 +104,16 @@ describe('runSearch', () => {
   });
 
   it('collects per-retailer errors without throwing', async () => {
-    const { fetchAllProducts } = await import('../src/data/shopify.js');
-    (fetchAllProducts as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
-    const { runSearch } = await import('../src/agent/search-pipeline.js');
-    const { RequestPipeline } = await import('../src/data/pipeline.js');
-    const pipeline = new (RequestPipeline as new () => object)() as object;
-    const { products, errors } = await runSearch('board', makeProfile(), pipeline as import('../src/data/pipeline.js').RequestPipeline);
+    vi.mocked(fetchAllProducts).mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
+    const { products, errors } = await runSearch('board', makeProfile(), mockPipeline);
+    void products;
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]).toContain('connect ECONNREFUSED');
   });
 
   it('per-retailer error string contains the retailer name', async () => {
-    const { fetchAllProducts } = await import('../src/data/shopify.js');
-    (fetchAllProducts as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('timeout'));
-    const { runSearch } = await import('../src/agent/search-pipeline.js');
-    const { RequestPipeline } = await import('../src/data/pipeline.js');
-    const pipeline = new (RequestPipeline as new () => object)() as object;
-    const { errors } = await runSearch('board', makeProfile(), pipeline as import('../src/data/pipeline.js').RequestPipeline);
+    vi.mocked(fetchAllProducts).mockRejectedValueOnce(new Error('timeout'));
+    const { errors } = await runSearch('board', makeProfile(), mockPipeline);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]).toContain('TestRetailer');
   });
