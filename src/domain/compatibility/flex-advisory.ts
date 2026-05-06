@@ -41,7 +41,7 @@ export function flexAdvisory(setup: GearSetup, rider: RiderProfile): RuleResult 
     return {
       ruleId: 'flex-pairing',
       verdict: 'unknown',
-      reason: 'Flex rating not available for this product',
+      reason: `No flex range defined for riding style '${rider.ridingStyle}'`,
       advisory: true,
     };
   }
