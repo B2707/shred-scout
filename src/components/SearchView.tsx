@@ -1,57 +1,47 @@
 /**
- * SearchView — NL search input + streaming token display + results area.
+ * SearchView — NL search input + loading state + results area.
  *
- * Subscribes to AgentLoop via useAgent (EventEmitter → useReducer bridge).
- * Phase 5: grouped product rendering via groupProducts() + useMemo,
- * ResultCard for single-retailer products, ComparisonGroup for multi-retailer matches,
- * empty state when no products have arrived, and supportsImages prop threading.
- *
- * auth_error recovery: when the agent emits auth_error (invalid API key), the
- * onAuthError callback is invoked so App.tsx can navigate back to the api-key screen.
+ * Calls runSearch() directly via useState + async handleSubmit.
+ * No AgentLoop, no useAgent, no EventEmitter — plain async await.
+ * Phase 8: deterministic search pipeline wired directly into UI state.
  */
-import React, { useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Box, Text, Static } from 'ink';
 import { TextInput } from '@inkjs/ui';
-import type { AgentLoop } from '../agent/agent-loop.js';
 import type { RiderProfile } from '../types/profile.js';
-import { useAgent } from '../hooks/useAgent.js';
+import type { NormalizedProduct } from '../data/normalizer.js';
+import { RequestPipeline } from '../data/pipeline.js';
+import { runSearch } from '../agent/search-pipeline.js';
 import { ResultCard } from './ResultCard.js';
 import { ComparisonGroup } from './ComparisonGroup.js';
 import { groupProducts } from '../types/product-groups.js';
 import type { ProductGroup } from '../types/product-groups.js';
 
 export interface SearchViewProps {
-  agentLoop: AgentLoop;
   profile: RiderProfile;
   supportsImages: boolean;
-  /** Called when the agent reports an auth_error so App can navigate to the api-key screen. */
-  onAuthError: () => void;
 }
 
-export function SearchView({ agentLoop, supportsImages, onAuthError }: SearchViewProps): React.JSX.Element {
-  const state = useAgent(agentLoop);
+export function SearchView({ profile, supportsImages }: SearchViewProps): React.JSX.Element {
+  const [isLoading, setIsLoading] = useState(false);
+  const [products, setProducts] = useState<NormalizedProduct[]>([]);
+  const [searchErrors, setSearchErrors] = useState<string[]>([]);
+  const pipelineRef = useRef<RequestPipeline>(new RequestPipeline());
 
-  // Navigate to api-key screen on auth_error so the user can update their key.
-  // useEffect ensures the callback fires after React has committed the error state,
-  // avoiding state updates inside a render cycle.
-  useEffect(() => {
-    if (state.error?.code === 'auth_error') {
-      onAuthError();
-    }
-  }, [state.error, onAuthError]);
+  const groups = React.useMemo<ProductGroup[]>(() => groupProducts(products), [products]);
 
-  const groups = React.useMemo<ProductGroup[]>(
-    () => groupProducts(state.products),
-    [state.products],
-  );
-
-  const handleSubmit = useCallback(
-    (query: string) => {
-      // void to satisfy no-floating-promises — agent loop emits results via events
-      void agentLoop.run(query);
-    },
-    [agentLoop],
-  );
+  const handleSubmit = useCallback((query: string) => {
+    if (isLoading) return;
+    void (async () => {
+      setIsLoading(true);
+      setProducts([]);
+      setSearchErrors([]);
+      const { products: found, errors } = await runSearch(query, profile, pipelineRef.current);
+      setProducts(found);
+      setSearchErrors(errors);
+      setIsLoading(false);
+    })();
+  }, [isLoading, profile]);
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -72,24 +62,24 @@ export function SearchView({ agentLoop, supportsImages, onAuthError }: SearchVie
           )
         }
       </Static>
-      {state.products.length === 0 && (
+      {products.length === 0 && !isLoading && (
         <Box flexDirection="column" paddingX={1} marginTop={1}>
           <Text bold>No results yet</Text>
           <Text dimColor>Type a search above to find compatible gear.</Text>
         </Box>
       )}
-      {state.tokens.length > 0 && (
-        <Box>
-          <Text dimColor>{state.tokens}</Text>
-        </Box>
-      )}
-      {state.error !== null && state.error.code !== 'auth_error' && (
-        <Box>
-          <Text color="red">Error: {state.error.code}{typeof state.error['message'] === 'string' ? ` — ${state.error['message']}` : ''}</Text>
+      {searchErrors.length > 0 && (
+        <Box flexDirection="column">
+          {searchErrors.map((err, i) => (
+            <Text key={i} color="yellow">{err}</Text>
+          ))}
         </Box>
       )}
       <Box marginTop={1}>
-        <TextInput placeholder="Refine search (e.g. 'only stiff boards')..." onSubmit={handleSubmit} />
+        {isLoading
+          ? <Text dimColor>Searching...</Text>
+          : <TextInput placeholder="Search for gear..." onSubmit={handleSubmit} />
+        }
       </Box>
     </Box>
   );
