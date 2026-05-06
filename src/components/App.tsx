@@ -16,9 +16,6 @@ import { SearchView } from './SearchView.js';
 type Screen = 'onboarding' | 'search';
 
 export function App(): React.JSX.Element {
-  // readProfile() is synchronous — safe to call at render time (no useEffect needed)
-  const existingProfile = readProfile();
-
   // Detect image protocol support once at mount — cached boolean passed down as prop.
   // iTerm2: TERM_PROGRAM === 'iTerm.app'; Kitty: KITTY_WINDOW_ID is set.
   // Evaluated once (constant, not state) — no re-render triggered. Locked decision: CONTEXT.md.
@@ -26,10 +23,13 @@ export function App(): React.JSX.Element {
     process.env['TERM_PROGRAM'] === 'iTerm.app' ||
     process.env['KITTY_WINDOW_ID'] !== undefined;
 
-  const [screen, setScreen] = useState<Screen>(() =>
-    existingProfile ? 'search' : 'onboarding'
-  );
-  const [profile, setProfile] = useState<RiderProfile | null>(existingProfile);
+  // readProfile() is called inside lazy useState initializers so it runs exactly
+  // once at mount — not on every re-render.
+  const [screen, setScreen] = useState<Screen>(() => {
+    const p = readProfile();
+    return p ? 'search' : 'onboarding';
+  });
+  const [profile, setProfile] = useState<RiderProfile | null>(() => readProfile());
 
   const { exit } = useApp();
   // Global quit handler — always active, no isActive toggling

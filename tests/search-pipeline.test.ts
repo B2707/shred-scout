@@ -18,7 +18,7 @@ vi.mock('../src/data/shopify.js', () => ({
 }));
 
 vi.mock('../src/data/db.js', () => ({
-  openDatabase: vi.fn().mockReturnValue({}),
+  openDatabase: vi.fn().mockReturnValue({ close: vi.fn() }),
   defaultDatabasePath: vi.fn().mockReturnValue('/tmp/test.db'),
 }));
 
