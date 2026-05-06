@@ -36,10 +36,15 @@ export function SearchView({ profile, supportsImages }: SearchViewProps): React.
       setIsLoading(true);
       setProducts([]);
       setSearchErrors([]);
-      const { products: found, errors } = await runSearch(query, profile, pipelineRef.current);
-      setProducts(found);
-      setSearchErrors(errors);
-      setIsLoading(false);
+      try {
+        const { products: found, errors } = await runSearch(query, profile, pipelineRef.current);
+        setProducts(found);
+        setSearchErrors(errors);
+      } catch (err) {
+        setSearchErrors([err instanceof Error ? err.message : String(err)]);
+      } finally {
+        setIsLoading(false);
+      }
     })();
   }, [isLoading, profile]);
 
