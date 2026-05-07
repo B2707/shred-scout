@@ -82,6 +82,12 @@ CREATE TABLE IF NOT EXISTS rider_profile (
 );
     `.trim(),
   },
+  {
+    // Phase 6: alert_enabled flag on saved_setups for price-drop notifications.
+    // DEFAULT 0 ensures existing rows get alertEnabled=false without a data migration.
+    name: '003_alert_enabled',
+    sql: `ALTER TABLE saved_setups ADD COLUMN alert_enabled INTEGER NOT NULL DEFAULT 0;`.trim(),
+  },
 ];
 
 /**
