@@ -108,8 +108,11 @@ program
 
               const message = `${title}: $${oldDollars} → $${newDollars} (-${pct}%)`;
               if (process.platform === 'darwin') {
-                // Escape double-quotes to prevent AppleScript injection from retailer-controlled titles
-                const safeMessage = message.replace(/"/g, "'");
+                // Sanitize retailer-controlled title before embedding in an AppleScript string:
+                // replace double-quotes (string terminators) with single-quotes, and replace
+                // newline/carriage-return characters with a space to prevent multi-line string
+                // literals that cause silent osascript syntax errors.
+                const safeMessage = message.replace(/"/g, "'").replace(/[\n\r]/g, ' ');
                 execFile('osascript', ['-e', `display notification "${safeMessage}" with title "Shred Scout"`], () => {});
               } else if (process.platform === 'linux') {
                 execFile('notify-send', ['Shred Scout', message], () => {});
