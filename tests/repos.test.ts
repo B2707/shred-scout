@@ -3,6 +3,7 @@ import { openDatabase } from '../src/data/db.js';
 import { makePriceRepo } from '../src/data/repos/priceRepo.js';
 import { makeRiderRepo } from '../src/data/repos/riderRepo.js';
 import { makeSetupRepo } from '../src/data/repos/setupRepo.js';
+import { makeProductRepo } from '../src/data/repos/productRepo.js';
 import type Database from 'better-sqlite3';
 
 afterEach(() => {
@@ -152,5 +153,64 @@ describe('setupRepo', () => {
     // Newest first: id2 should come before id1
     expect(setups[0]?.id).toBe(id2);
     expect(setups[1]?.id).toBe(id1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setupRepo — Phase 6 extensions
+// ---------------------------------------------------------------------------
+
+describe('setupRepo — Phase 6 extensions', () => {
+  it('list() maps alert_enabled column to alertEnabled boolean (false by default)', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    repo.save({});
+    expect(repo.list()[0]?.alertEnabled).toBe(false);
+  });
+
+  it('setAlert(id, true) sets alertEnabled to true', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    const id = repo.save({});
+    repo.setAlert(id, true);
+    expect(repo.list()[0]?.alertEnabled).toBe(true);
+  });
+
+  it('setAlert(id, false) sets alertEnabled back to false', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    const id = repo.save({});
+    repo.setAlert(id, true);
+    repo.setAlert(id, false);
+    expect(repo.list()[0]?.alertEnabled).toBe(false);
+  });
+
+  it('delete(id) removes the setup row', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    const id = repo.save({});
+    repo.delete(id);
+    expect(repo.list()).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// productRepo — Phase 6 extensions
+// ---------------------------------------------------------------------------
+
+describe('productRepo — Phase 6 extensions', () => {
+  it('findById returns product by primary key', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeProductRepo(db);
+    const productId = insertTestProduct(db);
+    const product = repo.findById(productId);
+    expect(product).not.toBeNull();
+    expect(product?.title).toBe('Test Board');
+  });
+
+  it('findById returns null for missing id', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeProductRepo(db);
+    expect(repo.findById(999999)).toBeNull();
   });
 });

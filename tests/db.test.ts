@@ -49,6 +49,14 @@ describe('openDatabase()', () => {
     const versions = db.prepare('SELECT name FROM schema_versions').all() as { name: string }[];
     expect(versions.length).toBeGreaterThanOrEqual(1);
     expect(versions.map(v => v.name)).toContain('001_initial');
+    expect(versions.map(v => v.name)).toContain('003_alert_enabled');
+  });
+
+  it('saved_setups has alert_enabled column after migration 003', async () => {
+    const { openDatabase } = await import('../src/data/db.js');
+    const db = openDatabase(':memory:');
+    const cols = db.pragma('table_info(saved_setups)') as { name: string }[];
+    expect(cols.map(c => c.name)).toContain('alert_enabled');
   });
 
   it('enables WAL mode after openDatabase()', async () => {
