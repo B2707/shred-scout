@@ -93,6 +93,13 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
     }
     const product = savableProducts[n - 1]!;
     void (async () => {
+      // Cancel any pending alert opt-in timer before processing a new save attempt.
+      // Without this, a stale timer from a prior new-save could fire during the
+      // "already saved" modal and overwrite alertOptIn with a stale setupId.
+      if (alertOptInTimerRef.current) {
+        clearTimeout(alertOptInTimerRef.current);
+        alertOptInTimerRef.current = null;
+      }
       try {
         // Upsert to get/confirm the SQLite integer PK (T-06-07: validated range above)
         const productId = productRepo.upsert(product);
@@ -101,7 +108,10 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
           s.boardId === productId || s.bindingId === productId || s.bootId === productId
         );
         if (existing) {
-          showSaveMsg('Already saved — enable/update alert? [y/n]');
+          // Use setSaveMsg directly (not showSaveMsg) so the message does NOT
+          // auto-clear via a timer — it must persist as long as alertOptIn is active.
+          // Both are cleared together when the user responds with y/n/Escape.
+          setSaveMsg('Already saved — enable/update alert? [y/n]');
           setAlertOptIn({ setupId: existing.id, title: product.title });
           return;
         }
@@ -120,8 +130,7 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
         }
         onSetupSaved();
         showSaveMsg(`✓ Saved ${product.title}`);
-        // Show alert opt-in after 2s confirmation clears — tracked to cancel on rapid saves
-        if (alertOptInTimerRef.current) clearTimeout(alertOptInTimerRef.current);
+        // Show alert opt-in prompt after 2s confirmation message clears
         alertOptInTimerRef.current = setTimeout(() => {
           setAlertOptIn({ setupId, title: product.title });
           setSaveMsg('Enable price alert? [y/n]');
