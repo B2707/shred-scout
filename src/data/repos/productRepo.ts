@@ -43,6 +43,8 @@ export function makeProductRepo(db: Database.Database) {
     'SELECT * FROM products WHERE retailer = ?'
   );
 
+  const selectByIdStmt = db.prepare('SELECT * FROM products WHERE id = ?');
+
   return {
     /**
      * Inserts or updates a normalized product row.
@@ -58,6 +60,14 @@ export function makeProductRepo(db: Database.Database) {
      */
     findByRetailer(retailer: string): NormalizedProduct[] {
       return selectByRetailerStmt.all(retailer) as NormalizedProduct[];
+    },
+
+    /**
+     * Returns a single product by its integer primary key, or null if not found.
+     * @param id - The products.id to look up
+     */
+    findById(id: number): NormalizedProduct | null {
+      return (selectByIdStmt.get(id) as NormalizedProduct | undefined) ?? null;
     },
   };
 }
