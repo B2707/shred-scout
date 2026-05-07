@@ -26,6 +26,10 @@ export { makePriceRepo } from './data/repos/priceRepo.js';
 export type { FilterSpec } from './agent/filter-spec.js';
 export { applyFilterSpec } from './agent/filter-spec.js';
 
+// Phase 6: Price alerts domain
+export type { PriceDropAlert } from './domain/alerts/diff.js';
+export { priceDropAlert } from './domain/alerts/diff.js';
+
 // Phase 8 public exports
 export { flexAdvisory } from './domain/compatibility/flex-advisory.js';
 export { runSearch } from './agent/search-pipeline.js';
