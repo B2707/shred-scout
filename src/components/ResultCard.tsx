@@ -72,9 +72,11 @@ export interface ResultCardProps {
   supportsImages: boolean;
   /** Optional pre-computed compat results — omitted in Phase 5, wired in Phase 6. */
   compatResults?: import('../domain/compatibility/types.js').RuleResult[];
+  /** 1-based display index for "[N]" save-item prefix. Omit to hide the prefix. */
+  index?: number;
 }
 
-export function ResultCard({ product, supportsImages }: ResultCardProps): React.JSX.Element {
+export function ResultCard({ product, supportsImages, index }: ResultCardProps): React.JSX.Element {
   const [imageAnsi, setImageAnsi] = useState<string | null>(null);
   const { stdout } = useStdout();
   const columns = stdout.columns ?? 80;
@@ -105,8 +107,9 @@ export function ResultCard({ product, supportsImages }: ResultCardProps): React.
     };
   }, [product.image_url, supportsImages]);
 
-  // Title truncation — safe max width per UI-SPEC.md
-  const maxTitleWidth = Math.max(10, columns - 22);
+  // Title truncation — account for [N] prefix width when index is provided
+  const indexPrefix = index !== undefined ? `[${index}] ` : '';
+  const maxTitleWidth = Math.max(10, columns - 22 - indexPrefix.length);
   const displayTitle =
     product.title.length > maxTitleWidth
       ? product.title.slice(0, maxTitleWidth - 1) + '…'
@@ -132,8 +135,9 @@ export function ResultCard({ product, supportsImages }: ResultCardProps): React.
         </>
       )}
 
-      {/* Title + price row */}
+      {/* Title + price row — [N] index prefix when provided */}
       <Box>
+        {index !== undefined && <Text dimColor>[{index}] </Text>}
         <Text>{displayTitle}</Text>
         <Text>{'  '}</Text>
         <Text bold={!isSale}>${priceDollars}</Text>
