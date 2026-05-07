@@ -6,7 +6,7 @@
  * Phase 8: deterministic search pipeline wired directly into UI state.
  * Phase 6: save TextInput below results, alert opt-in flow, repo props from App.tsx.
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, Static, useInput } from 'ink';
 import { TextInput } from '@inkjs/ui';
 import type { RiderProfile } from '../types/profile.js';
@@ -29,9 +29,15 @@ export interface SearchViewProps {
   productRepo: ReturnType<typeof makeProductRepo>;
   /** Called after a setup is saved so App.tsx can refresh wishlist state. */
   onSetupSaved: () => void;
+  /**
+   * Called with true when an input-blocking modal (alert opt-in) is active so
+   * App.tsx can gate its global 'q' quit handler. Called with false when dismissed.
+   * Uses a ref internally (not state) to avoid triggering re-renders on the parent.
+   */
+  onModalChange: (active: boolean) => void;
 }
 
-export function SearchView({ profile, supportsImages, setupRepo, priceRepo, productRepo, onSetupSaved }: SearchViewProps): React.JSX.Element {
+export function SearchView({ profile, supportsImages, setupRepo, priceRepo, productRepo, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<NormalizedProduct[]>([]);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
@@ -125,6 +131,13 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
       }
     })();
   }, [savableProducts, setupRepo, priceRepo, productRepo, onSetupSaved]);
+
+  // Notify App.tsx when the alert opt-in modal becomes active or inactive.
+  // App.tsx gates its global 'q' quit handler behind this flag so 'q' dismisses
+  // the modal rather than exiting the app (Ink useInput has no stop-propagation).
+  useEffect(() => {
+    onModalChange(alertOptIn !== null);
+  }, [alertOptIn, onModalChange]);
 
   // Alert opt-in y/n handler — only active when alertOptIn is set
   useInput((input, key) => {

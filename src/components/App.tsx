@@ -5,7 +5,7 @@
  * Phase 8: api-key screen, AgentLoop construction, and apiKey state removed.
  * Screen flow: onboarding → search → wishlist → history.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import type { RiderProfile } from '../types/profile.js';
 import { readProfile } from '../lib/profile.js';
@@ -53,9 +53,15 @@ export function App(): React.JSX.Element {
 
   const { exit } = useApp();
 
-  // Global quit handler — screen-aware to allow child screens to handle q/Escape
+  // blockQuit is set to true by SearchView when an alert opt-in modal is active.
+  // A ref (not state) is used so the useInput closure always reads the current value
+  // without requiring the useInput hook to re-register on every toggle.
+  const blockQuitRef = useRef(false);
+
+  // Global quit handler — screen-aware to allow child screens to handle q/Escape.
+  // Gate search-screen quit behind blockQuitRef so SearchView's modal can own 'q'.
   useInput((input: string) => {
-    if (screen === 'search' && input === 'q') {
+    if (screen === 'search' && input === 'q' && !blockQuitRef.current) {
       exit();
     }
     if (screen === 'wishlist' && input === 'q') {
@@ -149,6 +155,7 @@ export function App(): React.JSX.Element {
           priceRepo={priceRepo}
           productRepo={productRepo}
           onSetupSaved={() => setSetups(setupRepo.list())}
+          onModalChange={(active) => { blockQuitRef.current = active; }}
         />
       </>
     );
