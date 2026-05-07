@@ -5,7 +5,7 @@
  * Phase 8: api-key screen, AgentLoop construction, and apiKey state removed.
  * Screen flow: onboarding → search → wishlist → history.
  */
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import type { RiderProfile } from '../types/profile.js';
 import { readProfile } from '../lib/profile.js';
@@ -93,6 +93,9 @@ export function App(): React.JSX.Element {
     setSetups(setupRepo.list()); // refresh badge
   };
 
+  const handleSetupSaved = useCallback(() => setSetups(setupRepo.list()), [setupRepo]);
+  const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
+
   const handleOpenHistory = (productId: number): void => {
     const observations = priceRepo.history(productId);
     setHistoryObservations(observations);
@@ -153,8 +156,8 @@ export function App(): React.JSX.Element {
           setupRepo={setupRepo}
           priceRepo={priceRepo}
           productRepo={productRepo}
-          onSetupSaved={() => setSetups(setupRepo.list())}
-          onModalChange={(active) => { blockQuitRef.current = active; }}
+          onSetupSaved={handleSetupSaved}
+          onModalChange={handleModalChange}
         />
       </>
     );

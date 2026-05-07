@@ -141,6 +141,14 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
     })();
   }, [savableProducts, setupRepo, priceRepo, productRepo, onSetupSaved]);
 
+  // Clear pending timers on unmount to prevent state updates on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (saveMsgTimerRef.current) clearTimeout(saveMsgTimerRef.current);
+      if (alertOptInTimerRef.current) clearTimeout(alertOptInTimerRef.current);
+    };
+  }, []);
+
   // Notify App.tsx when the alert opt-in modal becomes active or inactive.
   // App.tsx gates its global 'q' quit handler behind this flag so 'q' dismisses
   // the modal rather than exiting the app (Ink useInput has no stop-propagation).
