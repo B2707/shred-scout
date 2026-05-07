@@ -54,6 +54,17 @@ async function submitSearch(stdin: { write: (s: string) => void }, query: string
   });
 }
 
+const mockRepo = () => ({
+  list: vi.fn().mockReturnValue([]),
+  save: vi.fn().mockReturnValue(1),
+  delete: vi.fn(),
+  setAlert: vi.fn(),
+  upsert: vi.fn().mockReturnValue(1),
+  findById: vi.fn().mockReturnValue(null),
+  record: vi.fn(),
+  history: vi.fn().mockReturnValue([]),
+});
+
 describe('SearchView', () => {
   const profile = { bootSize: 10, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain' as const };
 
@@ -65,7 +76,7 @@ describe('SearchView', () => {
     });
     const { SearchView } = await import('../src/components/SearchView.js');
     const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false }),
+      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
     await submitSearch(stdin, 'boards');
     expect(lastFrame()).toContain('[Best Price]');
@@ -79,7 +90,7 @@ describe('SearchView', () => {
     });
     const { SearchView } = await import('../src/components/SearchView.js');
     const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false }),
+      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
     await submitSearch(stdin, 'boards');
     expect(lastFrame()).toContain('Never Summer V.O.L.E.');
@@ -89,7 +100,7 @@ describe('SearchView', () => {
   it('renders empty state copy when no products have arrived', async () => {
     const { SearchView } = await import('../src/components/SearchView.js');
     const { lastFrame } = render(
-      React.createElement(SearchView, { profile, supportsImages: false }),
+      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
     expect(lastFrame()).toContain('No results yet');
   });
