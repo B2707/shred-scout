@@ -88,9 +88,6 @@ export function WishlistView({
       );
     }
 
-    if (input === 'q' || key.escape) {
-      onBack();
-    }
   });
 
   if (setups.length === 0) {
