@@ -52,6 +52,8 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
   const saveMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Pending alert opt-in: after successful save, prompt [y/n]
   const [alertOptIn, setAlertOptIn] = useState<{ setupId: number; title: string } | null>(null);
+  // Track the alert opt-in delay timer so it can be cancelled on rapid saves
+  const alertOptInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showSaveMsg(msg: string): void {
     if (saveMsgTimerRef.current) clearTimeout(saveMsgTimerRef.current);
@@ -112,8 +114,9 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
         }
         onSetupSaved();
         showSaveMsg(`✓ Saved ${product.title}`);
-        // Show alert opt-in after 2s confirmation clears
-        setTimeout(() => {
+        // Show alert opt-in after 2s confirmation clears — tracked to cancel on rapid saves
+        if (alertOptInTimerRef.current) clearTimeout(alertOptInTimerRef.current);
+        alertOptInTimerRef.current = setTimeout(() => {
           setAlertOptIn({ setupId, title: product.title });
           setSaveMsg('Enable price alert? [y/n]');
         }, 2000);
