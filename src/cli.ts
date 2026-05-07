@@ -108,7 +108,9 @@ program
 
               const message = `${title}: $${oldDollars} → $${newDollars} (-${pct}%)`;
               if (process.platform === 'darwin') {
-                execFile('osascript', ['-e', `display notification "${message}" with title "Shred Scout"`], () => {});
+                // Escape double-quotes to prevent AppleScript injection from retailer-controlled titles
+                const safeMessage = message.replace(/"/g, "'");
+                execFile('osascript', ['-e', `display notification "${safeMessage}" with title "Shred Scout"`], () => {});
               } else if (process.platform === 'linux') {
                 execFile('notify-send', ['Shred Scout', message], () => {});
               } else {
