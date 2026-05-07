@@ -39,6 +39,14 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
 
   const groups = React.useMemo<ProductGroup[]>(() => groupProducts(products), [products]);
 
+  // savableProducts maps display index [N] → product for single-card groups only.
+  // Comparison groups are not individually saveable and are excluded from this index.
+  // handleSave uses savableProducts[n-1] so [N] always resolves to the correct product.
+  const savableProducts = React.useMemo<NormalizedProduct[]>(
+    () => groups.flatMap(g => g.type === 'single' ? [g.product] : []),
+    [groups],
+  );
+
   // Save UX state
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const saveMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,11 +79,11 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
 
   const handleSave = useCallback((input: string) => {
     const n = parseInt(input.trim(), 10);
-    if (isNaN(n) || n < 1 || n > products.length) {
-      showSaveMsg(`No item #${input.trim()} — enter a number from 1 to ${products.length}`);
+    if (isNaN(n) || n < 1 || n > savableProducts.length) {
+      showSaveMsg(`No item #${input.trim()} — enter a number from 1 to ${savableProducts.length}`);
       return;
     }
-    const product = products[n - 1]!;
+    const product = savableProducts[n - 1]!;
     void (async () => {
       try {
         // Upsert to get/confirm the SQLite integer PK (T-06-07: validated range above)
@@ -113,7 +121,7 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
         showSaveMsg(err instanceof Error ? err.message : String(err));
       }
     })();
-  }, [products, setupRepo, priceRepo, productRepo, onSetupSaved]);
+  }, [savableProducts, setupRepo, priceRepo, productRepo, onSetupSaved]);
 
   // Alert opt-in y/n handler — only active when alertOptIn is set
   useInput((input) => {
@@ -132,7 +140,7 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
   return (
     <Box flexDirection="column" paddingX={1}>
       <Static items={groups}>
-        {(group, groupIndex) =>
+        {(group) =>
           group.type === 'comparison' ? (
             <ComparisonGroup
               key={group.normalizedTitle}
@@ -144,7 +152,7 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
               key={group.product.shopify_id}
               product={group.product}
               supportsImages={supportsImages}
-              index={groupIndex + 1}
+              index={savableProducts.indexOf(group.product) + 1}
             />
           )
         }
