@@ -17,7 +17,6 @@ export interface WishlistViewProps {
   onToggleAlert: (id: number, enabled: boolean) => void;
   /** Called with a non-null product ID when user presses h; App.tsx routes to history screen. */
   onOpenHistory: (productId: number) => void;
-  onBack: () => void;
 }
 
 function relativeTime(timestampMs: number): string {
@@ -37,7 +36,6 @@ export function WishlistView({
   onDelete,
   onToggleAlert,
   onOpenHistory,
-  onBack,
 }: WishlistViewProps): React.JSX.Element {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
