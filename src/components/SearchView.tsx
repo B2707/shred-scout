@@ -127,14 +127,15 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
   }, [savableProducts, setupRepo, priceRepo, productRepo, onSetupSaved]);
 
   // Alert opt-in y/n handler — only active when alertOptIn is set
-  useInput((input) => {
+  useInput((input, key) => {
     if (!alertOptIn) return;
     if (input === 'y') {
       setupRepo.setAlert(alertOptIn.setupId, true);
       onSetupSaved();
       showSaveMsg(`✓ Price alert enabled for ${alertOptIn.title}`);
       setAlertOptIn(null);
-    } else if (input === 'n') {
+    } else if (input === 'n' || key.escape || input === 'q') {
+      // Dismiss without saving alert; q/Escape should not bubble to App.tsx quit handler
       setAlertOptIn(null);
       setSaveMsg(null);
     }
