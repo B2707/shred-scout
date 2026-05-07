@@ -122,7 +122,6 @@ export function App(): React.JSX.Element {
           onDelete={handleDelete}
           onToggleAlert={handleToggleAlert}
           onOpenHistory={handleOpenHistory}
-          onBack={() => setScreen('search')}
         />
       </>
     );
