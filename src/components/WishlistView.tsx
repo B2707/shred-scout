@@ -79,7 +79,9 @@ export function WishlistView({
     if (input === 'a' && selected) {
       const next = !selected.alertEnabled;
       onToggleAlert(selected.id, next);
-      const title = resolveTitle(selected.boardId);
+      // Use first non-null product ID for title resolution (mirrors 'h' handler pattern)
+      const titleId = selected.boardId ?? selected.bindingId ?? selected.bootId;
+      const title = resolveTitle(titleId);
       showStatus(next
         ? `✓ Price alert enabled for ${title}`
         : `✓ Price alert removed for ${title}`
