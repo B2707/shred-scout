@@ -70,8 +70,6 @@ function detectSale(
 export interface ResultCardProps {
   product: NormalizedProduct;
   supportsImages: boolean;
-  /** Optional pre-computed compat results — omitted in Phase 5, wired in Phase 6. */
-  compatResults?: import('../domain/compatibility/types.js').RuleResult[];
   /** 1-based display index for "[N]" save-item prefix. Omit to hide the prefix. */
   index?: number;
 }
@@ -151,7 +149,6 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
         <SaleDisplay priceCents={product.price_cents} compareAtCents={compareAtCents} />
       )}
 
-      {/* CompatBadge row intentionally omitted — Phase 6 wires this */}
     </Box>
   );
 }
