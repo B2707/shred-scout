@@ -19,6 +19,8 @@ export interface SavedSetup {
   /** Parsed RuleResult[] snapshot from save time. */
   compatibility: RuleResult[] | null;
   savedAt: number;
+  /** Whether price-drop alerts are enabled for this setup (Phase 6). */
+  alertEnabled: boolean;
 }
 
 /** Input for saving a new setup. All product IDs are products.id values. */
@@ -37,6 +39,7 @@ interface SetupRow {
   boot_id: number | null;
   compatibility: string | null;
   saved_at: number;
+  alert_enabled: number;
 }
 
 /**
@@ -50,8 +53,11 @@ export function makeSetupRepo(db: Database.Database) {
   `);
 
   const selectAllStmt = db.prepare(
-    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at FROM saved_setups ORDER BY saved_at DESC, id DESC'
+    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups ORDER BY saved_at DESC, id DESC'
   );
+
+  const deleteStmt = db.prepare('DELETE FROM saved_setups WHERE id = ?');
+  const setAlertStmt = db.prepare('UPDATE saved_setups SET alert_enabled = ? WHERE id = ?');
 
   return {
     /**
@@ -89,7 +95,25 @@ export function makeSetupRepo(db: Database.Database) {
           }
         })(),
         savedAt: row.saved_at,
+        alertEnabled: row.alert_enabled === 1,
       }));
+    },
+
+    /**
+     * Deletes a saved setup by ID.
+     * @param id - The saved_setups.id to delete
+     */
+    delete(id: number): void {
+      deleteStmt.run(id);
+    },
+
+    /**
+     * Enables or disables price-drop alerts for a saved setup.
+     * @param id - The saved_setups.id to update
+     * @param enabled - true to enable alerts, false to disable
+     */
+    setAlert(id: number, enabled: boolean): void {
+      setAlertStmt.run(enabled ? 1 : 0, id);
     },
   };
 }
