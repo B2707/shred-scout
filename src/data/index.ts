@@ -31,3 +31,9 @@ export { makePriceRepo } from './repos/priceRepo.js';
 export { makeRiderRepo } from './repos/riderRepo.js';
 export type { SavedSetup, SaveSetupInput } from './repos/setupRepo.js';
 export { makeSetupRepo } from './repos/setupRepo.js';
+
+// Phase 7 public exports
+export type { ProductSource } from './sources.js';
+export { ShopifySource } from './sources.js';
+export { EvoHtmlScrapeSource, extractSpecs } from './scrapers/evo.js';
+export type { EvoSpecs } from './scrapers/evo.js';
