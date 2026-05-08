@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RiderProfile } from '../src/types/profile.js';
 import type { RequestPipeline } from '../src/data/pipeline.js';
 
@@ -119,43 +119,39 @@ describe('runSearch', () => {
   });
 
   describe('demo mode', () => {
-    afterEach(() => {
-      vi.doUnmock('node:fs');
-      vi.resetModules();
-    });
-
     it('returns fixture products without HTTP calls when demo=true', async () => {
-      // Mock node:fs to return the fixture JSON directly — avoids dist/ path resolution in test env
-      const fixtureProducts = [
-        {
-          shopify_id: 'demo-001',
-          retailer: 'evo',
-          title: 'YES Greats Snowboard 2026',
-          handle: 'yes-greats-snowboard-2026',
-          vendor: 'YES',
-          product_type: 'Snowboard',
-          gear_category: 'board',
-          flex_rating: '6/10',
-          waist_width_mm: 254,
-          mount_pattern: '4x4',
-          mount_pattern_raw: '4x4',
-          image_url: null,
-          price_cents: 54900,
-          variants_json: '[{"price":"549.00","compare_at_price":null,"option1":"155"}]',
-          fetched_at: 1746576000000,
-        },
-      ];
+      // The demo branch reads demo-products.json via readFileSync from __dirname at runtime.
+      // In vitest, import.meta.url resolves to the source path (src/agent/), so we copy
+      // the fixture file there before the test and remove it after.
+      // This avoids ESM module spy limitations (Cannot redefine property in ESM namespace).
+      const { copyFileSync, unlinkSync, existsSync } = await import('node:fs');
+      const { fileURLToPath } = await import('node:url');
+      const { dirname: getDirname, join: pathJoin } = await import('node:path');
+      const { createRequire } = await import('node:module');
 
-      vi.doMock('node:fs', () => ({
-        readFileSync: vi.fn().mockReturnValue(JSON.stringify(fixtureProducts)),
-      }));
+      // Resolve the fixture source path (committed fixture)
+      const requireFn = createRequire(import.meta.url);
+      const fixtureSourcePath = requireFn.resolve('../src/fixtures/demo-products.json');
 
-      const { runSearch: runSearchWithDemo } = await import('../src/agent/search-pipeline.js');
-      const result = await runSearchWithDemo('boards', makeProfile(), mockPipeline, { demo: true });
-      expect(Array.isArray(result.products)).toBe(true);
-      expect(result.products.length).toBeGreaterThan(0);
-      expect(result.errors).toEqual([]);
-      expect(vi.mocked(fetchAllProducts)).not.toHaveBeenCalled();
+      // Compute where search-pipeline.ts's __dirname will point during test execution
+      const searchPipelineUrl = new URL('../src/agent/search-pipeline.ts', import.meta.url);
+      const searchPipelineDir = getDirname(fileURLToPath(searchPipelineUrl));
+      const tempFixturePath = pathJoin(searchPipelineDir, 'demo-products.json');
+
+      const copied = !existsSync(tempFixturePath);
+      if (copied) copyFileSync(fixtureSourcePath, tempFixturePath);
+
+      try {
+        vi.mocked(fetchAllProducts).mockClear();
+        const result = await runSearch('boards', makeProfile(), mockPipeline, { demo: true });
+
+        expect(Array.isArray(result.products)).toBe(true);
+        expect(result.products.length).toBeGreaterThan(0);
+        expect(result.errors).toEqual([]);
+        expect(vi.mocked(fetchAllProducts)).not.toHaveBeenCalled();
+      } finally {
+        if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);
+      }
     });
   });
 });
