@@ -39,6 +39,7 @@ const baseProduct = {
   vendor: 'Never Summer',
   product_type: 'Snowboard',
   gear_category: 'board' as const,
+  flex_rating: null,
   waist_width_mm: null,
   mount_pattern: '4x4' as const,
   mount_pattern_raw: '4x4',
@@ -113,5 +114,30 @@ describe('ResultCard', () => {
       React.createElement(ResultCard, { product: saleProduct, supportsImages: false }),
     );
     expect(lastFrame()).toContain('% OFF');
+  });
+
+  it('renders spec line when waist_width_mm and flex_rating are set', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const specProduct = {
+      ...baseProduct,
+      flex_rating: '6/10',
+      waist_width_mm: 254,
+    };
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: specProduct, supportsImages: false }),
+    );
+    expect(lastFrame()).toContain('254mm');
+    expect(lastFrame()).toContain('6/10 flex');
+  });
+
+  it('omits spec line when all spec fields are null (Shopify products unchanged)', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+    );
+    // Spec line absent — no ⬙ diamond character
+    expect(lastFrame()).not.toContain('⬙');
+    // Existing metadata still present
+    expect(lastFrame()).toContain('board · evo');
   });
 });

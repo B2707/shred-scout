@@ -144,6 +144,19 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
       {/* Metadata row — gear_category · retailer in dimColor */}
       <Text dimColor>{categoryLabel} · {product.retailer}</Text>
 
+      {/* Spec line — only for products with scraped PDP data (evo.com). Omit for Shopify products. */}
+      {(product.waist_width_mm !== null || product.flex_rating !== null) && (
+        <Text color="gray">
+          {[
+            product.waist_width_mm !== null ? `⬙ ${product.waist_width_mm}mm` : null,
+            product.flex_rating !== null ? `${product.flex_rating} flex` : null,
+            product.mount_pattern || null,
+          ]
+            .filter(Boolean)
+            .join('  •  ')}
+        </Text>
+      )}
+
       {/* Sale display — only when cheapest variant is on sale */}
       {isSale && (
         <SaleDisplay priceCents={product.price_cents} compareAtCents={compareAtCents} />
