@@ -40,12 +40,13 @@ program.addHelpText('after', [
 program
   .command('search', { isDefault: true })
   .description('Search for compatible snowboard gear (interactive)')
-  .action(async () => {
+  .option('--demo', 'Run with cached fixture data — no network or API keys required')
+  .action(async (options: { demo?: boolean }) => {
     assertTTY(); // Gate: only enforce TTY for interactive commands
     const { render } = await import('ink');
     const { App } = await import('./components/App.js');
     const { createElement } = await import('react');
-    render(createElement(App, null));
+    render(createElement(App, { isDemoMode: options.demo ?? false }));
     // waitUntilExit() resolves prematurely with React 19 + Ink 6 — rely on
     // process.exit(0) from the global 'q' useInput handler to terminate instead.
     await new Promise<never>(() => {});
