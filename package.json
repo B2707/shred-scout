@@ -29,6 +29,7 @@
     "dev": "tsx src/cli.ts",
     "setup": "npm run build && npm link",
     "start": "node bin/shred-scout search",
+    "demo": "node dist/cli.js --demo",
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",
