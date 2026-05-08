@@ -27,7 +27,8 @@ export class ShopifySource implements ProductSource {
   ) {}
 
   async fetchAll(pipeline: RequestPipeline): Promise<NormalizedProduct[]> {
-    const { fetchAllProducts, normalizeProduct } = await import('./shopify.js');
+    const { fetchAllProducts } = await import('./shopify.js');
+    const { normalizeProduct } = await import('./normalizer.js');
     const raws = await fetchAllProducts(this.baseUrl, pipeline);
     return raws.map(raw => normalizeProduct(raw, this.name));
   }

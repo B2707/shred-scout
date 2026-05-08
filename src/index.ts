@@ -30,6 +30,13 @@ export { applyFilterSpec } from './agent/filter-spec.js';
 export type { PriceDropAlert } from './domain/alerts/diff.js';
 export { priceDropAlert } from './domain/alerts/diff.js';
 
+// Phase 7 public exports
+export type { ProductSource } from './data/sources.js';
+export { ShopifySource } from './data/sources.js';
+export { EvoHtmlScrapeSource, extractSpecs } from './data/scrapers/evo.js';
+export type { EvoSpecs } from './data/scrapers/evo.js';
+export type { RunSearchOptions } from './agent/search-pipeline.js';
+
 // Phase 8 public exports
 export { flexAdvisory } from './domain/compatibility/flex-advisory.js';
 export { runSearch } from './agent/search-pipeline.js';
