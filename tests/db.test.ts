@@ -59,6 +59,14 @@ describe('openDatabase()', () => {
     expect(cols.map(c => c.name)).toContain('alert_enabled');
   });
 
+  it('products table has flex_rating column after migration 004', async () => {
+    const { openDatabase } = await import('../src/data/db.js');
+    const db = openDatabase(':memory:');
+    const cols = db.pragma('table_info(products)') as { name: string }[];
+    expect(cols.map(c => c.name)).toContain('flex_rating');
+    db.close();
+  });
+
   it('enables WAL mode after openDatabase()', async () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
