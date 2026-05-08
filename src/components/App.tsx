@@ -23,7 +23,15 @@ import type { PriceObservation } from '../data/repos/priceRepo.js';
 
 type Screen = 'onboarding' | 'search' | 'wishlist' | 'history';
 
-export function App(): React.JSX.Element {
+/** Hardcoded demo rider profile — skips wizard and uses in-memory DB */
+const DEMO_PROFILE: RiderProfile = {
+  bootSize: 10,
+  heightCm: 180,
+  weightKg: 80,
+  ridingStyle: 'all-mountain',
+};
+
+export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX.Element {
   // Detect image protocol support once at mount — cached boolean passed down as prop.
   // iTerm2: TERM_PROGRAM === 'iTerm.app'; Kitty: KITTY_WINDOW_ID is set.
   // Evaluated once (constant, not state) — no re-render triggered. Locked decision: CONTEXT.md.
@@ -33,14 +41,20 @@ export function App(): React.JSX.Element {
 
   // readProfile() is called inside lazy useState initializers so it runs exactly
   // once at mount — not on every re-render.
+  // Demo mode: always start on 'search' screen with hardcoded profile (no wizard).
   const [screen, setScreen] = useState<Screen>(() => {
+    if (isDemoMode) return 'search';
     const p = readProfile();
     return p ? 'search' : 'onboarding';
   });
-  const [profile, setProfile] = useState<RiderProfile | null>(() => readProfile());
+  const [profile, setProfile] = useState<RiderProfile | null>(() => {
+    if (isDemoMode) return DEMO_PROFILE;
+    return readProfile();
+  });
 
-  // Open DB once per app lifetime — repos share this connection
-  const db = useMemo(() => openDatabase(), []);
+  // Open DB once per app lifetime — repos share this connection.
+  // Demo mode uses ':memory:' SQLite so no production data is touched.
+  const db = useMemo(() => openDatabase(isDemoMode ? ':memory:' : undefined), [isDemoMode]);
   const setupRepo = useMemo(() => makeSetupRepo(db), [db]);
   const priceRepo = useMemo(() => makePriceRepo(db), [db]);
   const productRepo = useMemo(() => makeProductRepo(db), [db]);
@@ -156,6 +170,7 @@ export function App(): React.JSX.Element {
           setupRepo={setupRepo}
           priceRepo={priceRepo}
           productRepo={productRepo}
+          isDemoMode={isDemoMode}
           onSetupSaved={handleSetupSaved}
           onModalChange={handleModalChange}
         />

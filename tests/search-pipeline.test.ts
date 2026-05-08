@@ -117,4 +117,41 @@ describe('runSearch', () => {
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]).toContain('TestRetailer');
   });
+
+  describe('demo mode', () => {
+    it('returns fixture products without HTTP calls when demo=true', async () => {
+      // The demo branch reads demo-products.json via readFileSync from __dirname at runtime.
+      // In vitest, import.meta.url resolves to the source path (src/agent/), so we copy
+      // the fixture file there before the test and remove it after.
+      // This avoids ESM module spy limitations (Cannot redefine property in ESM namespace).
+      const { copyFileSync, unlinkSync, existsSync } = await import('node:fs');
+      const { fileURLToPath } = await import('node:url');
+      const { dirname: getDirname, join: pathJoin } = await import('node:path');
+      const { createRequire } = await import('node:module');
+
+      // Resolve the fixture source path (committed fixture)
+      const requireFn = createRequire(import.meta.url);
+      const fixtureSourcePath = requireFn.resolve('../src/fixtures/demo-products.json');
+
+      // Compute where search-pipeline.ts's __dirname will point during test execution
+      const searchPipelineUrl = new URL('../src/agent/search-pipeline.ts', import.meta.url);
+      const searchPipelineDir = getDirname(fileURLToPath(searchPipelineUrl));
+      const tempFixturePath = pathJoin(searchPipelineDir, 'demo-products.json');
+
+      const copied = !existsSync(tempFixturePath);
+      if (copied) copyFileSync(fixtureSourcePath, tempFixturePath);
+
+      try {
+        vi.mocked(fetchAllProducts).mockClear();
+        const result = await runSearch('boards', makeProfile(), mockPipeline, { demo: true });
+
+        expect(Array.isArray(result.products)).toBe(true);
+        expect(result.products.length).toBeGreaterThan(0);
+        expect(result.errors).toEqual([]);
+        expect(vi.mocked(fetchAllProducts)).not.toHaveBeenCalled();
+      } finally {
+        if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);
+      }
+    });
+  });
 });

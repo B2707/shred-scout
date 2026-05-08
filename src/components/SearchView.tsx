@@ -27,6 +27,8 @@ export interface SearchViewProps {
   setupRepo: ReturnType<typeof makeSetupRepo>;
   priceRepo: ReturnType<typeof makePriceRepo>;
   productRepo: ReturnType<typeof makeProductRepo>;
+  /** When true, runSearch uses fixture data (no HTTP calls, no real DB). */
+  isDemoMode?: boolean;
   /** Called after a setup is saved so App.tsx can refresh wishlist state. */
   onSetupSaved: () => void;
   /**
@@ -37,7 +39,7 @@ export interface SearchViewProps {
   onModalChange: (active: boolean) => void;
 }
 
-export function SearchView({ profile, supportsImages, setupRepo, priceRepo, productRepo, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
+export function SearchView({ profile, supportsImages, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<NormalizedProduct[]>([]);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
@@ -74,7 +76,7 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
       setProducts([]);
       setSearchErrors([]);
       try {
-        const { products: found, errors } = await runSearch(query, profile, pipelineRef.current);
+        const { products: found, errors } = await runSearch(query, profile, pipelineRef.current, { demo: isDemoMode });
         setProducts(found);
         setSearchErrors(errors);
       } catch (err) {
