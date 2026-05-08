@@ -37,7 +37,9 @@ export interface NormalizedProduct {
   vendor: string | null;
   product_type: string | null;
   gear_category: GearCategory;
-  waist_width_mm: null;         // always null in Phase 3; Phase 7 PDP scraping fills this
+  /** Phase 7 PDP scraping fills this; null for Shopify products */
+  flex_rating: string | null;
+  waist_width_mm: number | null; // always null in Phase 3; Phase 7 PDP scraping fills this
   mount_pattern: MountPattern;
   mount_pattern_raw: string;
   image_url: string | null;
@@ -216,6 +218,7 @@ export function normalizeProduct(
     vendor: raw.vendor ?? null,
     product_type: raw.product_type ?? null,
     gear_category: detectGearCategory(raw.product_type ?? '', tags, raw.title),
+    flex_rating: null,
     waist_width_mm: null,
     mount_pattern: mountPattern,
     mount_pattern_raw: mountPatternRaw,
