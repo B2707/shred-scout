@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { RiderProfile } from '../src/types/profile.js';
 import type { RequestPipeline } from '../src/data/pipeline.js';
 
@@ -116,5 +116,46 @@ describe('runSearch', () => {
     const { errors } = await runSearch('board', makeProfile(), mockPipeline);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]).toContain('TestRetailer');
+  });
+
+  describe('demo mode', () => {
+    afterEach(() => {
+      vi.doUnmock('node:fs');
+      vi.resetModules();
+    });
+
+    it('returns fixture products without HTTP calls when demo=true', async () => {
+      // Mock node:fs to return the fixture JSON directly — avoids dist/ path resolution in test env
+      const fixtureProducts = [
+        {
+          shopify_id: 'demo-001',
+          retailer: 'evo',
+          title: 'YES Greats Snowboard 2026',
+          handle: 'yes-greats-snowboard-2026',
+          vendor: 'YES',
+          product_type: 'Snowboard',
+          gear_category: 'board',
+          flex_rating: '6/10',
+          waist_width_mm: 254,
+          mount_pattern: '4x4',
+          mount_pattern_raw: '4x4',
+          image_url: null,
+          price_cents: 54900,
+          variants_json: '[{"price":"549.00","compare_at_price":null,"option1":"155"}]',
+          fetched_at: 1746576000000,
+        },
+      ];
+
+      vi.doMock('node:fs', () => ({
+        readFileSync: vi.fn().mockReturnValue(JSON.stringify(fixtureProducts)),
+      }));
+
+      const { runSearch: runSearchWithDemo } = await import('../src/agent/search-pipeline.js');
+      const result = await runSearchWithDemo('boards', makeProfile(), mockPipeline, { demo: true });
+      expect(Array.isArray(result.products)).toBe(true);
+      expect(result.products.length).toBeGreaterThan(0);
+      expect(result.errors).toEqual([]);
+      expect(vi.mocked(fetchAllProducts)).not.toHaveBeenCalled();
+    });
   });
 });
