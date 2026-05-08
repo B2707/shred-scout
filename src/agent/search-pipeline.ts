@@ -14,7 +14,10 @@ import { dirname, join } from 'node:path';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
 import type { RequestPipeline } from '../data/pipeline.js';
-import { RETAILERS, fetchAllProducts, normalizeProduct, openDatabase, makeProductRepo } from '../data/index.js';
+import { RETAILERS, openDatabase, makeProductRepo } from '../data/index.js';
+import type { ProductSource } from '../data/sources.js';
+import { ShopifySource } from '../data/sources.js';
+import { EvoHtmlScrapeSource } from '../data/scrapers/evo.js';
 
 /**
  * Options for controlling runSearch behavior.
@@ -57,17 +60,21 @@ export async function runSearch(
   const all: NormalizedProduct[] = [];
   const errors: string[] = [];
 
+  const sources: ProductSource[] = [
+    ...RETAILERS.map(r => new ShopifySource(r.name, r.baseUrl)),
+    new EvoHtmlScrapeSource(),
+  ];
+
   try {
-    for (const retailer of RETAILERS) {
+    for (const source of sources) {
       try {
-        const raws = await fetchAllProducts(retailer.baseUrl, pipeline);
-        for (const raw of raws) {
-          const normalized = normalizeProduct(raw, retailer.name);
-          productRepo.upsert(normalized);
-          all.push(normalized);
+        const normalized = await source.fetchAll(pipeline);
+        for (const product of normalized) {
+          productRepo.upsert(product);
+          all.push(product);
         }
       } catch (err) {
-        errors.push(`${retailer.name}: ${err instanceof Error ? err.message : String(err)}`);
+        errors.push(`${source.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
