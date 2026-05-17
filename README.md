@@ -2,7 +2,7 @@
 
 Agentic terminal UI for finding compatible snowboard gear deals across multiple retailers.
 
-<img src="docs/demo.gif" alt="Shred Scout demo" width="700">
+<!-- demo.gif will be added after recording — run `npm run demo` to try locally -->
 
 ## Install
 
@@ -38,9 +38,9 @@ Runs the full search → compatibility → results flow against cached fixture d
 
 ## Recording
 
-[![asciicast](https://asciinema.org/a/placeholder.svg)](docs/demo.cast)
+<!-- asciicast badge and demo.cast will be added after recording -->
 
-The recording above shows the complete demo mode flow: search query → compatibility scoring → results list with spec data → wishlist → quit.
+<!-- The recording will show the complete demo mode flow: search query → compatibility scoring → results list with spec data → wishlist → quit. -->
 
 ## How It Works
 
@@ -52,7 +52,7 @@ Shred Scout queries Shopify retailers via their public `/products.json` endpoint
 |---|---|
 | TypeScript | Language — strict mode throughout |
 | Ink 6 (React for terminal) | TUI rendering — React component model in the terminal |
-| React 18 | Ink 6 peer dependency (pinned) |
+| React 19.1.0 | Ink 6 peer dependency (pinned via overrides) |
 | better-sqlite3 | Local product and price history storage |
 | undici | Fast concurrent HTTP for Shopify pagination and HTML scraping |
 | cheerio | HTML parsing for evo.com listing and PDP pages |
