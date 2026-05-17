@@ -19,11 +19,11 @@ export function makeProductRepo(db: Database.Database) {
   const upsertStmt = db.prepare(`
     INSERT INTO products
       (shopify_id, retailer, title, handle, vendor, product_type, gear_category,
-       waist_width_mm, mount_pattern, mount_pattern_raw, image_url,
+       waist_width_mm, flex_rating, mount_pattern, mount_pattern_raw, image_url,
        price_cents, variants_json, fetched_at)
     VALUES
       (@shopify_id, @retailer, @title, @handle, @vendor, @product_type, @gear_category,
-       @waist_width_mm, @mount_pattern, @mount_pattern_raw, @image_url,
+       @waist_width_mm, @flex_rating, @mount_pattern, @mount_pattern_raw, @image_url,
        @price_cents, @variants_json, @fetched_at)
     ON CONFLICT(shopify_id, retailer) DO UPDATE SET
       title             = excluded.title,
@@ -31,6 +31,8 @@ export function makeProductRepo(db: Database.Database) {
       vendor            = excluded.vendor,
       product_type      = excluded.product_type,
       gear_category     = excluded.gear_category,
+      waist_width_mm    = excluded.waist_width_mm,
+      flex_rating       = excluded.flex_rating,
       mount_pattern     = excluded.mount_pattern,
       mount_pattern_raw = excluded.mount_pattern_raw,
       image_url         = excluded.image_url,
