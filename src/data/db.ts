@@ -94,6 +94,21 @@ CREATE TABLE IF NOT EXISTS rider_profile (
     name: '004_flex_rating',
     sql: `ALTER TABLE products ADD COLUMN flex_rating TEXT;`.trim(),
   },
+  {
+    // Dynamic retailer configs — replaces the hardcoded RETAILERS constant.
+    // Any Shopify store URL can be added at runtime; storefront_token enables the
+    // GraphQL Storefront API path (null = fall back to /products.json).
+    name: '005_retailer_configs',
+    sql: `
+CREATE TABLE IF NOT EXISTS retailer_configs (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  name             TEXT    NOT NULL,
+  store_url        TEXT    NOT NULL UNIQUE,
+  storefront_token TEXT,
+  added_at         INTEGER NOT NULL
+);
+    `.trim(),
+  },
 ];
 
 /**
