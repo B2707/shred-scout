@@ -3,13 +3,13 @@ import type { RiderProfile } from '../src/types/profile.js';
 import type { RequestPipeline } from '../src/data/pipeline.js';
 import type { NormalizedProduct } from '../src/data/normalizer.js';
 
-// Shared mock for ShopifySource.fetchAll — reassigned per-test as needed
+// Shared mock for SmartShopifySource.fetchAll — reassigned per-test as needed
 const mockShopifyFetchAll = vi.fn();
 
-// Mock ShopifySource to avoid dynamic shopify.js import chain
-vi.mock('../src/data/sources.js', () => {
+// Mock SmartShopifySource to avoid network calls
+vi.mock('../src/data/smart-source.js', () => {
   return {
-    ShopifySource: class MockShopifySource {
+    SmartShopifySource: class MockSmartShopifySource {
       name: string;
       constructor(name: string) { this.name = name; }
       fetchAll() { return mockShopifyFetchAll(); }
@@ -37,9 +37,19 @@ vi.mock('../src/data/repos/productRepo.js', () => ({
   makeProductRepo: vi.fn().mockReturnValue({ upsert: vi.fn() }),
 }));
 
+// makeRetailerRepo returns a seed-aware repo backed by one test retailer
+vi.mock('../src/data/repos/retailerRepo.js', () => ({
+  makeRetailerRepo: vi.fn().mockReturnValue({
+    all: vi.fn().mockReturnValue([
+      { id: 1, name: 'TestRetailer', storeUrl: 'https://test-retailer.com', storefrontToken: null, addedAt: 0 },
+    ]),
+    seedIfEmpty: vi.fn(),
+  }),
+}));
+
 vi.mock('../src/data/retailers.js', () => ({
-  RETAILERS: [
-    { name: 'TestRetailer', baseUrl: 'https://test-retailer.com' },
+  DEFAULT_RETAILERS: [
+    { name: 'TestRetailer', storeUrl: 'https://test-retailer.com', storefrontToken: null },
   ],
 }));
 
@@ -58,7 +68,6 @@ function makeProfile(): RiderProfile {
   };
 }
 
-// Pipeline is passed through to fetchAll which is mocked — a plain object suffices
 const mockPipeline = {} as RequestPipeline;
 
 const defaultProduct: NormalizedProduct = {
@@ -119,20 +128,14 @@ describe('runSearch', () => {
 
   describe('demo mode', () => {
     it('returns fixture products without HTTP calls when demo=true', async () => {
-      // The demo branch reads demo-products.json via readFileSync from __dirname at runtime.
-      // In vitest, import.meta.url resolves to the source path (src/agent/), so we copy
-      // the fixture file there before the test and remove it after.
-      // This avoids ESM module spy limitations (Cannot redefine property in ESM namespace).
       const { copyFileSync, unlinkSync, existsSync } = await import('node:fs');
       const { fileURLToPath } = await import('node:url');
       const { dirname: getDirname, join: pathJoin } = await import('node:path');
       const { createRequire } = await import('node:module');
 
-      // Resolve the fixture source path (committed fixture)
       const requireFn = createRequire(import.meta.url);
       const fixtureSourcePath = requireFn.resolve('../src/fixtures/demo-products.json');
 
-      // Compute where search-pipeline.ts's __dirname will point during test execution
       const searchPipelineUrl = new URL('../src/agent/search-pipeline.ts', import.meta.url);
       const searchPipelineDir = getDirname(fileURLToPath(searchPipelineUrl));
       const tempFixturePath = pathJoin(searchPipelineDir, 'demo-products.json');
@@ -146,7 +149,6 @@ describe('runSearch', () => {
         expect(Array.isArray(result.products)).toBe(true);
         expect(result.products.length).toBeGreaterThan(0);
         expect(result.errors).toEqual([]);
-        // ShopifySource.fetchAll not called in demo mode
         expect(mockShopifyFetchAll).not.toHaveBeenCalled();
       } finally {
         if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);

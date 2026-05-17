@@ -14,7 +14,11 @@ export { runRules } from './domain/compatibility/engine.js';
 
 // Phase 3 public exports
 export type { NormalizedProduct } from './data/normalizer.js';
-export { RETAILERS } from './data/retailers.js';
+export { DEFAULT_RETAILERS } from './data/retailers.js';
+export { SmartShopifySource } from './data/smart-source.js';
+export { fetchAllProductsGraphQL, extractStorefrontToken } from './data/storefront-api.js';
+export type { RetailerConfig, RetailerConfigInput, RetailerRepo } from './data/repos/retailerRepo.js';
+export { makeRetailerRepo } from './data/repos/retailerRepo.js';
 export { RequestPipeline } from './data/pipeline.js';
 export { fetchAllProducts } from './data/shopify.js';
 export { openDatabase } from './data/db.js';

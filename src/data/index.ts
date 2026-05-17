@@ -7,7 +7,17 @@
 
 // Retailer configuration
 export type { Retailer } from './retailers.js';
-export { RETAILERS } from './retailers.js';
+export { DEFAULT_RETAILERS } from './retailers.js';
+
+// Retailer repository (dynamic store management)
+export type { RetailerConfig, RetailerConfigInput, RetailerRepo } from './repos/retailerRepo.js';
+export { makeRetailerRepo } from './repos/retailerRepo.js';
+
+// Storefront GraphQL API
+export { fetchAllProductsGraphQL, extractStorefrontToken } from './storefront-api.js';
+
+// Smart source (GraphQL preferred, /products.json fallback)
+export { SmartShopifySource } from './smart-source.js';
 
 // HTTP request pipeline
 export type { RequestPipelineOptions } from './pipeline.js';
