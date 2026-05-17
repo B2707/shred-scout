@@ -8,6 +8,7 @@
 import React, { useState, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
+import { CompatBadge } from './CompatBadge.js';
 
 export interface WishlistViewProps {
   setups: SavedSetup[];
@@ -132,6 +133,13 @@ export function WishlistView({
                 : <Text dimColor>–</Text>
               }
             </Box>
+            {setup.compatibility && setup.compatibility.length > 0 && (
+              <Box marginLeft={2} gap={1} flexWrap="wrap">
+                {setup.compatibility.map(r => (
+                  <CompatBadge key={r.ruleId} result={r} />
+                ))}
+              </Box>
+            )}
             {isConfirmingDelete && (
               <Box marginLeft={2}>
                 <Text color="red" bold>Delete {titleLine}? [y/n]</Text>

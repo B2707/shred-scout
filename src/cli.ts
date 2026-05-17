@@ -68,13 +68,22 @@ program
     const { makeSetupRepo } = await import('./data/repos/setupRepo.js');
     const { makePriceRepo } = await import('./data/repos/priceRepo.js');
     const { makeProductRepo } = await import('./data/repos/productRepo.js');
+    const { makeRetailerRepo } = await import('./data/repos/retailerRepo.js');
     const { priceDropAlert } = await import('./domain/alerts/diff.js');
     const { execFile } = await import('node:child_process');
+    const { fetch } = await import('undici');
+    const { parsePriceCents } = await import('./data/normalizer.js');
 
     const db = openDatabase();
     const setupRepo = makeSetupRepo(db);
     const priceRepo = makePriceRepo(db);
     const productRepo = makeProductRepo(db);
+    const retailerRepo = makeRetailerRepo(db);
+
+    // Build retailer name → store URL lookup for price fetching
+    const storeUrlByRetailer = new Map<string, string>(
+      retailerRepo.all().map(r => [r.name, r.storeUrl]),
+    );
 
     process.on('SIGINT', () => {
       console.log('\nWatch daemon stopped.');
@@ -97,6 +106,36 @@ program
 
         for (const productId of productIds) {
           try {
+            // Fetch the current market price before comparing.
+            // Uses the single-product Shopify endpoint: /products/{handle}.json
+            // This is lighter than a full paginated fetch and requires no auth.
+            const product = productRepo.findById(productId);
+            if (product?.handle && product.retailer) {
+              const storeUrl = storeUrlByRetailer.get(product.retailer);
+              if (storeUrl) {
+                try {
+                  const res = await fetch(
+                    `${storeUrl}/products/${product.handle}.json`,
+                    { headers: { 'User-Agent': 'shred-scout/1.0.0' } },
+                  );
+                  if (res.ok) {
+                    const json = (await res.json()) as { product?: { variants?: Array<{ price: string }> } };
+                    const variants = json.product?.variants ?? [];
+                    if (variants.length > 0) {
+                      const currentCents = Math.min(
+                        ...variants.map(v => parsePriceCents(v.price)).filter(c => c > 0),
+                      );
+                      if (Number.isFinite(currentCents) && currentCents > 0) {
+                        priceRepo.record(productId, currentCents);
+                      }
+                    }
+                  }
+                } catch {
+                  // Price fetch failed — skip this product this poll cycle
+                }
+              }
+            }
+
             const history = priceRepo.history(productId);
             const alert = priceDropAlert(history);
             if (alert) {
