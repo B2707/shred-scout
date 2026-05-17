@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
 import type { RequestPipeline } from '../data/pipeline.js';
@@ -50,7 +50,18 @@ export async function runSearch(
   // Demo mode: return fixture products from bundled JSON without any HTTP calls
   if (options.demo) {
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const fixtureJson = readFileSync(join(__dirname, 'demo-products.json'), 'utf-8');
+    // Probe dist/ first (built bundle), fall back to src/fixtures/ (tsx dev mode).
+    // In dev, import.meta.url resolves to src/agent/search-pipeline.ts so
+    // __dirname is src/agent/ — not where demo-products.json lives.
+    const candidates = [
+      join(__dirname, 'demo-products.json'),
+      resolve(__dirname, '../../src/fixtures/demo-products.json'),
+      resolve(__dirname, '../fixtures/demo-products.json'),
+    ];
+    const fixturePath = candidates.find(p => {
+      try { readFileSync(p); return true; } catch { return false; }
+    }) ?? candidates[0]; // fall through to readFileSync error if none found
+    const fixtureJson = readFileSync(fixturePath, 'utf-8');
     const products = JSON.parse(fixtureJson) as NormalizedProduct[];
     return { products, errors: [] };
   }
