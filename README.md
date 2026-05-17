@@ -2,7 +2,7 @@
 
 Agentic terminal UI for finding compatible snowboard gear deals across multiple retailers.
 
-<!-- demo.gif will be added after recording — run `npm run demo` to try locally -->
+![Shred Scout demo](docs/demo.gif)
 
 ## Install
 
@@ -35,12 +35,6 @@ npm run demo
 ```
 
 Runs the full search → compatibility → results flow against cached fixture data. No API keys, no live network connection, and no prior setup required. Fixture products include boards, bindings, and boots across simulated retailers, with sale items and cross-retailer comparison pairs pre-populated.
-
-## Recording
-
-<!-- asciicast badge and demo.cast will be added after recording -->
-
-<!-- The recording will show the complete demo mode flow: search query → compatibility scoring → results list with spec data → wishlist → quit. -->
 
 ## How It Works
 
