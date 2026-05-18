@@ -15,7 +15,9 @@
   },
   "files": [
     "dist/",
-    "bin/"
+    "bin/",
+    "stores.json",
+    "scripts/"
   ],
   "engines": {
     "node": ">=20.19.0"
