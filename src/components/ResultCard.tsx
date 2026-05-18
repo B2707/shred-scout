@@ -80,34 +80,36 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
   const columns = stdout.columns ?? 80;
 
   // Async image fetch + terminal-image resolution
+  // AbortController wired to cancel in-flight fetch when component unmounts (IN-02 fix)
   useEffect(() => {
     if (!supportsImages || !product.image_url) return;
 
-    let cancelled = false;
+    const ctrl = new AbortController();
     void (async () => {
       try {
-        const res = await fetch(product.image_url!);
+        const res = await fetch(product.image_url!, { signal: ctrl.signal });
         const buf = Buffer.from(await res.arrayBuffer());
         const ansi = await terminalImage.buffer(buf, {
           width: 80,
           height: IMAGE_HEIGHT_ROWS,
           preserveAspectRatio: true,
         });
-        if (!cancelled) setImageAnsi(ansi);
-      } catch {
-        // Image fetch or render failure → silent fallback to text-only card
-        // No error surfaced — text card is first-class, not degraded (UI-SPEC)
+        if (!ctrl.signal.aborted) setImageAnsi(ansi);
+      } catch (err) {
+        // Swallow AbortError; surface nothing for other errors (text card is first-class)
+        if ((err as { name?: string })?.name === 'AbortError') return;
       }
     })();
 
     return () => {
-      cancelled = true;
+      ctrl.abort();
     };
   }, [product.image_url, supportsImages]);
 
   // Title truncation — account for [N] prefix width when index is provided
+  // Subtract 2 extra columns for the round border (1 per side) per Pitfall 2
   const indexPrefix = index !== undefined ? `[${index}] ` : '';
-  const maxTitleWidth = Math.max(10, columns - 22 - indexPrefix.length);
+  const maxTitleWidth = Math.max(10, columns - 22 - indexPrefix.length - 2);
   const displayTitle =
     product.title.length > maxTitleWidth
       ? product.title.slice(0, maxTitleWidth - 1) + '…'
@@ -123,7 +125,7 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
   const categoryLabel = product.gear_category ?? 'unknown';
 
   return (
-    <Box flexDirection="column" paddingX={1} marginBottom={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1} marginBottom={1}>
       {/* Image section — only when supportsImages=true AND image resolved */}
       {supportsImages && imageAnsi && (
         <>
@@ -138,7 +140,7 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
         {index !== undefined && <Text dimColor>[{index}] </Text>}
         <Text>{displayTitle}</Text>
         <Text>{'  '}</Text>
-        <Text bold={!isSale}>${priceDollars}</Text>
+        <Text bold color="green">${priceDollars}</Text>
       </Box>
 
       {/* Metadata row — gear_category · retailer in dimColor */}
