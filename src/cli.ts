@@ -148,12 +148,15 @@ program
 
               const message = `${title}: $${oldDollars} → $${newDollars} (-${pct}%)`;
               if (process.platform === 'darwin') {
-                // Sanitize retailer-controlled title before embedding in an AppleScript string:
-                // replace double-quotes (string terminators) with single-quotes, and replace
-                // newline/carriage-return characters with a space to prevent multi-line string
-                // literals that cause silent osascript syntax errors.
-                const safeMessage = message.replace(/"/g, "'").replace(/[\n\r]/g, ' ');
-                execFile('osascript', ['-e', `display notification "${safeMessage}" with title "Shred Scout"`], () => {});
+                // Pass message as an argv item so it is never interpolated into AppleScript
+                // source code. This eliminates the command-injection surface entirely —
+                // osascript receives the message as a process argument, not as script text.
+                execFile('osascript', [
+                  '-e', 'on run argv',
+                  '-e', 'display notification (item 2 of argv) with title (item 1 of argv)',
+                  '-e', 'end run',
+                  '--', 'Shred Scout', message,
+                ], () => {});
               } else if (process.platform === 'linux') {
                 execFile('notify-send', ['Shred Scout', message], () => {});
               } else {
