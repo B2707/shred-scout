@@ -140,4 +140,54 @@ describe('ResultCard', () => {
     // Existing metadata still present
     expect(lastFrame()).toContain('board · evo');
   });
+
+  it('renders round-border top-left corner character ╭ (borderStyle="round")', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+    );
+    // Ink's borderStyle="round" uses ╭ (U+256D) as the top-left corner character
+    expect(lastFrame()).toContain('╭');
+  });
+
+  it('aborts image fetch when component unmounts mid-fetch', async () => {
+    const abortSpy = vi.fn();
+    // Replace global fetch with a fetch that never resolves so the effect stays active
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+
+    // Capture the AbortController instance created by the component
+    let capturedCtrl: { abort: () => void } | undefined;
+    const OrigAbortController = globalThis.AbortController;
+    vi.stubGlobal('AbortController', class MockAbortController extends OrigAbortController {
+      constructor() {
+        super();
+        capturedCtrl = this;
+        // Override abort to spy on it
+        const origAbort = this.abort.bind(this);
+        this.abort = () => {
+          abortSpy();
+          origAbort();
+        };
+      }
+    });
+
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const { unmount } = render(
+      React.createElement(ResultCard, { product: baseProduct, supportsImages: true }),
+    );
+
+    // Allow the useEffect to kick off
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+
+    // Unmounting should call abort() via the cleanup return value
+    unmount();
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    expect(abortSpy).toHaveBeenCalledTimes(1);
+  });
 });
