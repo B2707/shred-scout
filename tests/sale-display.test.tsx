@@ -42,4 +42,25 @@ describe('SaleDisplay', () => {
     );
     expect(lastFrame()).toContain('20% OFF');
   });
+
+  it('renders the "(18% OFF)" badge with format intact when prices match demo-004 fixture', async () => {
+    const { SaleDisplay } = await import('../src/components/SaleDisplay.js');
+    // priceCents=44900 ($449.00), compareAtCents=54900 ($549.00) → 18% OFF
+    // Math.round((1 - 44900/54900) * 100) = Math.round(0.1821) = 18
+    const { lastFrame } = render(
+      React.createElement(SaleDisplay, { priceCents: 44900, compareAtCents: 54900 }),
+    );
+    expect(lastFrame()).toContain('was $549.00');
+    expect(lastFrame()).toContain('$449.00');
+    expect(lastFrame()).toContain('18% OFF');
+  });
+
+  it('returns empty fragment when compareAtCents is 0', async () => {
+    const { SaleDisplay } = await import('../src/components/SaleDisplay.js');
+    const { lastFrame } = render(
+      React.createElement(SaleDisplay, { priceCents: 44900, compareAtCents: 0 }),
+    );
+    // When compareAtCents=0 the component returns <></> — output should be empty or blank
+    expect(lastFrame() ?? '').not.toContain('% OFF');
+  });
 });

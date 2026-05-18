@@ -31,7 +31,7 @@ export function SaleDisplay({ priceCents, compareAtCents }: SaleDisplayProps): R
   const currentDollars = (priceCents / 100).toFixed(2);
 
   return (
-    <Text color="yellow">
+    <Text color="yellow" bold>
       <Text dimColor>(was ${originalDollars})  </Text>
       ${currentDollars}  ({pctOff}% OFF)
     </Text>
