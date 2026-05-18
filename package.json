@@ -36,6 +36,7 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
+    "postinstall": "node scripts/install-chafa.mjs",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "cheerio": "^1.2.0",
     "commander": "14.0.3",
     "conf": "15.1.0",
+    "execa": "^9.6.1",
     "ink": "6.8.0",
     "ink-gradient": "4.0.0",
     "p-queue": "9.2.0",
@@ -57,7 +59,6 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.0",
     "@types/react": "^19.1.5",
-    "execa": "^9.6.1",
     "ink-testing-library": "4.0.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
