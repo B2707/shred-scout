@@ -47,10 +47,10 @@ vi.mock('../src/data/repos/retailerRepo.js', () => ({
   }),
 }));
 
-vi.mock('../src/data/retailers.js', () => ({
-  DEFAULT_RETAILERS: [
+vi.mock('../src/data/stores.js', () => ({
+  loadStores: vi.fn().mockReturnValue([
     { name: 'TestRetailer', storeUrl: 'https://test-retailer.com', storefrontToken: null },
-  ],
+  ]),
 }));
 
 vi.mock('../src/data/pipeline.js', () => ({
