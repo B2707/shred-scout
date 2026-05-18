@@ -179,6 +179,37 @@ program
     await new Promise<never>(() => {});
   });
 
+program
+  .command('add-store <url>')
+  .description('Add a new store URL to the search list (persists to SQLite and stores.json)')
+  .action(async (url: string) => {
+    // Validate the URL — exits early with code 1 on invalid input (ASVS input validation)
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      console.error('Invalid URL:', url);
+      process.exit(1);
+    }
+
+    const host = parsedUrl.hostname.replace(/^www\./, '');
+    const name = host.split('.')[0] || host;
+    const type: 'shopify' | 'html' = host.includes('evo.com') ? 'html' : 'shopify';
+
+    const { openDatabase } = await import('./data/db.js');
+    const { makeRetailerRepo } = await import('./data/repos/retailerRepo.js');
+    const { syncStoreToJson } = await import('./data/stores.js');
+
+    const db = openDatabase();
+    const retailerRepo = makeRetailerRepo(db);
+
+    retailerRepo.add({ name, storeUrl: url, storefrontToken: null });
+    await syncStoreToJson({ name, baseUrl: url, type });
+
+    console.log(`Added ${name} (${url}) [type=${type}] to store list.`);
+    db.close();
+  });
+
 // Show help when invoked with no arguments and running in a TTY.
 // When stdin is not a TTY (piped), fall through to program.parseAsync() so the
 // default search action fires and assertTTY() produces the expected exit(1).

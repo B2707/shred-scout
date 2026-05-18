@@ -22,7 +22,7 @@ import type { NormalizedProduct } from '../data/normalizer.js';
 import type { RequestPipeline } from '../data/pipeline.js';
 import { openDatabase, makeProductRepo } from '../data/index.js';
 import { makeRetailerRepo } from '../data/repos/retailerRepo.js';
-import { DEFAULT_RETAILERS } from '../data/retailers.js';
+import { loadStores } from '../data/stores.js';
 import { SmartShopifySource } from '../data/smart-source.js';
 import { EvoHtmlScrapeSource } from '../data/scrapers/evo.js';
 import type { ProductSource } from '../data/sources.js';
@@ -38,8 +38,9 @@ export interface RunSearchOptions {
 /**
  * Fetches and normalizes snowboard products from all configured retailers.
  *
- * On first run the retailer_configs table is empty; DEFAULT_RETAILERS seeds it
- * automatically. Subsequent runs load whatever the user has configured — including
+ * On first run the retailer_configs table is empty; loadStores() seeds it
+ * automatically from stores.json (or embedded defaults if the file is absent).
+ * Subsequent runs load whatever the user has configured — including
  * any stores added via `shred-scout add-store`.
  *
  * @param query    - Search query string. Reserved for future keyword filtering.
@@ -77,7 +78,7 @@ export async function runSearch(
   const retailerRepo = makeRetailerRepo(db);
 
   // Seed default retailers on first run (when table is empty)
-  retailerRepo.seedIfEmpty(DEFAULT_RETAILERS);
+  retailerRepo.seedIfEmpty(loadStores());
 
   const configs = retailerRepo.all();
 
