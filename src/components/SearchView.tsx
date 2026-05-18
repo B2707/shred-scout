@@ -251,14 +251,23 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     }
   }, { isActive: alertOptIn !== null });
 
-  // Filter chip toggle handler — only active after opener completes and no modal is open
+  // Filter chip toggle handler — only active after opener completes and no modal is open.
+  // Price chips (u300/u500/u700) are single-select: selecting one clears the others so
+  // Math.max() in filteredGroups always reflects exactly one price ceiling (WR-02).
+  const PRICE_CHIPS: FilterKey[] = ['u300', 'u500', 'u700'];
   useInput((input) => {
     const chip = ALL_CHIPS.find(c => c.shortcut === input);
     if (!chip) return;
     setActiveFilters(prev => {
       const next = new Set(prev);
-      if (next.has(chip.key)) next.delete(chip.key);
-      else next.add(chip.key);
+      if (next.has(chip.key)) {
+        next.delete(chip.key);
+      } else {
+        if (PRICE_CHIPS.includes(chip.key)) {
+          PRICE_CHIPS.forEach(p => next.delete(p)); // clear sibling price chips
+        }
+        next.add(chip.key);
+      }
       return next;
     });
   }, { isActive: opener.step === 'done' && alertOptIn === null && !isLoading });
