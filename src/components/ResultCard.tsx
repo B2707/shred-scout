@@ -20,6 +20,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import terminalImage from 'terminal-image';
+import { execa } from 'execa';
 import type { NormalizedProduct } from '../data/normalizer.js';
 import { SaleDisplay } from './SaleDisplay.js';
 
@@ -76,8 +77,54 @@ export interface ResultCardProps {
 
 export function ResultCard({ product, supportsImages, index }: ResultCardProps): React.JSX.Element {
   const [imageAnsi, setImageAnsi] = useState<string | null>(null);
+  const [chafaAvailable, setChafaAvailable] = useState(false);
+  const [chafaAnsi, setChafaAnsi] = useState<string | null>(null);
   const { stdout } = useStdout();
   const columns = stdout.columns ?? 80;
+
+  // Detect chafa availability once on mount (only when terminal-image is not available)
+  useEffect(() => {
+    if (supportsImages) return; // terminal-image already handles images; skip chafa check
+    void (async () => {
+      try {
+        await execa('which', ['chafa']);
+        setChafaAvailable(true);
+      } catch {
+        // chafa not installed — silently fall back to text-only card
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Chafa image rendering — runs when chafa is available and terminal-image is not in use
+  useEffect(() => {
+    if (supportsImages || !product.image_url || !chafaAvailable) return;
+
+    const ctrl = new AbortController();
+    void (async () => {
+      try {
+        const res = await fetch(product.image_url!, { signal: ctrl.signal });
+        const buf = Buffer.from(await res.arrayBuffer());
+        const result = await execa(
+          'chafa',
+          [
+            '--size', `${Math.min(columns - 4, 40)}x20`,
+            '--format', 'symbols',
+            '--symbols', 'block+border',
+            '-',
+          ],
+          { input: buf, timeout: 5000 },
+        );
+        if (!ctrl.signal.aborted) setChafaAnsi(result.stdout);
+      } catch (err) {
+        // Swallow AbortError and chafa errors — text card is first-class
+        if ((err as { name?: string })?.name === 'AbortError') return;
+      }
+    })();
+
+    return () => {
+      ctrl.abort();
+    };
+  }, [product.image_url, chafaAvailable, supportsImages, columns]);
 
   // Async image fetch + terminal-image resolution
   // AbortController wired to cancel in-flight fetch when component unmounts (IN-02 fix)
@@ -126,12 +173,19 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1} marginBottom={1}>
-      {/* Image section — only when supportsImages=true AND image resolved */}
+      {/* terminal-image path — iTerm2/Kitty inline protocol */}
       {supportsImages && imageAnsi && (
         <>
           {/* Box height reserves Yoga layout space for OSC escape sequences (Pitfall 3) */}
           <Box height={IMAGE_HEIGHT_ROWS} />
           <Text>{imageAnsi}</Text>
+        </>
+      )}
+      {/* chafa fallback path — colored ASCII for terminals without inline image support */}
+      {!supportsImages && chafaAnsi && (
+        <>
+          <Box height={IMAGE_HEIGHT_ROWS} />
+          <Text>{chafaAnsi}</Text>
         </>
       )}
 
