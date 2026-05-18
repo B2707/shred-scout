@@ -10,6 +10,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { TextInput } from '@inkjs/ui';
+import type Database from 'better-sqlite3';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
 import { RequestPipeline } from '../data/pipeline.js';
@@ -51,6 +52,8 @@ const ALL_CHIPS: Array<{ key: FilterKey; label: string; shortcut: string }> = [
 export interface SearchViewProps {
   profile: RiderProfile;
   supportsImages: boolean;
+  /** App-owned DB connection — passed to runSearch to prevent double-open (CR-02). */
+  db: Database.Database;
   setupRepo: ReturnType<typeof makeSetupRepo>;
   priceRepo: ReturnType<typeof makePriceRepo>;
   productRepo: ReturnType<typeof makeProductRepo>;
@@ -66,7 +69,7 @@ export interface SearchViewProps {
   onModalChange: (active: boolean) => void;
 }
 
-export function SearchView({ profile, supportsImages, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
+export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<NormalizedProduct[]>([]);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
@@ -139,7 +142,7 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
       setProducts([]);
       setSearchErrors([]);
       try {
-        const { products: found, errors } = await runSearch(query, profile, pipelineRef.current, { demo: isDemoMode });
+        const { products: found, errors } = await runSearch(query, profile, pipelineRef.current, { demo: isDemoMode, db });
         setProducts(found);
         setSearchErrors(errors);
       } catch (err) {

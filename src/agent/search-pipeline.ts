@@ -17,6 +17,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import type Database from 'better-sqlite3';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
 import type { RequestPipeline } from '../data/pipeline.js';
@@ -33,6 +34,12 @@ export interface RunSearchOptions {
   demo?: boolean;
   /** Database path — ':memory:' for demo mode. Defaults to platform data dir. */
   dbPath?: string;
+  /**
+   * Caller-owned database connection. When provided, runSearch will use it directly
+   * and will NOT close it on completion — the caller retains ownership. This prevents
+   * double-open when the App UI already holds an open connection.
+   */
+  db?: Database.Database;
 }
 
 /**
@@ -73,7 +80,10 @@ export async function runSearch(
     return { products, errors: [] };
   }
 
-  const db = openDatabase(options.dbPath);
+  // Use caller-provided connection when available — avoids double-open and SQLite
+  // locking races when the App UI already holds an open connection to the same file.
+  const db = options.db ?? openDatabase(options.dbPath);
+  const shouldClose = !options.db;
   const productRepo = makeProductRepo(db);
   const retailerRepo = makeRetailerRepo(db);
 
@@ -107,6 +117,6 @@ export async function runSearch(
 
     return { products: all, errors };
   } finally {
-    db.close();
+    if (shouldClose) db.close();
   }
 }

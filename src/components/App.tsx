@@ -192,6 +192,7 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
         <SearchView
           profile={profile}
           supportsImages={supportsImages}
+          db={db}
           setupRepo={setupRepo}
           priceRepo={priceRepo}
           productRepo={productRepo}
