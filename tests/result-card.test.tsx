@@ -13,6 +13,11 @@ vi.mock('terminal-image', () => ({
   },
 }));
 
+// Mock execa so the chafa availability check and rendering don't attempt real subprocesses
+vi.mock('execa', () => ({
+  execa: vi.fn().mockRejectedValue(new Error('chafa not found')),
+}));
+
 // Mock fetch to avoid real HTTP in tests
 const mockFetch = vi.fn().mockResolvedValue({
   arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
