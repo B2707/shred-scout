@@ -195,6 +195,48 @@ describe('setupRepo — Phase 6 extensions', () => {
 });
 
 // ---------------------------------------------------------------------------
+// setupRepo — Phase 9 findCompleteSetup
+// ---------------------------------------------------------------------------
+
+describe('setupRepo — findCompleteSetup', () => {
+  it('returns null when table is empty', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    expect(repo.findCompleteSetup()).toBeNull();
+  });
+
+  it('returns null when a row has only boardId (incomplete setup)', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    repo.save({ boardId: 1 });
+    expect(repo.findCompleteSetup()).toBeNull();
+  });
+
+  it('returns the row when a single row has all three IDs', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    const id = repo.save({ boardId: 1, bindingId: 2, bootId: 3 });
+    const result = repo.findCompleteSetup();
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe(id);
+    expect(result?.boardId).toBe(1);
+    expect(result?.bindingId).toBe(2);
+    expect(result?.bootId).toBe(3);
+  });
+
+  it('returns the most recently saved of multiple complete rows', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeSetupRepo(db);
+    const _id1 = repo.save({ boardId: 1, bindingId: 2, bootId: 3 });
+    const id2 = repo.save({ boardId: 4, bindingId: 5, bootId: 6 });
+    const result = repo.findCompleteSetup();
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe(id2);
+    expect(result?.boardId).toBe(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // productRepo — Phase 6 extensions
 // ---------------------------------------------------------------------------
 
