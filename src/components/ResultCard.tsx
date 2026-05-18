@@ -112,7 +112,7 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
             '--symbols', 'block+border',
             '-',
           ],
-          { input: buf, timeout: 5000 },
+          { input: buf, timeout: 5000, cancelSignal: ctrl.signal },
         );
         if (!ctrl.signal.aborted) setChafaAnsi(result.stdout);
       } catch (err) {
