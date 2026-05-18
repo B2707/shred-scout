@@ -8,7 +8,7 @@
  * Phase 9: conversational opener (boot size + riding style confirm) before search.
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, Text, Static, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { TextInput } from '@inkjs/ui';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
@@ -29,6 +29,24 @@ type OpenerState =
   | { step: 'q2' }
   | { step: 'q2-edit' }
   | { step: 'done' };
+
+// Filter chip types — category, flex, and price dimensions
+type FilterKey =
+  | 'board' | 'binding' | 'boot'
+  | 'soft' | 'medium' | 'stiff'
+  | 'u300' | 'u500' | 'u700';
+
+const ALL_CHIPS: Array<{ key: FilterKey; label: string; shortcut: string }> = [
+  { key: 'board',   label: 'Board',   shortcut: 'b' },
+  { key: 'binding', label: 'Binding', shortcut: 'i' },
+  { key: 'boot',    label: 'Boot',    shortcut: 'o' },
+  { key: 'soft',    label: 'Soft',    shortcut: 's' },
+  { key: 'medium',  label: 'Medium',  shortcut: 'm' },
+  { key: 'stiff',   label: 'Stiff',   shortcut: 't' },
+  { key: 'u300',    label: '<$300',   shortcut: '3' },
+  { key: 'u500',    label: '<$500',   shortcut: '5' },
+  { key: 'u700',    label: '<$700',   shortcut: '7' },
+];
 
 export interface SearchViewProps {
   profile: RiderProfile;
@@ -71,6 +89,31 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
   const [alertOptIn, setAlertOptIn] = useState<{ setupId: number; title: string } | null>(null);
   // Track the alert opt-in delay timer so it can be cancelled on rapid saves
   const alertOptInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Filter chip state — toggled by single-letter shortcuts after opener completes.
+  // Must be declared before filteredGroups useMemo to avoid temporal dead zone.
+  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
+
+  // filteredGroups: derived from groups + activeFilters — reactively narrows results.
+  // When no filters are active, returns groups verbatim (same reference) to skip re-renders.
+  const filteredGroups = React.useMemo<ProductGroup[]>(() => {
+    if (activeFilters.size === 0) return groups;
+    const catFilters = (['board', 'binding', 'boot'] as const).filter(c => activeFilters.has(c));
+    const flexFilters = (['soft', 'medium', 'stiff'] as const).filter(f => activeFilters.has(f));
+    const priceThresholds = [
+      activeFilters.has('u300') ? 30000 : null,
+      activeFilters.has('u500') ? 50000 : null,
+      activeFilters.has('u700') ? 70000 : null,
+    ].filter((v): v is number => v !== null);
+    const maxPrice = priceThresholds.length > 0 ? Math.max(...priceThresholds) : null;
+    return groups.filter(g => {
+      const p = g.type === 'single' ? g.product : g.products[0]!;
+      if (catFilters.length > 0 && !catFilters.includes(p.gear_category as 'board' | 'binding' | 'boot')) return false;
+      if (flexFilters.length > 0 && p.flex_rating && !flexFilters.some(f => p.flex_rating!.toLowerCase().includes(f))) return false;
+      if (maxPrice !== null && p.price_cents > maxPrice) return false;
+      return true;
+    });
+  }, [groups, activeFilters]);
 
   // Conversational opener state — once per process launch
   const [opener, setOpener] = useState<OpenerState>({ step: 'q1' });
@@ -205,6 +248,18 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
     }
   }, { isActive: alertOptIn !== null });
 
+  // Filter chip toggle handler — only active after opener completes and no modal is open
+  useInput((input) => {
+    const chip = ALL_CHIPS.find(c => c.shortcut === input);
+    if (!chip) return;
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(chip.key)) next.delete(chip.key);
+      else next.add(chip.key);
+      return next;
+    });
+  }, { isActive: opener.step === 'done' && alertOptIn === null && !isLoading });
+
   // Opener UI: shown before the search box appears
   const openerUI = (
     <Box flexDirection="column" paddingX={1}>
@@ -244,8 +299,18 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
   // Search UI: shown after opener completes
   const searchUI = (
     <>
-      <Static items={groups}>
-        {(group) =>
+      <Box flexDirection="row" marginY={1}>
+        {ALL_CHIPS.map(chip => {
+          const active = activeFilters.has(chip.key);
+          return (
+            <Text key={chip.key} color={active ? 'green' : undefined} bold={active} dimColor={!active}>
+              {`[${chip.label}:${chip.shortcut}] `}
+            </Text>
+          );
+        })}
+      </Box>
+      <Box flexDirection="column">
+        {filteredGroups.map((group) =>
           group.type === 'comparison' ? (
             <ComparisonGroup
               key={group.normalizedTitle}
@@ -260,8 +325,8 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
               index={savableProducts.indexOf(group.product) + 1}
             />
           )
-        }
-      </Static>
+        )}
+      </Box>
       {products.length === 0 && !isLoading && (
         <Box flexDirection="column" paddingX={1} marginTop={1}>
           <Text bold>No results yet</Text>

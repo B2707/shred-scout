@@ -56,6 +56,10 @@ export function makeSetupRepo(db: Database.Database) {
     'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups ORDER BY saved_at DESC, id DESC'
   );
 
+  const selectCompleteStmt = db.prepare<[], SetupRow>(
+    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NOT NULL AND binding_id IS NOT NULL AND boot_id IS NOT NULL ORDER BY saved_at DESC, id DESC LIMIT 1'
+  );
+
   const deleteStmt = db.prepare('DELETE FROM saved_setups WHERE id = ?');
   const setAlertStmt = db.prepare('UPDATE saved_setups SET alert_enabled = ? WHERE id = ?');
 
@@ -97,6 +101,31 @@ export function makeSetupRepo(db: Database.Database) {
         savedAt: row.saved_at,
         alertEnabled: row.alert_enabled === 1,
       }));
+    },
+
+    /**
+     * Returns the most recently saved SavedSetup with all three gear slots filled,
+     * or null if no such row exists.
+     */
+    findCompleteSetup(): SavedSetup | null {
+      const row = selectCompleteStmt.get();
+      if (!row) return null;
+      return {
+        id: row.id,
+        boardId: row.board_id,
+        bindingId: row.binding_id,
+        bootId: row.boot_id,
+        compatibility: (() => {
+          if (!row.compatibility) return null;
+          try {
+            return JSON.parse(row.compatibility) as RuleResult[];
+          } catch {
+            return null;
+          }
+        })(),
+        savedAt: row.saved_at,
+        alertEnabled: row.alert_enabled === 1,
+      };
     },
 
     /**

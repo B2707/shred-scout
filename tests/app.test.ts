@@ -76,6 +76,17 @@ describe('App — screen routing', () => {
   });
 });
 
+describe('App — summary screen routing', () => {
+  it("App renders without crashing when isDemoMode is true (smoke test for summary screen plumbing)", () => {
+    (readProfile as ReturnType<typeof vi.fn>).mockReturnValue({
+      bootSize: 10, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain',
+    });
+    const { lastFrame } = render(React.createElement(App, { isDemoMode: true }));
+    // Should render search screen in demo mode (no summary yet)
+    expect(lastFrame()).not.toBeNull();
+  });
+});
+
 describe('App — global quit handler', () => {
   it('exits via ink useApp().exit() when q is pressed — does not call process.exit directly', async () => {
     (readProfile as ReturnType<typeof vi.fn>).mockReturnValue(null);
