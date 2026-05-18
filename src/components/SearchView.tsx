@@ -5,6 +5,7 @@
  * No AgentLoop, no useAgent, no EventEmitter — plain async await.
  * Phase 8: deterministic search pipeline wired directly into UI state.
  * Phase 6: save TextInput below results, alert opt-in flow, repo props from App.tsx.
+ * Phase 9: conversational opener (boot size + riding style confirm) before search.
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, Static, useInput } from 'ink';
@@ -20,6 +21,14 @@ import type { ProductGroup } from '../types/product-groups.js';
 import type { makeSetupRepo } from '../data/repos/setupRepo.js';
 import type { makePriceRepo } from '../data/repos/priceRepo.js';
 import type { makeProductRepo } from '../data/repos/productRepo.js';
+
+// Conversational opener state machine — runs once per component lifetime (once per launch).
+type OpenerState =
+  | { step: 'q1' }
+  | { step: 'q1-edit' }
+  | { step: 'q2' }
+  | { step: 'q2-edit' }
+  | { step: 'done' };
 
 export interface SearchViewProps {
   profile: RiderProfile;
@@ -62,6 +71,17 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
   const [alertOptIn, setAlertOptIn] = useState<{ setupId: number; title: string } | null>(null);
   // Track the alert opt-in delay timer so it can be cancelled on rapid saves
   const alertOptInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Conversational opener state — once per process launch
+  const [opener, setOpener] = useState<OpenerState>({ step: 'q1' });
+  const [openerBootSize, setOpenerBootSize] = useState<number>(profile.bootSize);
+  const [openerStyle, setOpenerStyle] = useState<string>(profile.ridingStyle);
+
+  // Display form of the opener riding style: 'all-mountain' → 'All-Mountain'
+  const displayOpenerStyle = openerStyle
+    .split('-')
+    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('-');
 
   function showSaveMsg(msg: string): void {
     if (saveMsgTimerRef.current) clearTimeout(saveMsgTimerRef.current);
@@ -158,6 +178,18 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
     onModalChange(alertOptIn !== null);
   }, [alertOptIn, onModalChange]);
 
+  // Conversational opener y/n handler — only active during q1 and q2 steps.
+  // Must be gated with alertOptIn === null so it does not collide with the alert modal handler.
+  useInput((input, key) => {
+    if (opener.step === 'q1') {
+      if (input === 'y' || key.return) { setOpener({ step: 'q2' }); return; }
+      if (input === 'n') { setOpener({ step: 'q1-edit' }); return; }
+    } else if (opener.step === 'q2') {
+      if (input === 'y' || key.return) { setOpener({ step: 'done' }); return; }
+      if (input === 'n') { setOpener({ step: 'q2-edit' }); return; }
+    }
+  }, { isActive: (opener.step === 'q1' || opener.step === 'q2') && alertOptIn === null });
+
   // Alert opt-in y/n handler — only active when alertOptIn is set
   useInput((input, key) => {
     if (!alertOptIn) return;
@@ -173,8 +205,45 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
     }
   }, { isActive: alertOptIn !== null });
 
-  return (
+  // Opener UI: shown before the search box appears
+  const openerUI = (
     <Box flexDirection="column" paddingX={1}>
+      {opener.step === 'q1' && (
+        <Text>Your boot size is <Text bold>{openerBootSize}</Text> — still right? [y/n]</Text>
+      )}
+      {opener.step === 'q1-edit' && (
+        <TextInput
+          placeholder="Enter boot size (US):"
+          onSubmit={(v) => {
+            const parsed = parseFloat(v);
+            if (!isNaN(parsed) && parsed > 0) {
+              setOpenerBootSize(parsed);
+            }
+            setOpener({ step: 'q2' });
+          }}
+        />
+      )}
+      {opener.step === 'q2' && (
+        <Text>Riding style: <Text bold>{displayOpenerStyle}</Text> — change anything? [y/n]</Text>
+      )}
+      {opener.step === 'q2-edit' && (
+        <TextInput
+          placeholder="Enter riding style (e.g. all-mountain, freeride, freestyle):"
+          onSubmit={(v) => {
+            const trimmed = v.trim().toLowerCase();
+            if (trimmed.length > 0) {
+              setOpenerStyle(trimmed);
+            }
+            setOpener({ step: 'done' });
+          }}
+        />
+      )}
+    </Box>
+  );
+
+  // Search UI: shown after opener completes
+  const searchUI = (
+    <>
       <Static items={groups}>
         {(group) =>
           group.type === 'comparison' ? (
@@ -220,6 +289,12 @@ export function SearchView({ profile, supportsImages, setupRepo, priceRepo, prod
           }
         </Box>
       )}
+    </>
+  );
+
+  return (
+    <Box flexDirection="column" paddingX={1}>
+      {opener.step !== 'done' ? openerUI : searchUI}
     </Box>
   );
 }
