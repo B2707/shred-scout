@@ -1,0 +1,12 @@
+[
+  { "name": "stoked", "baseUrl": "https://stokedboardshop.com", "type": "shopify" },
+  { "name": "thirtytwo", "baseUrl": "https://www.thirtytwo.com", "type": "shopify" },
+  { "name": "nidecker", "baseUrl": "https://www.nidecker.com", "type": "shopify" },
+  { "name": "bataleon", "baseUrl": "https://www.bataleon.com", "type": "shopify" },
+  { "name": "jones", "baseUrl": "https://www.jonessnowboards.com", "type": "shopify" },
+  { "name": "nitro", "baseUrl": "https://www.nitrosnowboards.com", "type": "shopify" },
+  { "name": "roxy", "baseUrl": "https://www.roxy.com", "type": "shopify" },
+  { "name": "springbreak", "baseUrl": "https://www.springbreaksnowboards.com", "type": "shopify" },
+  { "name": "korua", "baseUrl": "https://www.korua-shapes.com", "type": "shopify" },
+  { "name": "evo", "baseUrl": "https://www.evo.com", "type": "html" }
+]
