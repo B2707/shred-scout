@@ -145,4 +145,28 @@ describe('SearchView', () => {
     await advancePastOpener(stdin);
     expect(lastFrame()).toContain('No results yet');
   });
+
+  it('renders filter chip row after opener completes', async () => {
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame, stdin } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    );
+    await advancePastOpener(stdin);
+    const frame = lastFrame()!;
+    // All 9 filter chips should be visible
+    expect(frame).toContain('[Board:b]');
+    expect(frame).toContain('[Binding:i]');
+    expect(frame).toContain('[Boot:o]');
+  });
+
+  it('filter chip does not fire during opener (chip useInput gate prevents it)', async () => {
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame, stdin } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    );
+    // Press 'b' during opener (q1 step) — should not affect anything
+    await act(async () => { stdin.write('b'); });
+    // Opener should still be on q1
+    expect(lastFrame()).toContain('still right? [y/n]');
+  });
 });
