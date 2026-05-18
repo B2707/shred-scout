@@ -14,6 +14,7 @@ import { Header } from './Header.js';
 import { SearchView } from './SearchView.js';
 import { WishlistView } from './WishlistView.js';
 import { HistoryView } from './HistoryView.js';
+import { SetupSummaryView } from './SetupSummaryView.js';
 import { openDatabase } from '../data/db.js';
 import { makeSetupRepo } from '../data/repos/setupRepo.js';
 import { makePriceRepo } from '../data/repos/priceRepo.js';
@@ -21,7 +22,7 @@ import { makeProductRepo } from '../data/repos/productRepo.js';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
 import type { PriceObservation } from '../data/repos/priceRepo.js';
 
-type Screen = 'onboarding' | 'search' | 'wishlist' | 'history';
+type Screen = 'onboarding' | 'search' | 'wishlist' | 'history' | 'summary';
 
 /** Hardcoded demo rider profile — skips wizard and uses in-memory DB */
 const DEMO_PROFILE: RiderProfile = {
@@ -61,6 +62,8 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
 
   // Wishlist state — refreshed by calling setupRepo.list()
   const [setups, setSetups] = useState<SavedSetup[]>(() => setupRepo.list());
+  // Summary screen: snapshot of the complete setup that triggered the transition
+  const [summarySetup, setSummarySetup] = useState<SavedSetup | null>(null);
   // Track which product's history to show in HistoryView
   const [historyObservations, setHistoryObservations] = useState<PriceObservation[]>([]);
   const [historyProductTitle, setHistoryProductTitle] = useState<string>('');
@@ -107,7 +110,14 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
     setSetups(setupRepo.list()); // refresh badge
   };
 
-  const handleSetupSaved = useCallback(() => setSetups(setupRepo.list()), [setupRepo]);
+  const handleSetupSaved = useCallback(() => {
+    setSetups(setupRepo.list());
+    const complete = setupRepo.findCompleteSetup();
+    if (complete) {
+      setSummarySetup(complete);
+      setScreen('summary');
+    }
+  }, [setupRepo]);
   const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
 
   const handleOpenHistory = (productId: number): void => {
@@ -155,6 +165,21 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
             setSetups(setupRepo.list()); // refresh wishlist on return
             setScreen('wishlist');
           }}
+        />
+      </>
+    );
+  }
+
+  if (screen === 'summary' && profile && summarySetup) {
+    return (
+      <>
+        <Header profile={profile} />
+        <SetupSummaryView
+          setup={summarySetup}
+          productRepo={productRepo}
+          rider={profile}
+          onWishlist={() => { setSummarySetup(null); setScreen('wishlist'); }}
+          onNewSearch={() => { setSummarySetup(null); setScreen('search'); }}
         />
       </>
     );
