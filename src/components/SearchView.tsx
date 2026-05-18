@@ -283,9 +283,10 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           placeholder="Enter boot size (US):"
           onSubmit={(v) => {
             const parsed = parseFloat(v);
-            if (!isNaN(parsed) && parsed > 0) {
-              setOpenerBootSize(parsed);
-            }
+            // Reject empty Enter, non-numeric input, and implausible values.
+            // Stay in q1-edit rather than silently advancing with a bad value (WR-03).
+            if (isNaN(parsed) || parsed <= 0) return;
+            setOpenerBootSize(parsed);
             setOpener({ step: 'q2' });
           }}
         />
