@@ -198,6 +198,17 @@ describe('setupRepo — Phase 6 extensions', () => {
 // setupRepo — Phase 9 findCompleteSetup
 // ---------------------------------------------------------------------------
 
+function insertThreeProducts(db: Database.Database): [number, number, number] {
+  const insert = db.prepare(
+    `INSERT INTO products (shopify_id, retailer, title, handle, price_cents, variants_json, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
+  const p1 = insert.run('board-1', 'evo', 'Test Board', 'test-board', 44995, '[]', Date.now()).lastInsertRowid as number;
+  const p2 = insert.run('binding-1', 'evo', 'Test Binding', 'test-binding', 19995, '[]', Date.now()).lastInsertRowid as number;
+  const p3 = insert.run('boot-1', 'evo', 'Test Boot', 'test-boot', 22995, '[]', Date.now()).lastInsertRowid as number;
+  return [p1, p2, p3];
+}
+
 describe('setupRepo — findCompleteSetup', () => {
   it('returns null when table is empty', () => {
     const db = openDatabase(':memory:');
@@ -207,32 +218,36 @@ describe('setupRepo — findCompleteSetup', () => {
 
   it('returns null when a row has only boardId (incomplete setup)', () => {
     const db = openDatabase(':memory:');
+    const [p1] = insertThreeProducts(db);
     const repo = makeSetupRepo(db);
-    repo.save({ boardId: 1 });
+    repo.save({ boardId: p1 });
     expect(repo.findCompleteSetup()).toBeNull();
   });
 
   it('returns the row when a single row has all three IDs', () => {
     const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
     const repo = makeSetupRepo(db);
-    const id = repo.save({ boardId: 1, bindingId: 2, bootId: 3 });
+    const id = repo.save({ boardId: p1, bindingId: p2, bootId: p3 });
     const result = repo.findCompleteSetup();
     expect(result).not.toBeNull();
     expect(result?.id).toBe(id);
-    expect(result?.boardId).toBe(1);
-    expect(result?.bindingId).toBe(2);
-    expect(result?.bootId).toBe(3);
+    expect(result?.boardId).toBe(p1);
+    expect(result?.bindingId).toBe(p2);
+    expect(result?.bootId).toBe(p3);
   });
 
   it('returns the most recently saved of multiple complete rows', () => {
     const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
     const repo = makeSetupRepo(db);
-    const _id1 = repo.save({ boardId: 1, bindingId: 2, bootId: 3 });
-    const id2 = repo.save({ boardId: 4, bindingId: 5, bootId: 6 });
+    repo.save({ boardId: p1, bindingId: p2, bootId: p3 });
+    // Second save must also have valid product IDs — reuse same products for simplicity
+    const id2 = repo.save({ boardId: p1, bindingId: p2, bootId: p3 });
     const result = repo.findCompleteSetup();
     expect(result).not.toBeNull();
+    // Most recent by saved_at DESC, id DESC — id2 was saved later
     expect(result?.id).toBe(id2);
-    expect(result?.boardId).toBe(4);
   });
 });
 
