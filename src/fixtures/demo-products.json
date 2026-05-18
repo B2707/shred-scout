@@ -11,7 +11,7 @@
     "waist_width_mm": 254,
     "mount_pattern": "4x4",
     "mount_pattern_raw": "4x4",
-    "image_url": null,
+    "image_url": "https://cdn.shopify.com/s/files/1/0017/4/0395/products/yes-greats-2026.jpg",
     "price_cents": 54900,
     "variants_json": "[{\"price\":\"549.00\",\"compare_at_price\":null,\"option1\":\"155\"}]",
     "fetched_at": 1746576000000
@@ -28,9 +28,9 @@
     "waist_width_mm": 258,
     "mount_pattern": "2x4",
     "mount_pattern_raw": "2x4",
-    "image_url": null,
+    "image_url": "https://cdn.shopify.com/s/files/1/0017/4/0395/products/jones-mountain-twin-2026.jpg",
     "price_cents": 63900,
-    "variants_json": "[{\"price\":\"639.00\",\"compare_at_price\":null,\"option1\":\"158\"}]",
+    "variants_json": "[{\"price\":\"639.00\",\"compare_at_price\":\"749.00\",\"option1\":\"158\"}]",
     "fetched_at": 1746576000000
   },
   {
@@ -130,7 +130,7 @@
     "waist_width_mm": null,
     "mount_pattern": "4x4",
     "mount_pattern_raw": "4x4",
-    "image_url": null,
+    "image_url": "https://cdn.shopify.com/s/files/1/0017/4/0395/products/union-force-2026.jpg",
     "price_cents": 24900,
     "variants_json": "[{\"price\":\"249.00\",\"compare_at_price\":null,\"option1\":\"M\"}]",
     "fetched_at": 1746576000000
@@ -232,9 +232,9 @@
     "waist_width_mm": null,
     "mount_pattern": "4x4",
     "mount_pattern_raw": "N/A",
-    "image_url": null,
+    "image_url": "https://cdn.shopify.com/s/files/1/0017/4/0395/products/thirtytwo-tm2-2026.jpg",
     "price_cents": 28900,
-    "variants_json": "[{\"price\":\"289.00\",\"compare_at_price\":null,\"option1\":\"10\"}]",
+    "variants_json": "[{\"price\":\"289.00\",\"compare_at_price\":\"349.00\",\"option1\":\"10\"}]",
     "fetched_at": 1746576000000
   },
   {
