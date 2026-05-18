@@ -1,9 +1,10 @@
 /**
  * Header — Single-line profile header bar shown after wizard completion.
- * Displays: "Shred Scout — Boot: {size} | {DisplayStyle}"
+ * Displays a gradient "Shred Scout" title followed by profile info.
  */
 import React from 'react';
-import { Text } from 'ink';
+import { Box, Text } from 'ink';
+import Gradient from 'ink-gradient';
 import type { RiderProfile } from '../types/profile.js';
 
 interface HeaderProps {
@@ -18,9 +19,11 @@ export function Header({ profile }: HeaderProps): React.JSX.Element {
     .join('-');
 
   return (
-    <Text>
-      <Text bold color="cyanBright">Shred Scout</Text>
-      <Text>{` — Boot: ${profile.bootSize} | ${displayStyle}`}</Text>
-    </Text>
+    <Box flexDirection="column">
+      <Gradient colors={['#2255ee', '#00ddff']}>
+        {'Shred Scout'}
+      </Gradient>
+      <Text dimColor>{`Boot: ${profile.bootSize} | ${displayStyle}`}</Text>
+    </Box>
   );
 }
