@@ -67,6 +67,22 @@ const mockRepo = () => ({
 describe('SearchView', () => {
   const profile = { bootSize: 10, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain' as const };
 
+  it('renders the results view (no opener prompt) even when mounted WITHOUT initialQuery — guards UI-3', async () => {
+    // Discriminating regression guard: the removed opener only ever showed on the
+    // initialQuery-absent path, so a test that omits initialQuery is what actually fails
+    // against the pre-fix code. (The other tests all pass initialQuery and would pass either way.)
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    );
+    await settle(80);
+    const frame = lastFrame()!;
+    expect(frame).not.toContain('still right? [y/n]'); // pre-fix opener prompt must be gone
+    expect(frame).toContain('[/] filters');             // results footer renders instead
+  });
+
   it('shows the results view immediately on mount (no opener — UI-3)', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });
