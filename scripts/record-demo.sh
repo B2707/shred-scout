@@ -1,31 +1,44 @@
 #!/usr/bin/env bash
 #
-# record-demo.sh — regenerate docs/demo.gif from the `--demo` walkthrough.
+# record-demo.sh — helpers for producing docs/demo.gif.
 #
-# The demo boots straight into the guided gear wizard, so this is an INTERACTIVE
-# recording: run it in a real terminal, drive the wizard yourself (arrow keys +
-# enter) through to the results screen, then press `q` to quit — that ends the
-# recording.
+# The wizard/result PRODUCT IMAGES use the iTerm2 / Kitty inline-image protocol,
+# which only renders in those terminals and CANNOT be captured by terminal
+# recorders — asciinema, agg and vhs all fall back to chafa block-art. So the demo
+# GIF must be made by SCREEN-RECORDING a real iTerm2 or Kitty window.
 #
-# Requirements: asciinema + agg   (e.g. `brew install asciinema agg`)
-#
-# NOTE on inline product images:
-#   asciinema + agg render TEXT ONLY — they cannot capture the iTerm2/Kitty inline
-#   images shown next to each wizard option and result card. For a GIF that shows
-#   those images, screen-record an iTerm2 or Kitty window instead (e.g. Kap,
-#   https://getkap.co) and export to GIF. Size the window to ~100x30 for parity.
+# Usage:
+#   scripts/record-demo.sh            Build, then print the recording steps.
+#   scripts/record-demo.sh <in.mov>   Convert a screen recording to docs/demo.gif.
 #
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
 
-command -v asciinema >/dev/null || { echo "asciinema not found — install it (brew install asciinema)"; exit 1; }
-command -v agg >/dev/null       || { echo "agg not found — install it (brew install agg)"; exit 1; }
+if [ "$#" -eq 0 ]; then
+  npm run build
+  cat <<'STEPS'
 
-npm run build
+To record the demo (real product images need iTerm2 or Kitty):
 
-echo "Recording — walk the wizard to the results screen, then press 'q' to finish."
-asciinema rec --overwrite -c "node dist/cli.js --demo" docs/demo.cast
+  1. Open iTerm2 (https://iterm2.com) or Kitty; size it to roughly 100x40.
+  2. Run:  node dist/cli.js --demo
+  3. Screen-record the window with Kap (https://getkap.co) or QuickTime,
+     walking the wizard through to the results screen, then press q.
+  4. Convert the recording:  scripts/record-demo.sh ~/path/to/recording.mov
 
-agg docs/demo.cast docs/demo.gif
-echo "Wrote docs/demo.cast and docs/demo.gif"
+STEPS
+  exit 0
+fi
+
+command -v ffmpeg >/dev/null || { echo "ffmpeg not found — install it (brew install ffmpeg)"; exit 1; }
+IN="$1"
+[ -f "$IN" ] || { echo "no such file: $IN"; exit 1; }
+PALETTE="$(mktemp -t demo-palette).png"
+FPS=15
+WIDTH=900
+ffmpeg -y -i "$IN" -vf "fps=${FPS},scale=${WIDTH}:-1:flags=lanczos,palettegen=stats_mode=diff" "$PALETTE"
+ffmpeg -y -i "$IN" -i "$PALETTE" \
+  -lavfi "fps=${FPS},scale=${WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer" \
+  docs/demo.gif
+rm -f "$PALETTE"
+echo "Wrote docs/demo.gif ($(du -h docs/demo.gif | cut -f1))"
