@@ -42,11 +42,45 @@ export function parseFlexRating(raw: string | null): number | undefined {
 }
 
 /**
+ * Standard US boot-size range covered by each binding letter size (PROJECT.md sizing chart:
+ * S 5–8, M 7–10, L 9–12, XL 11+). Brand-independent — the industry letter→US mapping is
+ * consistent enough for a per-card fit signal, and far more honest than the full vendor span.
+ */
+const LETTER_SIZE_RANGES: Record<string, [number, number]> = {
+  xs: [4, 6],
+  s: [5, 8],
+  m: [7, 10],
+  l: [9, 12],
+  xl: [11, 15],
+};
+
+/**
+ * Maps a single binding letter-size variant ("M", "Large", "X-Large", "M (8-10)") to its
+ * standard US range, or null when the option isn't a recognizable letter size.
+ * Order matters: XL/XS are checked before L/M/S so "x-large" doesn't match "large" first.
+ */
+export function letterToRange(option: string | null | undefined): [number, number] | null {
+  const s = (option ?? '').toLowerCase().trim();
+  if (!s) return null;
+  if (s === 'xl' || /x-?\s*l/.test(s) || /extra[\s-]*large/.test(s)) return LETTER_SIZE_RANGES.xl!;
+  if (s === 'xs' || /x-?\s*s/.test(s) || /extra[\s-]*small/.test(s)) return LETTER_SIZE_RANGES.xs!;
+  if (s === 'l' || /\blarge\b|^l\b/.test(s)) return LETTER_SIZE_RANGES.l!;
+  if (s === 'm' || /\bmedium\b|\bmed\b|^m\b/.test(s)) return LETTER_SIZE_RANGES.m!;
+  if (s === 's' || /\bsmall\b|^s\b/.test(s)) return LETTER_SIZE_RANGES.s!;
+  return null;
+}
+
+/**
  * Resolves a binding's available US boot-size range.
  *
- * Prefers explicit numeric sizes from the variants; for letter sizes (S/M/L/XL) or no
- * variants, falls back to the vendor's overall span in BINDING_SIZE_RANGES (generic when
- * the brand is unknown). Never returns the meaningless [0,999] that made every fit "pass".
+ * Resolution order:
+ *   1. Explicit numeric sizes from the variants → exact [min, max].
+ *   2. Letter sizes (S/M/L/XL) → the UNION of only the standard US ranges for the letters
+ *      actually offered (DD-2). Collapsing letter bindings to the full vendor span made an
+ *      S-only binding "fit" a size-13 boot — a meaningless always-pass.
+ *   3. No recognizable sizes at all → the per-brand (or generic) overall span.
+ *
+ * Never returns the meaningless [0,999] that made every fit "pass".
  */
 export function resolveBindingSizeRange(vendor: string | null, variantsJson: string): [number, number] {
   try {
@@ -56,6 +90,14 @@ export function resolveBindingSizeRange(vendor: string | null, variantsJson: str
       .filter(n => Number.isFinite(n) && n > 0);
     if (sizes.length >= 2) return [Math.min(...sizes), Math.max(...sizes)];
     if (sizes.length === 1) return [sizes[0]! - 1, sizes[0]! + 1];
+
+    // No numeric sizes — try mapping the offered letter sizes to their standard US ranges.
+    const letterRanges = variants
+      .map(v => letterToRange(v.option1))
+      .filter((r): r is [number, number] => r !== null);
+    if (letterRanges.length > 0) {
+      return [Math.min(...letterRanges.map(r => r[0])), Math.max(...letterRanges.map(r => r[1]))];
+    }
   } catch {
     // fall through to the per-brand span
   }
