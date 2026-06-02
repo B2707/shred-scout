@@ -172,8 +172,8 @@ describe('fetchAllProducts()', () => {
     const results = await fetchAllProducts('https://www.evo.com', pipeline);
     expect(results).toHaveLength(2);
 
-    const stringTagsProduct = results[0]!;
-    const arrayTagsProduct = results[1]!;
+    const stringTagsProduct = results[0];
+    const arrayTagsProduct = results[1];
 
     // String tags are preserved as-is (raw from Shopify)
     expect(

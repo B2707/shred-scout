@@ -23,7 +23,7 @@ export function parseHeight(raw: string): number {
   }
   // Bare number → treat as cm
   const cm = parseFloat(trimmed);
-  return isNaN(cm) ? NaN : Math.round(cm);
+  return Number.isNaN(cm) ? NaN : Math.round(cm);
 }
 
 /**
@@ -34,6 +34,6 @@ export function parseHeight(raw: string): number {
  */
 export function parseWeight(raw: string): number {
   const lbs = parseFloat(raw.trim());
-  if (isNaN(lbs)) return NaN;
+  if (Number.isNaN(lbs)) return NaN;
   return Math.round(lbs * 0.453592);
 }

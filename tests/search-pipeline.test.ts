@@ -250,7 +250,7 @@ describe('runSearch', () => {
     ]);
     const { products } = await runSearch('union', makeProfile(), mockPipeline);
     expect(products).toHaveLength(1);
-    expect(products[0]!.vendor).toBe('Union');
+    expect(products[0].vendor).toBe('Union');
   });
 
   it('queries evo only once (HTML scraper) and skips its errors silently (B21)', async () => {
@@ -324,25 +324,25 @@ describe('filterByQuery (B2)', () => {
   it('maps a category synonym to the gear_category (boards -> board)', () => {
     const r = filterByQuery(sample, 'boards');
     expect(r).toHaveLength(1);
-    expect(r[0]!.gear_category).toBe('board');
+    expect(r[0].gear_category).toBe('board');
   });
 
   it('maps "boots" to the boot category', () => {
     const r = filterByQuery(sample, 'boots');
     expect(r).toHaveLength(1);
-    expect(r[0]!.gear_category).toBe('boot');
+    expect(r[0].gear_category).toBe('boot');
   });
 
   it('filters by brand keyword', () => {
     const r = filterByQuery(sample, 'union');
     expect(r).toHaveLength(1);
-    expect(r[0]!.vendor).toBe('Union');
+    expect(r[0].vendor).toBe('Union');
   });
 
   it('combines category + keyword (burton boots)', () => {
     const r = filterByQuery(sample, 'burton boots');
     expect(r).toHaveLength(1);
-    expect(r[0]!.gear_category).toBe('boot');
+    expect(r[0].gear_category).toBe('boot');
   });
 
   it('returns empty for a no-match query (proves the query is honored)', () => {

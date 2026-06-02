@@ -124,11 +124,11 @@ export function defaultDatabasePath(): string {
   const platform = process.platform;
   let base: string;
   if (platform === 'win32') {
-    base = process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming');
+    base = process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming');
   } else if (platform === 'darwin') {
     base = join(homedir(), 'Library', 'Preferences');
   } else {
-    base = process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config');
+    base = process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config');
   }
   return join(base, 'shred-scout', 'shred-scout.db');
 }

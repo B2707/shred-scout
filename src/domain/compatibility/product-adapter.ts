@@ -66,13 +66,13 @@ export function letterToRange(
   const s = (option ?? '').toLowerCase().trim();
   if (!s) return null;
   if (s === 'xl' || /x-?\s*l/.test(s) || /extra[\s-]*large/.test(s))
-    return LETTER_SIZE_RANGES.xl!;
+    return LETTER_SIZE_RANGES.xl;
   if (s === 'xs' || /x-?\s*s/.test(s) || /extra[\s-]*small/.test(s))
-    return LETTER_SIZE_RANGES.xs!;
-  if (s === 'l' || /\blarge\b|^l\b/.test(s)) return LETTER_SIZE_RANGES.l!;
+    return LETTER_SIZE_RANGES.xs;
+  if (s === 'l' || /\blarge\b|^l\b/.test(s)) return LETTER_SIZE_RANGES.l;
   if (s === 'm' || /\bmedium\b|\bmed\b|^m\b/.test(s))
-    return LETTER_SIZE_RANGES.m!;
-  if (s === 's' || /\bsmall\b|^s\b/.test(s)) return LETTER_SIZE_RANGES.s!;
+    return LETTER_SIZE_RANGES.m;
+  if (s === 's' || /\bsmall\b|^s\b/.test(s)) return LETTER_SIZE_RANGES.s;
   return null;
 }
 
@@ -98,7 +98,7 @@ export function resolveBindingSizeRange(
       .map((v) => parseFloat(v.option1 ?? ''))
       .filter((n) => Number.isFinite(n) && n > 0);
     if (sizes.length >= 2) return [Math.min(...sizes), Math.max(...sizes)];
-    if (sizes.length === 1) return [sizes[0]! - 1, sizes[0]! + 1];
+    if (sizes.length === 1) return [sizes[0] - 1, sizes[0] + 1];
 
     // No numeric sizes — try mapping the offered letter sizes to their standard US ranges.
     const letterRanges = variants
@@ -115,7 +115,7 @@ export function resolveBindingSizeRange(
   }
   const key = (vendor ?? '').toLowerCase().split(/\s+/)[0] ?? '';
   const ranges = BINDING_SIZE_RANGES[key] ??
-    BINDING_SIZE_RANGES['generic'] ?? [[5, 15]];
+    BINDING_SIZE_RANGES.generic ?? [[5, 15]];
   return [
     Math.min(...ranges.map((r) => r[0])),
     Math.max(...ranges.map((r) => r[1])),
@@ -156,7 +156,7 @@ function parseVariantSizes(variantsJson: string): number[] {
     return variants
       .map((v) => {
         const m = (v.option1 ?? '').match(/(\d+(?:\.\d+)?)/);
-        return m ? parseFloat(m[1]!) : Number.NaN;
+        return m ? parseFloat(m[1]) : Number.NaN;
       })
       .filter((n) => Number.isFinite(n) && n > 0);
   } catch {

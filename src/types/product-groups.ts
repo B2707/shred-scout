@@ -52,7 +52,7 @@ export function groupProducts(products: NormalizedProduct[]): ProductGroup[] {
     if (items.length >= 2) {
       groups.push({ type: 'comparison', normalizedTitle, products: items });
     } else {
-      groups.push({ type: 'single', product: items[0]! });
+      groups.push({ type: 'single', product: items[0] });
     }
   }
   return groups;

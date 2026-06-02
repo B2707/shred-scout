@@ -166,7 +166,7 @@ export async function fetchAllProductsGraphQL(
 
   while (true) {
     const variables: Record<string, unknown> = { first: PAGE_SIZE };
-    if (cursor) variables['after'] = cursor;
+    if (cursor) variables.after = cursor;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), pipeline.timeout);

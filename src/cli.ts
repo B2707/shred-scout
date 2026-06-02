@@ -70,7 +70,7 @@ program
   .option('--interval <minutes>', 'Poll interval in minutes', '30')
   .action(async (options: { interval: string }) => {
     const intervalMins = parseInt(options.interval, 10);
-    if (isNaN(intervalMins) || intervalMins < 1) {
+    if (Number.isNaN(intervalMins) || intervalMins < 1) {
       console.error('--interval must be a positive integer (minutes)');
       process.exit(1);
     }

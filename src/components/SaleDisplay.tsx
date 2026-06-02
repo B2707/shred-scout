@@ -29,7 +29,7 @@ export function SaleDisplay({
   priceCents,
   compareAtCents,
 }: SaleDisplayProps): React.JSX.Element {
-  if (compareAtCents === 0) return <></>;
+  if (compareAtCents === 0) return <Text />;
   const pctOff = Math.round((1 - priceCents / compareAtCents) * 100);
   const originalDollars = (compareAtCents / 100).toFixed(2);
   const currentDollars = (priceCents / 100).toFixed(2);

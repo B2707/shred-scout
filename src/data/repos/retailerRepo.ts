@@ -75,7 +75,7 @@ export function makeRetailerRepo(db: Database.Database): RetailerRepo {
     },
 
     seedIfEmpty(defaults) {
-      const { n } = stmtCount.get()!;
+      const n = stmtCount.get()?.n ?? 0;
       if (n > 0) return;
       const insertMany = db.transaction((items: RetailerConfigInput[]) => {
         for (const item of items) {

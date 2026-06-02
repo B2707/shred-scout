@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../src/data/db.js';
+import type { NormalizedProduct } from '../src/data/normalizer.js';
 import { makePriceRepo } from '../src/data/repos/priceRepo.js';
 import { makeProductRepo } from '../src/data/repos/productRepo.js';
 import { makeRiderRepo } from '../src/data/repos/riderRepo.js';
@@ -344,7 +345,7 @@ describe('setupRepo — saveSlot (B3)', () => {
     repo.saveSlot({ boardId: p1 });
     repo.saveSlot({ boardId: p3 }); // changed board choice
     expect(repo.list()).toHaveLength(1);
-    expect(repo.list()[0]!.boardId).toBe(p3);
+    expect(repo.list()[0].boardId).toBe(p3);
   });
 
   it('setCompatibility persists a snapshot read back by findCompleteSetup (B19)', () => {
@@ -387,7 +388,9 @@ describe('productRepo — Phase 6 extensions', () => {
 // productRepo — upsert id correctness (B1 regression)
 // ---------------------------------------------------------------------------
 
-function makeNP(overrides: Partial<Record<string, unknown>> = {}): any {
+function makeNP(
+  overrides: Partial<Record<string, unknown>> = {},
+): NormalizedProduct {
   return {
     shopify_id: 'sid',
     retailer: 'evo',
@@ -405,7 +408,7 @@ function makeNP(overrides: Partial<Record<string, unknown>> = {}): any {
     variants_json: '[]',
     fetched_at: Date.now(),
     ...overrides,
-  };
+  } as unknown as NormalizedProduct;
 }
 
 describe('productRepo — upsert id correctness (B1)', () => {

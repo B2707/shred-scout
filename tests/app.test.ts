@@ -10,13 +10,19 @@ vi.mock('../src/lib/profile.js', () => ({
   loadApiKeyToEnv: vi.fn(),
   validateBootSize: vi
     .fn()
-    .mockImplementation((v: number) => !isNaN(v) && v >= 4.0 && v <= 18.0),
+    .mockImplementation(
+      (v: number) => !Number.isNaN(v) && v >= 4.0 && v <= 18.0,
+    ),
   validateHeightCm: vi
     .fn()
-    .mockImplementation((cm: number) => !isNaN(cm) && cm >= 120 && cm <= 250),
+    .mockImplementation(
+      (cm: number) => !Number.isNaN(cm) && cm >= 120 && cm <= 250,
+    ),
   validateWeightKg: vi
     .fn()
-    .mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
+    .mockImplementation(
+      (kg: number) => !Number.isNaN(kg) && kg >= 30 && kg <= 200,
+    ),
 }));
 
 vi.mock('../src/data/index.js', async (importOriginal) => {

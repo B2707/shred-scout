@@ -47,10 +47,12 @@ export class RequestPipeline {
   }
 
   private getQueue(hostname: string): PQueue {
-    if (!this.queues.has(hostname)) {
-      this.queues.set(hostname, new PQueue({ concurrency: this.concurrency }));
+    let queue = this.queues.get(hostname);
+    if (!queue) {
+      queue = new PQueue({ concurrency: this.concurrency });
+      this.queues.set(hostname, queue);
     }
-    return this.queues.get(hostname)!;
+    return queue;
   }
 
   /**

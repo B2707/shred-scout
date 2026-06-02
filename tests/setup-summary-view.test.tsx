@@ -7,7 +7,10 @@ import { render } from 'ink-testing-library';
 import React, { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NormalizedProduct } from '../src/data/normalizer.js';
+import type { makeProductRepo } from '../src/data/repos/productRepo.js';
 import type { SavedSetup } from '../src/data/repos/setupRepo.js';
+
+type ProductRepo = ReturnType<typeof makeProductRepo>;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -64,17 +67,18 @@ const BOOT = makeProduct(30, 'Burton Ruler BOA Boots', 22999, 'boot');
 
 const mockProductRepo = (
   overrides: Record<number, NormalizedProduct | null> = {},
-) => ({
-  findById: vi.fn((id: number) => {
-    if (id in overrides) return overrides[id]!;
-    if (id === 10) return BOARD;
-    if (id === 20) return BINDING;
-    if (id === 30) return BOOT;
-    return null;
-  }),
-  upsert: vi.fn().mockReturnValue(1),
-  findByRetailer: vi.fn().mockReturnValue([]),
-});
+): ProductRepo =>
+  ({
+    findById: vi.fn((id: number) => {
+      if (id in overrides) return overrides[id];
+      if (id === 10) return BOARD;
+      if (id === 20) return BINDING;
+      if (id === 30) return BOOT;
+      return null;
+    }),
+    upsert: vi.fn().mockReturnValue(1),
+    findByRetailer: vi.fn().mockReturnValue([]),
+  }) as unknown as ProductRepo;
 
 const mockRider = {
   bootSize: 10,
@@ -91,7 +95,7 @@ describe('SetupSummaryView', () => {
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
@@ -107,13 +111,13 @@ describe('SetupSummaryView', () => {
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
       }),
     );
-    const frame = lastFrame()!;
+    const frame = lastFrame() ?? '';
     expect(frame).toContain('Burton Custom Flying V');
     expect(frame).toContain('Union Force Bindings');
     expect(frame).toContain('Burton Ruler BOA Boots');
@@ -129,14 +133,14 @@ describe('SetupSummaryView', () => {
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
       }),
     );
     // Verdict should appear (pass/warn/fail)
-    const frame = lastFrame()!;
+    const frame = lastFrame() ?? '';
     expect(frame.toLowerCase()).toMatch(/pass|warn|fail/);
   });
 
@@ -148,7 +152,7 @@ describe('SetupSummaryView', () => {
     const { stdin } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist,
         onNewSearch: vi.fn(),
@@ -168,7 +172,7 @@ describe('SetupSummaryView', () => {
     const { stdin } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch,
@@ -187,14 +191,14 @@ describe('SetupSummaryView', () => {
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup({ alertEnabled: false }),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
         onToggleAlert: vi.fn(),
       }),
     );
-    const frame = lastFrame()!;
+    const frame = lastFrame() ?? '';
     expect(frame.toLowerCase()).toContain('price alert');
     expect(frame).toContain('[a]');
   });
@@ -207,7 +211,7 @@ describe('SetupSummaryView', () => {
     const { stdin, lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup({ id: 7, alertEnabled: false }),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
@@ -218,7 +222,7 @@ describe('SetupSummaryView', () => {
       stdin.write('a');
     });
     expect(onToggleAlert).toHaveBeenCalledWith(7, true);
-    expect(lastFrame()!.toLowerCase()).toMatch(/price alert on/);
+    expect((lastFrame() ?? '').toLowerCase()).toMatch(/price alert on/);
   });
 
   it('pressing a twice toggles the alert back off (UI-2)', async () => {
@@ -229,7 +233,7 @@ describe('SetupSummaryView', () => {
     const { stdin } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup({ id: 7, alertEnabled: false }),
-        productRepo: mockProductRepo() as any,
+        productRepo: mockProductRepo(),
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
@@ -254,7 +258,7 @@ describe('SetupSummaryView', () => {
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
-        productRepo: brokenRepo as any,
+        productRepo: brokenRepo,
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),

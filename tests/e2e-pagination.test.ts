@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 // Guard: only run when E2E=1 is explicitly set — never runs in CI or standard npm test
-const RUN_E2E = process.env['E2E'] === '1';
+const RUN_E2E = process.env.E2E === '1';
 
 describe.skipIf(!RUN_E2E)(
   'e2e: fetchAllProducts() pagination (DATA-02)',
