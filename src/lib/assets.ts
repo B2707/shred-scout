@@ -19,5 +19,5 @@ export function resolveAssetPath(filename: string): string {
     join(here, '..', 'fixtures', 'assets', filename), // dev: src/lib -> src/fixtures/assets
     join(here, '..', '..', 'src', 'fixtures', 'assets', filename), // dist -> repo/src/fixtures/assets
   ];
-  return candidates.find((p) => existsSync(p)) ?? candidates[0]!;
+  return candidates.find((p) => existsSync(p)) ?? candidates[0];
 }

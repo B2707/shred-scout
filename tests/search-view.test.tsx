@@ -8,6 +8,9 @@
 import { render } from 'ink-testing-library';
 import React, { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { makePriceRepo } from '../src/data/repos/priceRepo.js';
+import type { makeProductRepo } from '../src/data/repos/productRepo.js';
+import type { makeSetupRepo } from '../src/data/repos/setupRepo.js';
 
 vi.mock('terminal-image', () => ({
   default: { buffer: vi.fn().mockResolvedValue('[mock-image]') },
@@ -103,15 +106,17 @@ describe('SearchView', () => {
       React.createElement(SearchView, {
         profile,
         supportsImages: false,
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
     );
     await settle(80);
-    const frame = lastFrame()!;
+    const frame = lastFrame() ?? '';
     expect(frame).not.toContain('still right? [y/n]'); // pre-fix opener prompt must be gone
     expect(frame).toContain('[/] filters'); // results footer renders instead
   });
@@ -129,9 +134,11 @@ describe('SearchView', () => {
         supportsImages: false,
         initialQuery: 'boards',
         initialFilters: ['board'],
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
@@ -156,9 +163,11 @@ describe('SearchView', () => {
         profile,
         supportsImages: false,
         initialQuery: 'boards',
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
@@ -179,9 +188,11 @@ describe('SearchView', () => {
         profile,
         supportsImages: false,
         initialQuery: 'boards',
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
@@ -203,9 +214,11 @@ describe('SearchView', () => {
         profile,
         supportsImages: false,
         initialQuery: 'boards',
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
@@ -229,15 +242,17 @@ describe('SearchView', () => {
         profile,
         supportsImages: false,
         initialQuery: 'boards',
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
     );
     await settle(120);
-    const page1 = lastFrame()!;
+    const page1 = lastFrame() ?? '';
     // 7 results, 5 per page -> page 1 shows exactly 5 cards (one rounded border each).
     expect(page1).toContain('Page 1 of 2');
     expect((page1.match(/╭/g) ?? []).length).toBe(5);
@@ -247,7 +262,7 @@ describe('SearchView', () => {
       stdin.write('[C');
     });
     await settle(40);
-    const page2 = lastFrame()!;
+    const page2 = lastFrame() ?? '';
     expect(page2).toContain('Page 2 of 2');
     expect((page2.match(/╭/g) ?? []).length).toBe(2);
 
@@ -271,15 +286,17 @@ describe('SearchView', () => {
         profile,
         supportsImages: false,
         initialQuery: 'boards',
-        setupRepo: mockRepo() as any,
-        priceRepo: mockRepo() as any,
-        productRepo: mockRepo() as any,
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
         onSetupSaved: () => {},
         onModalChange: () => {},
       }),
     );
     await settle(80);
-    const frame = lastFrame()!;
+    const frame = lastFrame() ?? '';
     // All 9 filter chips should be visible
     expect(frame).toContain('[Board:b]');
     expect(frame).toContain('[Binding:i]');

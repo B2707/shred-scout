@@ -40,7 +40,7 @@ export interface SetupSummaryViewProps {
 }
 
 function formatPrice(cents: number): string {
-  return '$' + (cents / 100).toFixed(2);
+  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export function SetupSummaryView({
@@ -52,9 +52,11 @@ export function SetupSummaryView({
   onToggleAlert,
 }: SetupSummaryViewProps): React.JSX.Element {
   const [alertEnabled, setAlertEnabled] = useState(setup.alertEnabled);
-  const board = productRepo.findById(setup.boardId!);
-  const binding = productRepo.findById(setup.bindingId!);
-  const boot = productRepo.findById(setup.bootId!);
+  const board =
+    setup.boardId != null ? productRepo.findById(setup.boardId) : null;
+  const binding =
+    setup.bindingId != null ? productRepo.findById(setup.bindingId) : null;
+  const boot = setup.bootId != null ? productRepo.findById(setup.bootId) : null;
 
   const missing = !board || !binding || !boot;
 

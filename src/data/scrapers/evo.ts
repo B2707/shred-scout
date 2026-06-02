@@ -148,7 +148,7 @@ export class EvoHtmlScrapeSource implements ProductSource {
     const productPaths: string[] = [];
     $(PRODUCT_THUMB_SELECTOR).each((_i, el) => {
       const href = $(el).find('a[href]').attr('href');
-      if (href && href.startsWith('/')) productPaths.push(href);
+      if (href?.startsWith('/')) productPaths.push(href);
     });
 
     // Cloudflare block detection

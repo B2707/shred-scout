@@ -155,7 +155,7 @@ export function SearchView({
     const maxPrice =
       priceThresholds.length > 0 ? Math.max(...priceThresholds) : null;
     return groups.filter((g) => {
-      const p = g.type === 'single' ? g.product : g.products[0]!;
+      const p = g.type === 'single' ? g.product : g.products[0];
       if (
         catFilters.length > 0 &&
         !catFilters.includes(p.gear_category as 'board' | 'binding' | 'boot')
@@ -164,7 +164,7 @@ export function SearchView({
       if (
         flexFilters.length > 0 &&
         p.flex_rating &&
-        !flexFilters.some((f) => p.flex_rating!.toLowerCase().includes(f))
+        !flexFilters.some((f) => p.flex_rating?.toLowerCase().includes(f))
       )
         return false;
       if (maxPrice !== null && p.price_cents > maxPrice) return false;
@@ -175,6 +175,7 @@ export function SearchView({
   // Result pagination (SC-04). page is reset to 0 on every new search and filter change;
   // safePage additionally clamps for the single render before that reset effect fires.
   const [page, setPage] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: products/activeFilters are intentional triggers — this effect resets pagination to page 0 whenever the results or filters change.
   useEffect(() => {
     setPage(0);
   }, [products, activeFilters]);
@@ -238,16 +239,17 @@ export function SearchView({
     onSession?.(products, Array.from(activeFilters));
   }, [products, activeFilters, onSession]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: showSaveMsg is a render-scoped helper that only touches refs and the stable setSaveMsg setter; adding it would break this callback's referential stability without changing behavior.
   const handleSave = useCallback(
     (input: string) => {
       const n = parseInt(input.trim(), 10);
-      if (isNaN(n) || n < 1 || n > savableProducts.length) {
+      if (Number.isNaN(n) || n < 1 || n > savableProducts.length) {
         showSaveMsg(
           `No item #${input.trim()} — enter a number from 1 to ${savableProducts.length}`,
         );
         return;
       }
-      const product = savableProducts[n - 1]!;
+      const product = savableProducts[n - 1];
       void (async () => {
         try {
           // Upsert to get/confirm the SQLite integer PK (T-06-07: validated range above)
@@ -344,7 +346,7 @@ export function SearchView({
           next.delete(chip.key);
         } else {
           if (PRICE_CHIPS.includes(chip.key)) {
-            PRICE_CHIPS.forEach((p) => next.delete(p)); // clear sibling price chips
+            for (const p of PRICE_CHIPS) next.delete(p); // clear sibling price chips
           }
           next.add(chip.key);
         }
@@ -481,8 +483,8 @@ export function SearchView({
 
       {searchErrors.length > 0 && (
         <Box flexDirection="column">
-          {searchErrors.map((err, i) => (
-            <Text key={i} color="yellow">
+          {searchErrors.map((err) => (
+            <Text key={err} color="yellow">
               {err}
             </Text>
           ))}

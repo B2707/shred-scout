@@ -151,7 +151,7 @@ export function ResultCard({
   );
   const displayTitle =
     product.title.length > maxTitleWidth
-      ? product.title.slice(0, maxTitleWidth - 1) + '…'
+      ? `${product.title.slice(0, maxTitleWidth - 1)}…`
       : product.title;
 
   // Price — non-positive means "not scraped" (e.g. evo PDP); show "Price unavailable" (B9).
@@ -168,7 +168,7 @@ export function ResultCard({
 
   // Per-product compatibility badge relative to the rider (A2/A3).
   const fit = rider ? productFit(product, rider) : null;
-  const fitView = fit ? fitBadge(fit, rider!.bootSize) : null;
+  const fitView = fit && rider ? fitBadge(fit, rider.bootSize) : null;
 
   return (
     <Box

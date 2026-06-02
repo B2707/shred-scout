@@ -88,11 +88,12 @@ export function GearWizard({
 
   const steps = useMemo(() => visibleSteps(answers), [answers]);
   const safeIndex = Math.min(stepIndex, steps.length - 1);
-  const stepId = steps[safeIndex]!;
+  const stepId = steps[safeIndex];
   const meta = STEP_META[stepId];
   const options = meta.options;
 
   // Reset the highlight when the step changes — to the current answer if one exists.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: must run only on step change; depending on answers/options/meta.field would reset the cursor mid-step.
   useEffect(() => {
     if (!meta.field) {
       setCursor(0);
@@ -101,7 +102,6 @@ export function GearWizard({
     const current = answers[meta.field];
     const idx = options.findIndex((o) => o.value === current);
     setCursor(idx >= 0 ? idx : 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepId]);
 
   function goBack(): void {
@@ -114,8 +114,9 @@ export function GearWizard({
 
   function selectCurrent(): void {
     const opt = options[cursor];
-    if (!opt || !meta.field) return;
-    setAnswers((prev) => ({ ...prev, [meta.field!]: opt.value }));
+    const field = meta.field;
+    if (!opt || !field) return;
+    setAnswers((prev) => ({ ...prev, [field]: opt.value }));
     setStepIndex(safeIndex + 1);
   }
 

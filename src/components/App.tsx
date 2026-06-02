@@ -6,7 +6,7 @@
  * Screen flow: onboarding → search → wishlist → history.
  */
 
-import { Box, Text, useApp, useInput } from 'ink';
+import { Text, useApp, useInput } from 'ink';
 import type React from 'react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { openDatabase } from '../data/db.js';
@@ -58,8 +58,8 @@ export function App({
   // iTerm2: TERM_PROGRAM === 'iTerm.app'; Kitty: KITTY_WINDOW_ID is set.
   // Evaluated once (constant, not state) — no re-render triggered. Locked decision: CONTEXT.md.
   const supportsImages =
-    process.env['TERM_PROGRAM'] === 'iTerm.app' ||
-    process.env['KITTY_WINDOW_ID'] !== undefined;
+    process.env.TERM_PROGRAM === 'iTerm.app' ||
+    process.env.KITTY_WINDOW_ID !== undefined;
 
   // readProfile() is called inside lazy useState initializers so it runs exactly
   // once at mount — not on every re-render.

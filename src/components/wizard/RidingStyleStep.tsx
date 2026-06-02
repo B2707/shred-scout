@@ -55,15 +55,15 @@ export function RidingStyleStep({
   onChange,
 }: RidingStyleStepProps): React.JSX.Element {
   const supportsImages =
-    process.env['TERM_PROGRAM'] === 'iTerm.app' ||
-    process.env['KITTY_WINDOW_ID'] !== undefined;
+    process.env.TERM_PROGRAM === 'iTerm.app' ||
+    process.env.KITTY_WINDOW_ID !== undefined;
   const [cursor, setCursor] = useState(0);
 
   useInput((_input, key) => {
     if (key.upArrow)
       setCursor((c) => (c - 1 + RIDING_OPTIONS.length) % RIDING_OPTIONS.length);
     else if (key.downArrow) setCursor((c) => (c + 1) % RIDING_OPTIONS.length);
-    else if (key.return) onChange(RIDING_OPTIONS[cursor]!.value);
+    else if (key.return) onChange(RIDING_OPTIONS[cursor].value);
   });
 
   return (

@@ -42,7 +42,7 @@ describe('GearWizard', () => {
     await press('\r'); // confirm -> search
 
     expect(onComplete).toHaveBeenCalledTimes(1);
-    expect(onComplete.mock.calls[0]![0]).toMatchObject({
+    expect(onComplete.mock.calls[0][0]).toMatchObject({
       category: 'boot',
       style: 'all-mountain',
       flex: 'soft',

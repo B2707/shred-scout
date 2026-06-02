@@ -299,15 +299,12 @@ describe('ResultCard', () => {
       vi.fn(() => new Promise(() => {})),
     );
 
-    // Capture the AbortController instance created by the component
-    let capturedCtrl: { abort: () => void } | undefined;
     const OrigAbortController = globalThis.AbortController;
     vi.stubGlobal(
       'AbortController',
       class MockAbortController extends OrigAbortController {
         constructor() {
           super();
-          capturedCtrl = this;
           // Override abort to spy on it
           const origAbort = this.abort.bind(this);
           this.abort = () => {

@@ -56,16 +56,16 @@ export function writeApiKey(key: string): void {
  * Safe to call multiple times — no-ops if key is already in env.
  */
 export function loadApiKeyToEnv(): void {
-  if (process.env['ANTHROPIC_API_KEY']) return;
+  if (process.env.ANTHROPIC_API_KEY) return;
   const saved = readApiKey();
-  if (saved) process.env['ANTHROPIC_API_KEY'] = saved;
+  if (saved) process.env.ANTHROPIC_API_KEY = saved;
 }
 
 /**
  * Returns true if v is a valid US snowboard boot size (4.0 – 18.0 inclusive).
  */
 export function validateBootSize(v: number): boolean {
-  return !isNaN(v) && v >= 4.0 && v <= 18.0;
+  return !Number.isNaN(v) && v >= 4.0 && v <= 18.0;
 }
 
 /**
@@ -73,7 +73,7 @@ export function validateBootSize(v: number): boolean {
  * Range covers approximately 3'11" to 8'2".
  */
 export function validateHeightCm(cm: number): boolean {
-  return !isNaN(cm) && cm >= 120 && cm <= 250;
+  return !Number.isNaN(cm) && cm >= 120 && cm <= 250;
 }
 
 /**
@@ -81,5 +81,5 @@ export function validateHeightCm(cm: number): boolean {
  * Range covers approximately 66 – 440 lbs.
  */
 export function validateWeightKg(kg: number): boolean {
-  return !isNaN(kg) && kg >= 30 && kg <= 200;
+  return !Number.isNaN(kg) && kg >= 30 && kg <= 200;
 }
