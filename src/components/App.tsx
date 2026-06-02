@@ -123,7 +123,6 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   };
 
   const handleSetupSaved = useCallback(() => {
-    setSetups(setupRepo.list());
     const complete = setupRepo.findCompleteSetup();
     if (complete) {
       // Compute + persist the compatibility snapshot once the setup is complete (B19)
@@ -144,6 +143,9 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
       setSummarySetup(complete);
       setScreen('summary');
     }
+    // Refresh AFTER persisting compatibility so the cached wishlist rows carry the snapshot
+    // (badge shows on the summary → wishlist path without a manual refresh) — UI-1.
+    setSetups(setupRepo.list());
   }, [setupRepo, productRepo, profile]);
   const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
 
