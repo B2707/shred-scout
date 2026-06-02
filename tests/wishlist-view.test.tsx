@@ -109,7 +109,7 @@ describe('WishlistView', () => {
     expect(lastFrame()).toContain('a toggle alert');
   });
 
-  it('reports modal active while the delete-confirm prompt is open (UI-4)', async () => {
+  it('reports modal active while the delete-confirm prompt is open', async () => {
     const { WishlistView } = await import('../src/components/WishlistView.js');
     const onModalChange = vi.fn();
     const { stdin, lastFrame } = render(
@@ -129,7 +129,7 @@ describe('WishlistView', () => {
     expect(onModalChange).toHaveBeenLastCalledWith(true);
   });
 
-  it('reports modal inactive again when delete-confirm is cancelled (UI-4)', async () => {
+  it('reports modal inactive again when delete-confirm is cancelled', async () => {
     const { WishlistView } = await import('../src/components/WishlistView.js');
     const onModalChange = vi.fn();
     const { stdin } = render(

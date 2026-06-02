@@ -30,7 +30,7 @@ const baseNP = (over: Partial<NormalizedProduct>): NormalizedProduct =>
     ...over,
   }) as NormalizedProduct;
 
-describe('parseFlexRating (B13)', () => {
+describe('parseFlexRating', () => {
   it('parses "6/10" -> 6', () => expect(parseFlexRating('6/10')).toBe(6));
   it('parses "8/10 flex" -> 8', () =>
     expect(parseFlexRating('8/10 flex')).toBe(8));
@@ -49,7 +49,7 @@ describe('parseFlexRating (B13)', () => {
   });
 });
 
-describe('resolveBindingSizeRange (B13 / DD-2)', () => {
+describe('resolveBindingSizeRange', () => {
   it('uses numeric US sizes from variants', () => {
     expect(
       resolveBindingSizeRange(
@@ -63,7 +63,7 @@ describe('resolveBindingSizeRange (B13 / DD-2)', () => {
     ).toEqual([8, 11]);
   });
 
-  it('maps offered letter sizes to their standard US ranges, not the full vendor span (DD-2)', () => {
+  it('maps offered letter sizes to their standard US ranges, not the full vendor span', () => {
     // M = [7,10], L = [9,12] -> union [7,12]; NOT the old always-pass [5.5,15] span.
     expect(
       resolveBindingSizeRange(
@@ -73,14 +73,14 @@ describe('resolveBindingSizeRange (B13 / DD-2)', () => {
     ).toEqual([7, 12]);
   });
 
-  it('a single-letter (S-only) binding resolves to just the S range (DD-2)', () => {
+  it('a single-letter (S-only) binding resolves to just the S range', () => {
     // The bug: an S-only binding used to report the full [5.5,15] span and "fit" any boot.
     expect(
       resolveBindingSizeRange('Union', JSON.stringify([{ option1: 'S' }])),
     ).toEqual([5, 8]);
   });
 
-  it('maps word-form sizes (Small/Large) the same as letters (DD-2)', () => {
+  it('maps word-form sizes (Small/Large) the same as letters', () => {
     expect(
       resolveBindingSizeRange(
         'Burton',
@@ -89,7 +89,7 @@ describe('resolveBindingSizeRange (B13 / DD-2)', () => {
     ).toEqual([5, 12]);
   });
 
-  it('letter mapping is brand-independent (unknown vendor, M -> [7,10]) (DD-2)', () => {
+  it('letter mapping is brand-independent (unknown vendor, M -> [7,10])', () => {
     expect(
       resolveBindingSizeRange('Frobozz', JSON.stringify([{ option1: 'M' }])),
     ).toEqual([7, 10]);
@@ -102,7 +102,7 @@ describe('resolveBindingSizeRange (B13 / DD-2)', () => {
   });
 });
 
-describe('toBoard / toBinding (B13)', () => {
+describe('toBoard / toBinding', () => {
   it('toBoard parses the flex rating string into a number', () => {
     expect(toBoard(baseNP({ flex_rating: '7/10' })).flexRating).toBe(7);
   });
@@ -118,7 +118,7 @@ describe('toBoard / toBinding (B13)', () => {
   });
 });
 
-describe('productFit — per-card compatibility for the rider (A2/A3)', () => {
+describe('productFit — per-card compatibility for the rider', () => {
   const rider = (bootSize = 10): RiderProfile => ({
     bootSize,
     heightCm: 180,
@@ -164,7 +164,7 @@ describe('productFit — per-card compatibility for the rider (A2/A3)', () => {
     expect(r?.verdict).toBe('pass');
   });
 
-  it('FAILS an S-only binding for a large-boot rider (DD-2 — no more always-pass)', () => {
+  it('FAILS an S-only binding for a large-boot rider (no more always-pass)', () => {
     const r = productFit(
       baseNP({
         gear_category: 'binding',
@@ -177,7 +177,7 @@ describe('productFit — per-card compatibility for the rider (A2/A3)', () => {
     expect(r?.verdict).toBe('fail');
   });
 
-  it('returns a boot-size-fit signal for a boot, not null (SC-05)', () => {
+  it('returns a boot-size-fit signal for a boot, not null', () => {
     const r = productFit(
       baseNP({
         gear_category: 'boot',
@@ -190,7 +190,7 @@ describe('productFit — per-card compatibility for the rider (A2/A3)', () => {
   });
 });
 
-describe('bootFit — boot cards show a size-availability signal (SC-05)', () => {
+describe('bootFit — boot cards show a size-availability signal', () => {
   const bootNP = (variants: Array<{ option1: string }>): NormalizedProduct =>
     baseNP({ gear_category: 'boot', variants_json: JSON.stringify(variants) });
 

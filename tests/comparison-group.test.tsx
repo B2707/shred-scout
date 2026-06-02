@@ -1,5 +1,5 @@
 /**
- * ComparisonGroup component tests — covers PRES-02.
+ * ComparisonGroup component tests.
  */
 
 import { render } from 'ink-testing-library';
@@ -109,7 +109,7 @@ describe('ComparisonGroup', () => {
     expect(evoLine).not.toContain('[Best Price]');
   });
 
-  it('excludes a $0 (unpriced) variant from Best Price and labels it unavailable (B9)', async () => {
+  it('excludes a $0 (unpriced) variant from Best Price and labels it unavailable', async () => {
     const { ComparisonGroup } = await import(
       '../src/components/ComparisonGroup.js'
     );

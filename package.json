@@ -1,7 +1,7 @@
 {
   "name": "shred-scout",
   "version": "1.0.0",
-  "description": "Agentic terminal UI for finding compatible snowboard gear deals across multiple retailers",
+  "description": "Terminal UI for finding compatible snowboard gear deals across multiple retailers",
   "type": "module",
   "bin": {
     "shred-scout": "./bin/shred-scout"

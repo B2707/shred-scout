@@ -188,7 +188,7 @@ describe('runSearch', () => {
       }
     });
 
-    it('gives every demo product a resolvable offline image so cards are never empty (SC-03)', async () => {
+    it('gives every demo product a resolvable offline image so cards are never empty', async () => {
       const { copyFileSync, unlinkSync, existsSync } = await import('node:fs');
       const { fileURLToPath } = await import('node:url');
       const { dirname: getDirname, join: pathJoin } = await import('node:path');
@@ -233,7 +233,7 @@ describe('runSearch', () => {
     });
   });
 
-  it('filters live results by the typed query keyword (B2)', async () => {
+  it('filters live results by the typed query keyword', async () => {
     mockShopifyFetchAll.mockResolvedValue([
       {
         title: 'Union Force Bindings 2026',
@@ -253,7 +253,7 @@ describe('runSearch', () => {
     expect(products[0].vendor).toBe('Union');
   });
 
-  it('queries evo only once (HTML scraper) and skips its errors silently (B21)', async () => {
+  it('queries evo only once (HTML scraper) and skips its errors silently', async () => {
     const { makeRetailerRepo } = await import(
       '../src/data/repos/retailerRepo.js'
     );
@@ -286,10 +286,10 @@ describe('runSearch', () => {
 });
 
 // ---------------------------------------------------------------------------
-// filterByQuery — keyword/category filtering (B2)
+// filterByQuery — keyword/category filtering
 // ---------------------------------------------------------------------------
 
-describe('filterByQuery (B2)', () => {
+describe('filterByQuery', () => {
   const P = (over: Partial<NormalizedProduct>): NormalizedProduct =>
     ({
       title: '',

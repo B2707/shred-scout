@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Getting Started
 
 This guide walks through installing Shred Scout, completing the first-run profile wizard, running your first search, and solving common setup issues.
@@ -148,7 +147,7 @@ Search for gear... capita board
 
 While results load, the prompt is replaced with `Searching...`. Results render as cards once all retailers have responded. When the same product is found at multiple retailers, Shred Scout groups them side-by-side and highlights the best price.
 
-There are no required API keys. The search pipeline scrapes public Shopify endpoints directly — no Anthropic API key or external service account is needed.
+There are no required API keys. The search pipeline scrapes public Shopify endpoints directly — no external service account is needed.
 
 ## Quitting
 

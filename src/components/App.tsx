@@ -2,7 +2,6 @@
  * App — Root Ink component with screen state routing and global quit handler.
  * Reads existing profile synchronously at render time to determine initial screen.
  *
- * Phase 8: api-key screen, AgentLoop construction, and apiKey state removed.
  * Screen flow: onboarding → search → wishlist → history.
  */
 
@@ -56,7 +55,7 @@ export function App({
 }): React.JSX.Element {
   // Detect image protocol support once at mount — cached boolean passed down as prop.
   // iTerm2: TERM_PROGRAM === 'iTerm.app'; Kitty: KITTY_WINDOW_ID is set.
-  // Evaluated once (constant, not state) — no re-render triggered. Locked decision: CONTEXT.md.
+  // Evaluated once (constant, not state) — no re-render triggered.
   const supportsImages =
     process.env.TERM_PROGRAM === 'iTerm.app' ||
     process.env.KITTY_WINDOW_ID !== undefined;
@@ -94,7 +93,7 @@ export function App({
     filters: string[];
   } | null>(null);
   // Cached results + filters from the current search, preserved across wishlist/history
-  // navigation so returning doesn't re-fetch or reset (B7). A ref so writes don't re-render.
+  // navigation so returning doesn't re-fetch or reset. A ref so writes don't re-render.
   const sessionRef = useRef<{
     products: NormalizedProduct[];
     filters: string[];
@@ -117,7 +116,7 @@ export function App({
   useInput((input: string) => {
     // On the results screen, suppress all global keys while a SearchView mode/modal owns
     // input (filter panel, save box, or the alert prompt) — blockQuitRef is set via
-    // onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
+    // onModalChange — so q/w/n never fire mid-typing.
     if (screen === 'search') {
       if (blockQuitRef.current) return;
       if (input === 'q') {
@@ -135,7 +134,7 @@ export function App({
       }
     }
     if (screen === 'wishlist') {
-      // Gate 'q' while WishlistView's delete-confirm prompt owns input (UI-4) — same
+      // Gate 'q' while WishlistView's delete-confirm prompt owns input — same
       // blockQuitRef mechanism the search screen uses, fed by WishlistView.onModalChange.
       if (blockQuitRef.current) return;
       if (input === 'q') setScreen('search');
@@ -165,7 +164,7 @@ export function App({
   const handleSetupSaved = useCallback(() => {
     const complete = setupRepo.findCompleteSetup();
     if (complete) {
-      // Compute + persist the compatibility snapshot once the setup is complete (B19)
+      // Compute + persist the compatibility snapshot once the setup is complete
       // so the wishlist CompatBadge renders. Skip if already stored.
       if (!complete.compatibility && profile) {
         const board =
@@ -197,7 +196,7 @@ export function App({
       setScreen('summary');
     }
     // Refresh AFTER persisting compatibility so the cached wishlist rows carry the snapshot
-    // (badge shows on the summary → wishlist path without a manual refresh) — UI-1.
+    // (badge shows on the summary → wishlist path without a manual refresh).
     setSetups(setupRepo.list());
   }, [setupRepo, productRepo, profile]);
   const handleModalChange = useCallback((active: boolean) => {

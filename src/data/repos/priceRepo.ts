@@ -4,7 +4,7 @@
  * Factory function pattern — accepts a Database instance, returns a plain object
  * of typed methods backed by prepared statements. All SQL is in this file.
  *
- * price_observations is append-only — Phase 6 price alerts read the full history
+ * price_observations is append-only — price alerts read the full history
  * to compute price diffs. Never delete or update rows.
  */
 import type Database from 'better-sqlite3';
@@ -32,7 +32,7 @@ export function makePriceRepo(db: Database.Database) {
   return {
     /**
      * Appends a price observation for a product.
-     * Throws if productId does not exist (foreign key constraint — T-03-12 mitigation).
+     * Throws if productId does not exist (foreign key constraint).
      * @param productId - products.id FK
      * @param priceCents - Price in integer cents
      */

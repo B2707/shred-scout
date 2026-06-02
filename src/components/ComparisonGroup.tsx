@@ -10,7 +10,7 @@
  * CompatBadges are NOT shown in comparison rows — comparison is price-only.
  * No image rendering in comparison rows — price comparison is the focus.
  *
- * Per UI-SPEC.md: sub-rows indented paddingLeft={4}. Cheapest retailer identified
+ * Sub-rows indented paddingLeft={4}. Cheapest retailer identified
  * by minimum price_cents; [Best Price] label rendered inline on that row.
  */
 
@@ -30,7 +30,7 @@ export function ComparisonGroup({
   products,
 }: ComparisonGroupProps): React.JSX.Element {
   // Cheapest among POSITIVE prices only — a $0 (unpriced, e.g. evo PDP-not-scraped)
-  // product must never win [Best Price] (B9). null when no product has a real price.
+  // product must never win [Best Price]. null when no product has a real price.
   const positivePrices = products
     .map((p) => p.price_cents)
     .filter((c) => c > 0);

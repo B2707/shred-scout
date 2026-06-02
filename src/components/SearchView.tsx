@@ -2,11 +2,11 @@
  * SearchView — NL search input + loading state + results area + save UX.
  *
  * Calls runSearch() directly via useState + async handleSubmit.
- * No AgentLoop, no useAgent, no EventEmitter — plain async await.
- * Phase 8: deterministic search pipeline wired directly into UI state.
- * Phase 6: save TextInput below results, alert opt-in flow, repo props from App.tsx.
- * Phase 10: the guided wizard always supplies initialQuery, so the search runs
- * immediately on mount — the old Phase 9 conversational opener was dead and is gone (UI-3).
+ * Plain async/await — no event-based streaming.
+ * Deterministic search pipeline wired directly into UI state.
+ * Save TextInput below results, alert opt-in flow, repo props from App.tsx.
+ * The guided wizard always supplies initialQuery, so the search runs
+ * immediately on mount.
  */
 
 import { Spinner, TextInput } from '@inkjs/ui';
@@ -50,13 +50,13 @@ const ALL_CHIPS: Array<{ key: FilterKey; label: string; shortcut: string }> = [
 ];
 
 // Result cards are tall (bordered, ~5 rows each), so a long list pushes earlier cards off
-// the top of the terminal. Render one page at a time and let ←/→ move between pages (SC-04).
+// the top of the terminal. Render one page at a time and let ←/→ move between pages.
 const PAGE_SIZE = 5;
 
 export interface SearchViewProps {
   profile: RiderProfile;
   supportsImages: boolean;
-  /** App-owned DB connection — passed to runSearch to prevent double-open (CR-02). */
+  /** App-owned DB connection — passed to runSearch to prevent double-open. */
   db: Database.Database;
   setupRepo: ReturnType<typeof makeSetupRepo>;
   priceRepo: ReturnType<typeof makePriceRepo>;
@@ -78,9 +78,9 @@ export interface SearchViewProps {
   initialQuery?: string;
   /** Chip filters to pre-apply, from the wizard answers (category/flex/price keys). */
   initialFilters?: string[];
-  /** Cached results from a prior visit — when present, skip re-fetching on remount (B7). */
+  /** Cached results from a prior visit — when present, skip re-fetching on remount. */
   initialProducts?: NormalizedProduct[];
-  /** Reports the current results + active filters up so App can preserve the session (B7). */
+  /** Reports the current results + active filters up so App can preserve the session. */
   onSession?: (products: NormalizedProduct[], filters: string[]) => void;
 }
 
@@ -128,7 +128,7 @@ export function SearchView({
     title: string;
   } | null>(null);
   // Results-screen input mode — exactly ONE input is ever active, which removes the
-  // chip-shortcut / text-box / quit-key collisions (B4/B5/B6/B8/B16).
+  // chip-shortcut / text-box / quit-key collisions.
   const [mode, setMode] = useState<'browse' | 'filter' | 'save'>('browse');
 
   // Filter chip state — pre-applied from the wizard answers, then toggled by shortcuts.
@@ -172,7 +172,7 @@ export function SearchView({
     });
   }, [groups, activeFilters]);
 
-  // Result pagination (SC-04). page is reset to 0 on every new search and filter change;
+  // Result pagination. page is reset to 0 on every new search and filter change;
   // safePage additionally clamps for the single render before that reset effect fires.
   const [page, setPage] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: products/activeFilters are intentional triggers — this effect resets pagination to page 0 whenever the results or filters change.
@@ -221,7 +221,7 @@ export function SearchView({
   );
 
   // Auto-run the wizard-driven search once on mount — but not when results were restored
-  // from a cached session (returning from the wishlist), which would needlessly re-fetch (B7).
+  // from a cached session (returning from the wishlist), which would needlessly re-fetch.
   const didInitRef = useRef(false);
   useEffect(() => {
     if (
@@ -234,7 +234,7 @@ export function SearchView({
     }
   }, [initialQuery, initialProducts, runQuery]);
 
-  // Report results + active filters up so App can restore them after navigating away (B7).
+  // Report results + active filters up so App can restore them after navigating away.
   useEffect(() => {
     onSession?.(products, Array.from(activeFilters));
   }, [products, activeFilters, onSession]);
@@ -252,7 +252,7 @@ export function SearchView({
       const product = savableProducts[n - 1];
       void (async () => {
         try {
-          // Upsert to get/confirm the SQLite integer PK (T-06-07: validated range above)
+          // Upsert to get/confirm the SQLite integer PK (validated range above)
           const productId = productRepo.upsert(product);
           // Check if already saved: look for a setup that includes this productId
           const existing = setupRepo
@@ -279,7 +279,7 @@ export function SearchView({
                 ? { bindingId: productId }
                 : { bootId: productId };
           const setupId = setupRepo.saveSlot(saveInput);
-          // Record initial price snapshot at save time (A1: immediate history)
+          // Record initial price snapshot at save time (immediate history)
           try {
             priceRepo.record(productId, product.price_cents);
           } catch {
@@ -287,7 +287,7 @@ export function SearchView({
           }
           onSetupSaved();
           // Immediately prompt for the price alert (no 2s timer — that swallowed rapid
-          // follow-up keystrokes, B8). Leave save mode; the alert modal owns input now.
+          // follow-up keystrokes). Leave save mode; the alert modal owns input now.
           setMode('browse');
           setSaveMsg(`✓ Saved ${product.title} — enable price alert? [y/n]`);
           setAlertOptIn({ setupId, title: product.title });
@@ -308,7 +308,7 @@ export function SearchView({
 
   // Lock App.tsx's global keys (q/w/n) whenever this view owns input — an open filter/save
   // mode or the alert modal — so those keys don't quit/navigate while the user is typing or
-  // filtering (B6/B15/B16). Ink useInput has no stop-propagation.
+  // filtering. Ink useInput has no stop-propagation.
   const inputLocked = mode !== 'browse' || alertOptIn !== null;
   useEffect(() => {
     onModalChange(inputLocked);
@@ -333,7 +333,7 @@ export function SearchView({
   );
 
   // Filter chips toggle ONLY in filter mode (entered with '/'), so chip letters never
-  // collide with typing in the save box or with the global quit key (B5).
+  // collide with typing in the save box or with the global quit key.
   // Price chips (u300/u500/u700) are single-select.
   const PRICE_CHIPS: FilterKey[] = ['u300', 'u500', 'u700'];
   useInput(
@@ -391,7 +391,7 @@ export function SearchView({
     0,
   );
 
-  // Discoverable, mode-aware footer hint (C3).
+  // Discoverable, mode-aware footer hint.
   const footerHint = isLoading
     ? 'Searching…'
     : mode === 'filter'
@@ -448,7 +448,7 @@ export function SearchView({
         )}
       </Box>
 
-      {/* Pagination indicator — only when results span more than one page (SC-04). */}
+      {/* Pagination indicator — only when results span more than one page. */}
       {pageCount > 1 && !isLoading && (
         <Box>
           <Text dimColor>

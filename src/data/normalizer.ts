@@ -37,9 +37,9 @@ export interface NormalizedProduct {
   vendor: string | null;
   product_type: string | null;
   gear_category: GearCategory;
-  /** Phase 7 PDP scraping fills this; null for Shopify products */
+  /** PDP scraping fills this; null for Shopify products */
   flex_rating: string | null;
-  waist_width_mm: number | null; // always null in Phase 3; Phase 7 PDP scraping fills this
+  waist_width_mm: number | null; // null for Shopify products; PDP scraping fills this
   mount_pattern: MountPattern;
   mount_pattern_raw: string;
   image_url: string | null;
@@ -102,7 +102,7 @@ export function detectGearCategory(
   if (BINDING_TYPE_KEYWORDS.some((k) => pt.includes(k))) return 'binding';
   if (BOARD_TYPE_KEYWORDS.some((k) => pt.includes(k))) return 'board';
 
-  // Layers 2+3 (tags + title) — category-major priority ACROSS both layers (SC-02/B10).
+  // Layers 2+3 (tags + title) — category-major priority ACROSS both layers.
   // A boot/binding keyword in EITHER tags or title must outrank a bare 'snowboard'/'board'
   // keyword: a boot whose only board-ish signal is a generic 'snowboard' tag (common on
   // every snowboard-shop listing) must not be misclassified as a board. Checking each
@@ -209,7 +209,7 @@ export function normalizeProduct(
         .filter(Boolean);
 
   // Cheapest IN-STOCK variant price (positive prices only). A sold-out cheap variant must
-  // not become the displayed price or win [Best Price] (B20). Fall back to all variants
+  // not become the displayed price or win [Best Price]. Fall back to all variants
   // only when every variant is sold out.
   const inStock = raw.variants.filter((v) => v.available !== false);
   const pricePool = inStock.length > 0 ? inStock : raw.variants;

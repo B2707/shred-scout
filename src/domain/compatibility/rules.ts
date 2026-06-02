@@ -4,10 +4,10 @@
  * All functions are pure — no I/O, no side effects, no throws.
  * Every code path returns a typed RuleResult. Called by runRules() in engine.ts.
  *
- * Rule thresholds (locked decisions from CONTEXT.md):
+ * Rule thresholds:
  *   boot-to-binding-size: warn within 0.25 US size of either edge (strict <, not <=)
  *   boot-to-board-waist:  overhang per side = (bootSole − waist)/2; pass ≤20mm, warn ≤35mm,
- *                         fail >35mm; missing waist → 'unknown' advisory (B17/B18)
+ *                         fail >35mm; missing waist → 'unknown' advisory
  *   binding-disc-to-mount: fail when exactly one side is 'channel' (XOR)
  */
 import type { GearSetup, RuleResult } from './types.js';
@@ -79,7 +79,7 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
  *
  * Models overhang per side, since some overhang is normal (and desirable for leverage),
  * and binding angles reduce real-world drag — the old "waist must be within 15–25mm of
- * boot length" thresholds false-failed standard 250–258mm boards for size-10 riders (B17).
+ * boot length" thresholds false-failed standard 250–258mm boards for size-10 riders.
  *
  *   bootSoleMm    = sizeUS × 8.1 + 209   (outer-sole length estimate)
  *   overhangPerSide = (bootSoleMm − waistWidthMm) / 2
@@ -88,7 +88,7 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
  *   Fail:  overhangPerSide > 35mm
  *
  * Missing / non-positive waist width returns an 'unknown' ADVISORY rather than a hard
- * fail (B18) — most Shopify boards expose no waist spec, and "unknown" must not read as
+ * fail — most Shopify boards expose no waist spec, and "unknown" must not read as
  * "incompatible".
  */
 export function bootToBoardWaist(setup: GearSetup): RuleResult {
@@ -147,7 +147,7 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
  *
  * IMPORTANT: 'channel' here means Burton Channel (EST/Re:Flex) ONLY.
  * Non-Burton channel systems (Nitro 3D, Sparks track) must be mapped to '4x4'
- * during product ingestion (Phase 3) to avoid false-pass verdicts here.
+ * during product ingestion to avoid false-pass verdicts here.
  */
 export function discToMount(setup: GearSetup): RuleResult {
   const { mountingPattern } = setup.board;

@@ -1,5 +1,5 @@
 /**
- * Static configuration + pure logic for the guided gear-selection wizard (Phase 10).
+ * Static configuration + pure logic for the guided gear-selection wizard.
  *
  * Keeping the option data, step sequencing, and answer→search mapping here (pure, no
  * React) makes the wizard's behaviour testable independently of the Ink rendering.

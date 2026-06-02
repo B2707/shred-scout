@@ -33,7 +33,7 @@ export type ProductGroup = SingleGroup | ComparisonGroupData;
  *
  * Preserves insertion order — products appear in the order they arrived from the agent.
  *
- * @param products - Raw product array from useAgent state
+ * @param products - Raw product array from search state
  * @returns ProductGroup[] suitable for <Static items={groups}>
  */
 export function groupProducts(products: NormalizedProduct[]): ProductGroup[] {

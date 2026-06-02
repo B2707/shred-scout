@@ -12,7 +12,7 @@
  * GraphQL API when a public token is available, and falls back to /products.json
  * for stores without one. Token auto-detection runs on first fetch.
  *
- * No LLM involvement. No EventEmitter. No AbortController.
+ * Fully deterministic — no event-based streaming and no AbortController.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -29,7 +29,7 @@ import { loadStores } from '../data/stores.js';
 import { resolveAssetPath } from '../lib/assets.js';
 import type { RiderProfile } from '../types/profile.js';
 
-/** Bundled category icon used as the offline demo thumbnail for each gear type (SC-03). */
+/** Bundled category icon used as the offline demo thumbnail for each gear type. */
 const DEMO_CATEGORY_ASSET: Record<string, string> = {
   board: 'cat-board.png',
   binding: 'cat-binding.png',
@@ -39,7 +39,7 @@ const DEMO_CATEGORY_ASSET: Record<string, string> = {
 /**
  * In --demo mode there is no network, so the fixtures' real product photo URLs can't load
  * (and several 404 anyway). Point every demo card at a bundled local category icon so cards
- * always render an image instead of an empty reserved box (SC-03).
+ * always render an image instead of an empty reserved box.
  */
 function withDemoImages(products: NormalizedProduct[]): NormalizedProduct[] {
   return products.map((p) => {
@@ -123,7 +123,7 @@ export async function runSearch(
 
   // One source per configured store, picking the scraper by host: evo.com uses the HTML
   // scraper, everything else the Shopify source. Previously evo was ALSO appended
-  // unconditionally, so it was queried twice — once as Shopify against evo, once as HTML (B21).
+  // unconditionally, so it was queried twice — once as Shopify against evo, once as HTML.
   const sources: ProductSource[] = configs.map((c) => {
     let host = '';
     try {
@@ -149,7 +149,7 @@ export async function runSearch(
         }
       } catch (err) {
         // evo is a best-effort HTML scraper behind Cloudflare; its failure must not spam a
-        // yellow error banner on every live search — skip it silently (B21).
+        // yellow error banner on every live search — skip it silently.
         if (source instanceof EvoHtmlScrapeSource) continue;
         errors.push(
           `${source.name}: ${err instanceof Error ? err.message : String(err)}`,
@@ -181,7 +181,7 @@ const CATEGORY_SYNONYMS: Record<string, 'board' | 'binding' | 'boot'> = {
 };
 
 /**
- * Narrows a product list by a free-text query (B2 — previously `void query`).
+ * Narrows a product list by a free-text query.
  *
  * Tokens split on non-alphanumerics. Recognized category words (board/boots/...) constrain
  * gear_category; all remaining tokens must each appear (substring, case-insensitive) in the

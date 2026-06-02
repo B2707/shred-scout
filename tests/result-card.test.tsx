@@ -1,5 +1,5 @@
 /**
- * ResultCard component tests — covers PRES-01.
+ * ResultCard component tests.
  * terminal-image is mocked to return a fixed ANSI string — no real terminal required.
  */
 
@@ -79,7 +79,7 @@ describe('ResultCard', () => {
     expect(lastFrame()).toContain('evo');
   });
 
-  it('shows "Price unavailable" instead of $0.00 for an unpriced product (B9)', async () => {
+  it('shows "Price unavailable" instead of $0.00 for an unpriced product', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
       React.createElement(ResultCard, {
@@ -92,7 +92,7 @@ describe('ResultCard', () => {
     expect(frame).toMatch(/unavailable/i);
   });
 
-  it('shows a compatibility badge for the rider on a board card (A2/A3)', async () => {
+  it('shows a compatibility badge for the rider on a board card', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const rider = {
       bootSize: 10,
@@ -115,7 +115,7 @@ describe('ResultCard', () => {
     expect(lastFrame()).toContain('Fits your US 10 boots');
   });
 
-  it('shows a size-availability badge on a boot card (SC-05)', async () => {
+  it('shows a size-availability badge on a boot card', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const rider = {
       bootSize: 10,
@@ -190,7 +190,7 @@ describe('ResultCard', () => {
     expect(lastFrame()).toContain('[mock-image]');
   });
 
-  it('does NOT render an image when the fetch is a 404 HTML page (B12)', async () => {
+  it('does NOT render an image when the fetch is a 404 HTML page', async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 404,

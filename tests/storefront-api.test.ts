@@ -30,7 +30,7 @@ const soldOutCheapestNode = {
   },
 };
 
-describe('adaptStorefrontProduct (DD-1)', () => {
+describe('adaptStorefrontProduct', () => {
   it('carries variant availability through so the in-stock price wins after normalization', () => {
     const input = adaptStorefrontProduct(soldOutCheapestNode);
     expect(input.variants.map((v) => v.available)).toEqual([false, true]);

@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS saved_setups (
     `.trim(),
   },
   {
-    // WR-04: rider_profile moved from makeRiderRepo() into migration system so the
+    // rider_profile moved from makeRiderRepo() into migration system so the
     // table is version-tracked and exists for all database users regardless of whether
     // makeRiderRepo() is called.
     name: '002_rider_profile',
@@ -84,13 +84,13 @@ CREATE TABLE IF NOT EXISTS rider_profile (
     `.trim(),
   },
   {
-    // Phase 6: alert_enabled flag on saved_setups for price-drop notifications.
+    // alert_enabled flag on saved_setups for price-drop notifications.
     // DEFAULT 0 ensures existing rows get alertEnabled=false without a data migration.
     name: '003_alert_enabled',
     sql: `ALTER TABLE saved_setups ADD COLUMN alert_enabled INTEGER NOT NULL DEFAULT 0;`.trim(),
   },
   {
-    // Phase 7: flex_rating column for PDP-scraped spec data.
+    // flex_rating column for PDP-scraped spec data.
     // ALTER TABLE ADD COLUMN is safe — existing rows get NULL (no data migration needed).
     name: '004_flex_rating',
     sql: `ALTER TABLE products ADD COLUMN flex_rating TEXT;`.trim(),

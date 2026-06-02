@@ -23,7 +23,7 @@ export interface WishlistViewProps {
   /**
    * Reports whether an input-blocking prompt (the delete-confirm [y/n]) is active, so App.tsx
    * can gate its global 'q' back-navigation — otherwise 'q' at the prompt bubbles up and
-   * navigates away mid-confirm (UI-4). Mirrors SearchView's onModalChange/blockQuitRef pattern.
+   * navigates away mid-confirm. Mirrors SearchView's onModalChange/blockQuitRef pattern.
    */
   onModalChange?: (active: boolean) => void;
 }
@@ -53,7 +53,7 @@ export function WishlistView({
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Report the delete-confirm prompt's open/closed state up so App.tsx can suppress its
-  // global 'q' handler while the [y/n] prompt owns input (UI-4). Reset to false on unmount.
+  // global 'q' handler while the [y/n] prompt owns input. Reset to false on unmount.
   useEffect(() => {
     onModalChange?.(confirmDelete !== null);
     return () => onModalChange?.(false);
@@ -65,7 +65,7 @@ export function WishlistView({
     statusTimerRef.current = setTimeout(() => setStatusMsg(null), 2000);
   }, []);
 
-  // Clear the status timer on unmount so it can't set state after unmount (B24).
+  // Clear the status timer on unmount so it can't set state after unmount.
   useEffect(
     () => () => {
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);

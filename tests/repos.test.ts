@@ -189,10 +189,10 @@ describe('setupRepo', () => {
 });
 
 // ---------------------------------------------------------------------------
-// setupRepo — Phase 6 extensions
+// setupRepo — extensions
 // ---------------------------------------------------------------------------
 
-describe('setupRepo — Phase 6 extensions', () => {
+describe('setupRepo — extensions', () => {
   it('list() maps alert_enabled column to alertEnabled boolean (false by default)', () => {
     const db = openDatabase(':memory:');
     const repo = makeSetupRepo(db);
@@ -227,7 +227,7 @@ describe('setupRepo — Phase 6 extensions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// setupRepo — Phase 9 findCompleteSetup
+// setupRepo — findCompleteSetup
 // ---------------------------------------------------------------------------
 
 function insertThreeProducts(db: Database.Database): [number, number, number] {
@@ -308,10 +308,10 @@ describe('setupRepo — findCompleteSetup', () => {
 });
 
 // ---------------------------------------------------------------------------
-// setupRepo — saveSlot merges into one in-progress setup (B3)
+// setupRepo — saveSlot merges into one in-progress setup
 // ---------------------------------------------------------------------------
 
-describe('setupRepo — saveSlot (B3)', () => {
+describe('setupRepo — saveSlot', () => {
   it('accumulates board+binding+boot into a SINGLE complete row', () => {
     const db = openDatabase(':memory:');
     const [p1, p2, p3] = insertThreeProducts(db);
@@ -348,7 +348,7 @@ describe('setupRepo — saveSlot (B3)', () => {
     expect(repo.list()[0].boardId).toBe(p3);
   });
 
-  it('setCompatibility persists a snapshot read back by findCompleteSetup (B19)', () => {
+  it('setCompatibility persists a snapshot read back by findCompleteSetup', () => {
     const db = openDatabase(':memory:');
     const [p1, p2, p3] = insertThreeProducts(db);
     const repo = makeSetupRepo(db);
@@ -364,10 +364,10 @@ describe('setupRepo — saveSlot (B3)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// productRepo — Phase 6 extensions
+// productRepo — extensions
 // ---------------------------------------------------------------------------
 
-describe('productRepo — Phase 6 extensions', () => {
+describe('productRepo — extensions', () => {
   it('findById returns product by primary key', () => {
     const db = openDatabase(':memory:');
     const repo = makeProductRepo(db);
@@ -385,7 +385,7 @@ describe('productRepo — Phase 6 extensions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// productRepo — upsert id correctness (B1 regression)
+// productRepo — upsert id correctness
 // ---------------------------------------------------------------------------
 
 function makeNP(
@@ -411,7 +411,7 @@ function makeNP(
   } as unknown as NormalizedProduct;
 }
 
-describe('productRepo — upsert id correctness (B1)', () => {
+describe('productRepo — upsert id correctness', () => {
   it('re-upserting an existing product returns its OWN id, not the last-inserted rowid', () => {
     const db = openDatabase(':memory:');
     const repo = makeProductRepo(db);

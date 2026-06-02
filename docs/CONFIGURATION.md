@@ -1,8 +1,6 @@
 # Configuration
 
-<!-- GSD-GENERATED -->
-
-Shred Scout stores configuration in two locations: a platform-appropriate config store (via `conf`) for rider profile and API key, and a SQLite database for product and price data.
+Shred Scout stores configuration in two locations: a platform-appropriate config store (via `conf`) for the rider profile, and a SQLite database for product and price data.
 
 ## Config store location
 
@@ -12,7 +10,7 @@ The `conf` library stores a JSON config file at a platform-appropriate path:
 |----------|------|
 | macOS | `~/Library/Preferences/shred-scout/config.json` |
 | Linux | `~/.config/shred-scout/config.json` (or `$XDG_CONFIG_HOME/shred-scout/config.json`) |
-| Windows | `%APPDATA%\shred-scout\config.json` <!-- VERIFY: conf library Windows path behavior is inferred from the APPDATA env var logic in db.ts — not directly confirmed from conf source --> |
+| Windows | `%APPDATA%\shred-scout\config.json` |
 
 ## Rider profile
 
@@ -26,16 +24,6 @@ The rider profile is set during the first-run onboarding wizard and stored in th
 | `ridingStyle` | `string` | one of 5 values | Riding style |
 
 Valid `ridingStyle` values: `all-mountain`, `freestyle`, `freeride`, `backcountry`, `beginner`.
-
-## API key
-
-An Anthropic API key is stored in the config file under the `apiKey` key. At startup, `loadApiKeyToEnv()` in `src/lib/profile.ts` copies it into `process.env.ANTHROPIC_API_KEY` if that variable is not already set. You can also set the key directly via the environment:
-
-```sh
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-The environment variable takes precedence over the stored key.
 
 ## Database
 

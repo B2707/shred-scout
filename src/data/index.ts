@@ -1,7 +1,7 @@
 /**
  * Data layer public API for Shred Scout.
  *
- * Re-exports all public symbols from the Phase 3 data layer modules.
+ * Re-exports all public symbols from the data layer modules.
  * Consumers should import from this barrel rather than individual files.
  */
 
@@ -45,7 +45,7 @@ export type { ShopifyProduct, ShopifyVariant } from './shopify.js';
 export { fetchAllProducts, normalizeTags } from './shopify.js';
 // Smart source (GraphQL preferred, /products.json fallback)
 export { SmartShopifySource } from './smart-source.js';
-// Phase 7 public exports
+// Public exports
 export type { ProductSource } from './sources.js';
 export { ShopifySource } from './sources.js';
 // Storefront GraphQL API
