@@ -9,7 +9,7 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { TextInput } from '@inkjs/ui';
+import { TextInput, Spinner } from '@inkjs/ui';
 import type Database from 'better-sqlite3';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
@@ -379,6 +379,12 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           );
         })}
       </Box>
+
+      {isLoading && (
+        <Box marginTop={1}>
+          <Spinner label="Searching deals across retailers…" />
+        </Box>
+      )}
 
       <Box flexDirection="column">
         {filteredGroups.map((group) =>
