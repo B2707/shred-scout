@@ -27,6 +27,17 @@ import { SaleDisplay } from './SaleDisplay.js';
 /** Max rows reserved for inline terminal image — matches terminal-image height option. */
 const IMAGE_HEIGHT_ROWS = 20;
 
+/**
+ * True only for a successful response that actually carries image bytes. Guards both
+ * image paths against piping a 404 HTML error page into terminal-image/chafa, which
+ * would emit a corrupt escape sequence (base64 of "404: Page not found") — B11/B12.
+ */
+function isImageResponse(res: { ok?: boolean; headers?: { get(name: string): string | null } }): boolean {
+  if (res.ok === false) return false;
+  const contentType = res.headers?.get?.('content-type') ?? '';
+  return contentType.startsWith('image/');
+}
+
 /** Variant shape parsed from variants_json for sale detection. */
 interface VariantForSale {
   price: string;
@@ -103,6 +114,7 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
     void (async () => {
       try {
         const res = await fetch(product.image_url!, { signal: ctrl.signal });
+        if (!isImageResponse(res)) return;
         const buf = Buffer.from(await res.arrayBuffer());
         const result = await execa(
           'chafa',
@@ -135,6 +147,7 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
     void (async () => {
       try {
         const res = await fetch(product.image_url!, { signal: ctrl.signal });
+        if (!isImageResponse(res)) return;
         const buf = Buffer.from(await res.arrayBuffer());
         const ansi = await terminalImage.buffer(buf, {
           width: 80,

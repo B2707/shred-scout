@@ -18,10 +18,15 @@ vi.mock('execa', () => ({
   execa: vi.fn().mockRejectedValue(new Error('chafa not found')),
 }));
 
-// Mock fetch to avoid real HTTP in tests
-const mockFetch = vi.fn().mockResolvedValue({
-  arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+// A successful image response — ResultCard validates res.ok + content-type before rendering.
+const okImageResponse = () => ({
+  ok: true,
+  headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/jpeg' : null) },
+  arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
 });
+
+// Mock fetch to avoid real HTTP in tests
+const mockFetch = vi.fn().mockResolvedValue(okImageResponse());
 
 // Re-stub fetch before each test so vi.unstubAllGlobals() in afterEach does not
 // permanently remove the stub for subsequent tests that rely on it.
@@ -33,7 +38,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) });
+  mockFetch.mockResolvedValue(okImageResponse());
 });
 
 const baseProduct = {
@@ -101,6 +106,24 @@ describe('ResultCard', () => {
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(lastFrame()).toContain('[mock-image]');
+  });
+
+  it('does NOT render an image when the fetch is a 404 HTML page (B12)', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'text/html' : null) },
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(16)),
+    });
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: baseProduct, supportsImages: true }),
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    // No corrupt escape sequence decoded from the 404 HTML — image simply omitted.
+    expect(lastFrame()).not.toContain('[mock-image]');
   });
 
   it('renders text card without image section when image_url is null', async () => {
