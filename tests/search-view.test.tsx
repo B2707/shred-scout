@@ -1,8 +1,8 @@
 /**
  * SearchView tests — uses mocked runSearch() instead of mock AgentLoop.
  * Verifies product rendering, ComparisonGroup grouping, and empty state.
- * Phase 9: conversational opener (Q1 boot size, Q2 riding style) gates the search
- * TextInput — tests that need the search input must advance past the opener first.
+ * Phase 10: the conversational opener was removed (UI-3); the wizard always supplies
+ * initialQuery, so the results view renders immediately on mount.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React, { act } from 'react';
@@ -48,23 +48,6 @@ const makeProduct = (retailer: string, priceCents: number, id: string, title = '
   fetched_at: Date.now(),
 });
 
-/**
- * Advance past the conversational opener by sending 'y' twice (Q1 + Q2).
- * Must be called before any search interaction when SearchView is freshly mounted.
- */
-async function advancePastOpener(stdin: { write: (s: string) => void }): Promise<void> {
-  // Q1: boot size still right? → 'y' advances to Q2
-  await act(async () => { stdin.write('y'); });
-  await act(async () => {
-    await new Promise<void>((resolve) => setTimeout(resolve, 50));
-  });
-  // Q2: riding style change anything? → 'y' advances to done
-  await act(async () => { stdin.write('y'); });
-  await act(async () => {
-    await new Promise<void>((resolve) => setTimeout(resolve, 50));
-  });
-}
-
 /** Wait for an async effect (e.g. the wizard auto-run search) to settle. */
 async function settle(ms = 100): Promise<void> {
   await act(async () => { await new Promise<void>((resolve) => setTimeout(resolve, ms)); });
@@ -84,16 +67,7 @@ const mockRepo = () => ({
 describe('SearchView', () => {
   const profile = { bootSize: 10, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain' as const };
 
-  it('renders conversational opener Q1 prompt on initial mount — search box not yet visible', async () => {
-    const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
-    );
-    expect(lastFrame()).toContain('still right? [y/n]');
-    expect(lastFrame()).not.toContain('Search for gear...');
-  });
-
-  it('skips the opener and shows the results view when wizard-driven (initialQuery)', async () => {
+  it('shows the results view immediately on mount (no opener — UI-3)', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });
     const { SearchView } = await import('../src/components/SearchView.js');
@@ -145,27 +119,18 @@ describe('SearchView', () => {
     expect(lastFrame()).toContain('No compatible gear found');
   });
 
-  it('renders filter chip row after opener completes', async () => {
+  it('renders the filter chip row on mount', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });
     const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    const { lastFrame } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, initialQuery: 'boards', setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
-    await advancePastOpener(stdin);
+    await settle(80);
     const frame = lastFrame()!;
     // All 9 filter chips should be visible
     expect(frame).toContain('[Board:b]');
     expect(frame).toContain('[Binding:i]');
     expect(frame).toContain('[Boot:o]');
-  });
-
-  it('filter chip does not fire during opener (chip useInput gate prevents it)', async () => {
-    const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
-    );
-    // Press 'b' during opener (q1 step) — should not affect anything
-    await act(async () => { stdin.write('b'); });
-    // Opener should still be on q1
-    expect(lastFrame()).toContain('still right? [y/n]');
   });
 });
