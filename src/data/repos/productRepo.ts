@@ -43,7 +43,7 @@ export function makeProductRepo(db: Database.Database) {
   `);
 
   const selectByRetailerStmt = db.prepare(
-    'SELECT * FROM products WHERE retailer = ?'
+    'SELECT * FROM products WHERE retailer = ?',
   );
 
   const selectByIdStmt = db.prepare('SELECT * FROM products WHERE id = ?');

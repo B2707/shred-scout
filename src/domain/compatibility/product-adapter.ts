@@ -12,10 +12,10 @@
  *     'unknown'. We parse the flex_rating string ("6/10", "Medium-Stiff") into a 1–10 number.
  */
 import type { NormalizedProduct } from '../../data/normalizer.js';
-import type { Board, Binding, Boot, RuleResult } from './types.js';
 import type { RiderProfile } from '../../types/profile.js';
+import { bootToBindingSize, bootToBoardWaist } from './rules.js';
 import { BINDING_SIZE_RANGES } from './sizing-tables.js';
-import { bootToBoardWaist, bootToBindingSize } from './rules.js';
+import type { Binding, Board, Boot, RuleResult } from './types.js';
 
 /**
  * Parses a free-text flex rating into a 1–10 number, or undefined when unknown.
@@ -24,7 +24,8 @@ import { bootToBoardWaist, bootToBindingSize } from './rules.js';
 export function parseFlexRating(raw: string | null): number | undefined {
   if (!raw) return undefined;
   const s = raw.toLowerCase();
-  const m = s.match(/(\d+(?:\.\d+)?)\s*\/\s*10/) ?? s.match(/\b(\d+(?:\.\d+)?)\b/);
+  const m =
+    s.match(/(\d+(?:\.\d+)?)\s*\/\s*10/) ?? s.match(/\b(\d+(?:\.\d+)?)\b/);
   if (m) {
     const n = parseFloat(m[1]);
     if (Number.isFinite(n) && n >= 1 && n <= 10) return n;
@@ -59,13 +60,18 @@ const LETTER_SIZE_RANGES: Record<string, [number, number]> = {
  * standard US range, or null when the option isn't a recognizable letter size.
  * Order matters: XL/XS are checked before L/M/S so "x-large" doesn't match "large" first.
  */
-export function letterToRange(option: string | null | undefined): [number, number] | null {
+export function letterToRange(
+  option: string | null | undefined,
+): [number, number] | null {
   const s = (option ?? '').toLowerCase().trim();
   if (!s) return null;
-  if (s === 'xl' || /x-?\s*l/.test(s) || /extra[\s-]*large/.test(s)) return LETTER_SIZE_RANGES.xl!;
-  if (s === 'xs' || /x-?\s*s/.test(s) || /extra[\s-]*small/.test(s)) return LETTER_SIZE_RANGES.xs!;
+  if (s === 'xl' || /x-?\s*l/.test(s) || /extra[\s-]*large/.test(s))
+    return LETTER_SIZE_RANGES.xl!;
+  if (s === 'xs' || /x-?\s*s/.test(s) || /extra[\s-]*small/.test(s))
+    return LETTER_SIZE_RANGES.xs!;
   if (s === 'l' || /\blarge\b|^l\b/.test(s)) return LETTER_SIZE_RANGES.l!;
-  if (s === 'm' || /\bmedium\b|\bmed\b|^m\b/.test(s)) return LETTER_SIZE_RANGES.m!;
+  if (s === 'm' || /\bmedium\b|\bmed\b|^m\b/.test(s))
+    return LETTER_SIZE_RANGES.m!;
   if (s === 's' || /\bsmall\b|^s\b/.test(s)) return LETTER_SIZE_RANGES.s!;
   return null;
 }
@@ -82,28 +88,38 @@ export function letterToRange(option: string | null | undefined): [number, numbe
  *
  * Never returns the meaningless [0,999] that made every fit "pass".
  */
-export function resolveBindingSizeRange(vendor: string | null, variantsJson: string): [number, number] {
+export function resolveBindingSizeRange(
+  vendor: string | null,
+  variantsJson: string,
+): [number, number] {
   try {
     const variants = JSON.parse(variantsJson) as Array<{ option1?: string }>;
     const sizes = variants
-      .map(v => parseFloat(v.option1 ?? ''))
-      .filter(n => Number.isFinite(n) && n > 0);
+      .map((v) => parseFloat(v.option1 ?? ''))
+      .filter((n) => Number.isFinite(n) && n > 0);
     if (sizes.length >= 2) return [Math.min(...sizes), Math.max(...sizes)];
     if (sizes.length === 1) return [sizes[0]! - 1, sizes[0]! + 1];
 
     // No numeric sizes — try mapping the offered letter sizes to their standard US ranges.
     const letterRanges = variants
-      .map(v => letterToRange(v.option1))
+      .map((v) => letterToRange(v.option1))
       .filter((r): r is [number, number] => r !== null);
     if (letterRanges.length > 0) {
-      return [Math.min(...letterRanges.map(r => r[0])), Math.max(...letterRanges.map(r => r[1]))];
+      return [
+        Math.min(...letterRanges.map((r) => r[0])),
+        Math.max(...letterRanges.map((r) => r[1])),
+      ];
     }
   } catch {
     // fall through to the per-brand span
   }
   const key = (vendor ?? '').toLowerCase().split(/\s+/)[0] ?? '';
-  const ranges = BINDING_SIZE_RANGES[key] ?? BINDING_SIZE_RANGES['generic'] ?? [[5, 15]];
-  return [Math.min(...ranges.map(r => r[0])), Math.max(...ranges.map(r => r[1]))];
+  const ranges = BINDING_SIZE_RANGES[key] ??
+    BINDING_SIZE_RANGES['generic'] ?? [[5, 15]];
+  return [
+    Math.min(...ranges.map((r) => r[0])),
+    Math.max(...ranges.map((r) => r[1])),
+  ];
 }
 
 /** Maps a board product to the Board domain type (waist, mount pattern, parsed flex). */
@@ -138,11 +154,11 @@ function parseVariantSizes(variantsJson: string): number[] {
   try {
     const variants = JSON.parse(variantsJson) as Array<{ option1?: string }>;
     return variants
-      .map(v => {
+      .map((v) => {
         const m = (v.option1 ?? '').match(/(\d+(?:\.\d+)?)/);
         return m ? parseFloat(m[1]!) : Number.NaN;
       })
-      .filter(n => Number.isFinite(n) && n > 0);
+      .filter((n) => Number.isFinite(n) && n > 0);
   } catch {
     return [];
   }
@@ -157,7 +173,10 @@ function parseVariantSizes(variantsJson: string): number[] {
  *  - warn:    the boot lists sizes, but not the rider's
  *  - unknown: no parseable sizes (advisory reference only — never reads as incompatible)
  */
-export function bootFit(product: NormalizedProduct, bootSizeUS: number): RuleResult {
+export function bootFit(
+  product: NormalizedProduct,
+  bootSizeUS: number,
+): RuleResult {
   const sizes = parseVariantSizes(product.variants_json);
   if (sizes.length === 0) {
     return {
@@ -167,8 +186,12 @@ export function bootFit(product: NormalizedProduct, bootSizeUS: number): RuleRes
       advisory: true,
     };
   }
-  if (sizes.some(s => Math.abs(s - bootSizeUS) < 0.01)) {
-    return { ruleId: 'boot-size-fit', verdict: 'pass', reason: `Comes in your US ${bootSizeUS}` };
+  if (sizes.some((s) => Math.abs(s - bootSizeUS) < 0.01)) {
+    return {
+      ruleId: 'boot-size-fit',
+      verdict: 'pass',
+      reason: `Comes in your US ${bootSizeUS}`,
+    };
   }
   const min = Math.min(...sizes);
   const max = Math.max(...sizes);
@@ -188,13 +211,24 @@ export function bootFit(product: NormalizedProduct, bootSizeUS: number): RuleRes
  *  - binding: whether the rider's boot fits the binding's size range
  *  - boot:    whether the boot is offered in the rider's US size (SC-05)
  */
-export function productFit(product: NormalizedProduct, rider: RiderProfile): RuleResult | null {
+export function productFit(
+  product: NormalizedProduct,
+  rider: RiderProfile,
+): RuleResult | null {
   const boot = toBoot(rider.bootSize);
   switch (product.gear_category) {
     case 'board':
-      return bootToBoardWaist({ board: toBoard(product), binding: PLACEHOLDER_BINDING, boot });
+      return bootToBoardWaist({
+        board: toBoard(product),
+        binding: PLACEHOLDER_BINDING,
+        boot,
+      });
     case 'binding':
-      return bootToBindingSize({ board: PLACEHOLDER_BOARD, binding: toBinding(product), boot });
+      return bootToBindingSize({
+        board: PLACEHOLDER_BOARD,
+        binding: toBinding(product),
+        boot,
+      });
     case 'boot':
       return bootFit(product, rider.bootSize);
     default:

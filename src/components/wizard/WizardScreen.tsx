@@ -2,26 +2,29 @@
  * WizardScreen — 4-step wizard state machine for rider profile onboarding.
  * Manages step progression, input validation, and profile assembly.
  */
-import React, { useState } from 'react';
-import type { RiderProfile } from '../../types/profile.js';
+import type React from 'react';
+import { useState } from 'react';
+import { parseHeight, parseWeight } from '../../lib/conversions.js';
 import {
   validateBootSize,
   validateHeightCm,
   validateWeightKg,
   writeProfile,
 } from '../../lib/profile.js';
-import { parseHeight, parseWeight } from '../../lib/conversions.js';
-import { WizardCard } from './WizardCard.js';
+import type { RiderProfile } from '../../types/profile.js';
 import { BootSizeStep } from './BootSizeStep.js';
 import { HeightStep } from './HeightStep.js';
-import { WeightStep } from './WeightStep.js';
 import { RidingStyleStep } from './RidingStyleStep.js';
+import { WeightStep } from './WeightStep.js';
+import { WizardCard } from './WizardCard.js';
 
 interface WizardScreenProps {
   onComplete: (profile: RiderProfile) => void;
 }
 
-export function WizardScreen({ onComplete }: WizardScreenProps): React.JSX.Element {
+export function WizardScreen({
+  onComplete,
+}: WizardScreenProps): React.JSX.Element {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [error, setError] = useState<string | null>(null);
   const [bootSize, setBootSize] = useState<number>(0);
@@ -42,7 +45,9 @@ export function WizardScreen({ onComplete }: WizardScreenProps): React.JSX.Eleme
   function handleHeight(raw: string): void {
     const cm = parseHeight(raw);
     if (!validateHeightCm(cm)) {
-      setError('Enter height as 5\'10" or 178 — must be between 4\'0" and 8\'2"');
+      setError(
+        'Enter height as 5\'10" or 178 — must be between 4\'0" and 8\'2"',
+      );
       return;
     }
     setError(null);

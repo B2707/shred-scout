@@ -19,11 +19,13 @@ export interface PriceDropAlert {
  *
  * @param history - All observations from priceRepo.history(productId), newest first.
  */
-export function priceDropAlert(history: PriceObservation[]): PriceDropAlert | null {
+export function priceDropAlert(
+  history: PriceObservation[],
+): PriceDropAlert | null {
   if (history.length < 2) return null;
   const [latest, ...prior] = history;
   if (!latest) return null;
-  const priorMin = Math.min(...prior.map(o => o.priceCents));
+  const priorMin = Math.min(...prior.map((o) => o.priceCents));
   if (latest.priceCents < priorMin) {
     return {
       productId: latest.productId,

@@ -53,20 +53,24 @@ export function makeSetupRepo(db: Database.Database) {
   `);
 
   const selectAllStmt = db.prepare(
-    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups ORDER BY saved_at DESC, id DESC'
+    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups ORDER BY saved_at DESC, id DESC',
   );
 
   const selectCompleteStmt = db.prepare<[], SetupRow>(
-    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NOT NULL AND binding_id IS NOT NULL AND boot_id IS NOT NULL ORDER BY saved_at DESC, id DESC LIMIT 1'
+    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NOT NULL AND binding_id IS NOT NULL AND boot_id IS NOT NULL ORDER BY saved_at DESC, id DESC LIMIT 1',
   );
 
   const deleteStmt = db.prepare('DELETE FROM saved_setups WHERE id = ?');
-  const setAlertStmt = db.prepare('UPDATE saved_setups SET alert_enabled = ? WHERE id = ?');
-  const setCompatStmt = db.prepare('UPDATE saved_setups SET compatibility = ? WHERE id = ?');
+  const setAlertStmt = db.prepare(
+    'UPDATE saved_setups SET alert_enabled = ? WHERE id = ?',
+  );
+  const setCompatStmt = db.prepare(
+    'UPDATE saved_setups SET compatibility = ? WHERE id = ?',
+  );
 
   // Most recent setup still missing at least one gear slot — the "in progress" setup.
   const selectIncompleteStmt = db.prepare<[], SetupRow>(
-    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NULL OR binding_id IS NULL OR boot_id IS NULL ORDER BY saved_at DESC, id DESC LIMIT 1'
+    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NULL OR binding_id IS NULL OR boot_id IS NULL ORDER BY saved_at DESC, id DESC LIMIT 1',
   );
 
   // Merge provided slots into a row; COALESCE preserves slots not being set this call.
@@ -90,7 +94,9 @@ export function makeSetupRepo(db: Database.Database) {
         boardId: input.boardId ?? null,
         bindingId: input.bindingId ?? null,
         bootId: input.bootId ?? null,
-        compatibility: input.compatibility ? JSON.stringify(input.compatibility) : null,
+        compatibility: input.compatibility
+          ? JSON.stringify(input.compatibility)
+          : null,
         savedAt: Date.now(),
       });
       return result.lastInsertRowid as number;
@@ -113,7 +119,9 @@ export function makeSetupRepo(db: Database.Database) {
           boardId: input.boardId ?? null,
           bindingId: input.bindingId ?? null,
           bootId: input.bootId ?? null,
-          compatibility: input.compatibility ? JSON.stringify(input.compatibility) : null,
+          compatibility: input.compatibility
+            ? JSON.stringify(input.compatibility)
+            : null,
           savedAt,
         });
         return result.lastInsertRowid as number;
@@ -132,7 +140,7 @@ export function makeSetupRepo(db: Database.Database) {
      * Returns all saved setups, newest first.
      */
     list(): SavedSetup[] {
-      return (selectAllStmt.all() as SetupRow[]).map(row => ({
+      return (selectAllStmt.all() as SetupRow[]).map((row) => ({
         id: row.id,
         boardId: row.board_id,
         bindingId: row.binding_id,

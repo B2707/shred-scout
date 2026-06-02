@@ -8,9 +8,10 @@
  * Endpoint: POST {storeUrl}/api/2025-01/graphql.json
  * Header:   X-Shopify-Storefront-Access-Token: {token}
  */
-import type { RequestPipeline } from './pipeline.js';
-import type { ShopifyProductInput } from './normalizer.js';
+
 import { fetch } from 'undici';
+import type { ShopifyProductInput } from './normalizer.js';
+import type { RequestPipeline } from './pipeline.js';
 
 const STOREFRONT_API_VERSION = '2025-01';
 const PAGE_SIZE = 250;
@@ -111,7 +112,9 @@ const PRODUCTS_QUERY = `
 // Adapter: StorefrontProductNode → ShopifyProductInput
 // ---------------------------------------------------------------------------
 
-export function adaptStorefrontProduct(node: StorefrontProductNode): ShopifyProductInput {
+export function adaptStorefrontProduct(
+  node: StorefrontProductNode,
+): ShopifyProductInput {
   // GID format: "gid://shopify/Product/12345678" → numeric ID
   const numericId = parseInt(node.id.split('/').pop() ?? '0', 10);
 
@@ -122,8 +125,10 @@ export function adaptStorefrontProduct(node: StorefrontProductNode): ShopifyProd
     product_type: node.productType,
     vendor: node.vendor,
     tags: node.tags,
-    images: node.featuredImage ? [{ src: node.featuredImage.url, position: 1 }] : [],
-    variants: node.variants.edges.map(e => ({
+    images: node.featuredImage
+      ? [{ src: node.featuredImage.url, position: 1 }]
+      : [],
+    variants: node.variants.edges.map((e) => ({
       price: e.node.price.amount,
       compare_at_price: e.node.compareAtPrice?.amount ?? null,
       option1: e.node.selectedOptions[0]?.value ?? null,
@@ -180,7 +185,9 @@ export async function fetchAllProductsGraphQL(
       });
 
       if (res.status === 401 || res.status === 403) {
-        throw new Error(`Storefront API auth failed (HTTP ${res.status}) — token invalid or API disabled for ${storeUrl}`);
+        throw new Error(
+          `Storefront API auth failed (HTTP ${res.status}) — token invalid or API disabled for ${storeUrl}`,
+        );
       }
       if (!res.ok) {
         throw new Error(`Storefront API HTTP ${res.status} from ${storeUrl}`);
@@ -192,7 +199,9 @@ export async function fetchAllProductsGraphQL(
     }
 
     if (response.errors?.length) {
-      throw new Error(`Storefront API errors: ${response.errors.map(e => e.message).join('; ')}`);
+      throw new Error(
+        `Storefront API errors: ${response.errors.map((e) => e.message).join('; ')}`,
+      );
     }
 
     const page = response.data.products;

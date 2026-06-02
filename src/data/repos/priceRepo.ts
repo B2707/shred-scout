@@ -23,10 +23,10 @@ export interface PriceObservation {
  */
 export function makePriceRepo(db: Database.Database) {
   const insert = db.prepare(
-    'INSERT INTO price_observations (product_id, price_cents, observed_at) VALUES (@productId, @priceCents, @observedAt)'
+    'INSERT INTO price_observations (product_id, price_cents, observed_at) VALUES (@productId, @priceCents, @observedAt)',
   );
   const selectByProduct = db.prepare(
-    'SELECT id, product_id AS productId, price_cents AS priceCents, observed_at AS observedAt FROM price_observations WHERE product_id = ? ORDER BY observed_at DESC'
+    'SELECT id, product_id AS productId, price_cents AS priceCents, observed_at AS observedAt FROM price_observations WHERE product_id = ? ORDER BY observed_at DESC',
   );
 
   return {

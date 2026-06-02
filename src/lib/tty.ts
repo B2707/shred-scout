@@ -25,7 +25,9 @@ export function isTTY(): boolean {
  */
 export function assertTTY(): void {
   if (!isTTY()) {
-    process.stderr.write('Error: shred-scout requires an interactive terminal\n');
+    process.stderr.write(
+      'Error: shred-scout requires an interactive terminal\n',
+    );
     process.exit(1);
   }
 }

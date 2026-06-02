@@ -2,11 +2,12 @@
  * SetupSummaryView tests — renders the "Setup Complete" summary screen
  * after all three gear slots (board, binding, boot) have been saved.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import React, { act } from 'react';
+
 import { render } from 'ink-testing-library';
-import type { SavedSetup } from '../src/data/repos/setupRepo.js';
+import React, { act } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NormalizedProduct } from '../src/data/normalizer.js';
+import type { SavedSetup } from '../src/data/repos/setupRepo.js';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -26,7 +27,12 @@ function makeSetup(overrides: Partial<SavedSetup> = {}): SavedSetup {
   };
 }
 
-function makeProduct(id: number, title: string, priceCents: number, category: 'board' | 'binding' | 'boot'): NormalizedProduct {
+function makeProduct(
+  id: number,
+  title: string,
+  priceCents: number,
+  category: 'board' | 'binding' | 'boot',
+): NormalizedProduct {
   return {
     shopify_id: String(id),
     retailer: 'evo',
@@ -41,7 +47,13 @@ function makeProduct(id: number, title: string, priceCents: number, category: 'b
     mount_pattern_raw: '4x4',
     image_url: null,
     price_cents: priceCents,
-    variants_json: JSON.stringify([{ price: (priceCents / 100).toFixed(2), compare_at_price: null, option1: 'L' }]),
+    variants_json: JSON.stringify([
+      {
+        price: (priceCents / 100).toFixed(2),
+        compare_at_price: null,
+        option1: 'L',
+      },
+    ]),
     fetched_at: Date.now(),
   };
 }
@@ -50,7 +62,9 @@ const BOARD = makeProduct(10, 'Burton Custom Flying V', 64999, 'board');
 const BINDING = makeProduct(20, 'Union Force Bindings', 24999, 'binding');
 const BOOT = makeProduct(30, 'Burton Ruler BOA Boots', 22999, 'boot');
 
-const mockProductRepo = (overrides: Record<number, NormalizedProduct | null> = {}) => ({
+const mockProductRepo = (
+  overrides: Record<number, NormalizedProduct | null> = {},
+) => ({
   findById: vi.fn((id: number) => {
     if (id in overrides) return overrides[id]!;
     if (id === 10) return BOARD;
@@ -71,7 +85,9 @@ const mockRider = {
 
 describe('SetupSummaryView', () => {
   it('renders the Setup Complete heading', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
@@ -79,13 +95,15 @@ describe('SetupSummaryView', () => {
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('Setup Complete');
   });
 
   it('renders three product rows with title and price', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
@@ -93,7 +111,7 @@ describe('SetupSummaryView', () => {
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
-      })
+      }),
     );
     const frame = lastFrame()!;
     expect(frame).toContain('Burton Custom Flying V');
@@ -105,7 +123,9 @@ describe('SetupSummaryView', () => {
   });
 
   it('renders the compatibility verdict line when all rules pass', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup(),
@@ -113,7 +133,7 @@ describe('SetupSummaryView', () => {
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
-      })
+      }),
     );
     // Verdict should appear (pass/warn/fail)
     const frame = lastFrame()!;
@@ -121,7 +141,9 @@ describe('SetupSummaryView', () => {
   });
 
   it('pressing q invokes onWishlist callback', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const onWishlist = vi.fn();
     const { stdin } = render(
       React.createElement(SetupSummaryView, {
@@ -130,14 +152,18 @@ describe('SetupSummaryView', () => {
         rider: mockRider,
         onWishlist,
         onNewSearch: vi.fn(),
-      })
+      }),
     );
-    await act(async () => { stdin.write('q'); });
+    await act(async () => {
+      stdin.write('q');
+    });
     expect(onWishlist).toHaveBeenCalledOnce();
   });
 
   it('pressing n invokes onNewSearch callback', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const onNewSearch = vi.fn();
     const { stdin } = render(
       React.createElement(SetupSummaryView, {
@@ -146,14 +172,18 @@ describe('SetupSummaryView', () => {
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch,
-      })
+      }),
     );
-    await act(async () => { stdin.write('n'); });
+    await act(async () => {
+      stdin.write('n');
+    });
     expect(onNewSearch).toHaveBeenCalledOnce();
   });
 
   it('offers a price-alert opt-in on the Setup Complete screen (UI-2)', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const { lastFrame } = render(
       React.createElement(SetupSummaryView, {
         setup: makeSetup({ alertEnabled: false }),
@@ -162,7 +192,7 @@ describe('SetupSummaryView', () => {
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
         onToggleAlert: vi.fn(),
-      })
+      }),
     );
     const frame = lastFrame()!;
     expect(frame.toLowerCase()).toContain('price alert');
@@ -170,7 +200,9 @@ describe('SetupSummaryView', () => {
   });
 
   it('pressing a enables the price alert and flips the status (UI-2)', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const onToggleAlert = vi.fn();
     const { stdin, lastFrame } = render(
       React.createElement(SetupSummaryView, {
@@ -180,15 +212,19 @@ describe('SetupSummaryView', () => {
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
         onToggleAlert,
-      })
+      }),
     );
-    await act(async () => { stdin.write('a'); });
+    await act(async () => {
+      stdin.write('a');
+    });
     expect(onToggleAlert).toHaveBeenCalledWith(7, true);
     expect(lastFrame()!.toLowerCase()).toMatch(/price alert on/);
   });
 
   it('pressing a twice toggles the alert back off (UI-2)', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     const onToggleAlert = vi.fn();
     const { stdin } = render(
       React.createElement(SetupSummaryView, {
@@ -198,15 +234,21 @@ describe('SetupSummaryView', () => {
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
         onToggleAlert,
-      })
+      }),
     );
-    await act(async () => { stdin.write('a'); });
-    await act(async () => { stdin.write('a'); });
+    await act(async () => {
+      stdin.write('a');
+    });
+    await act(async () => {
+      stdin.write('a');
+    });
     expect(onToggleAlert).toHaveBeenLastCalledWith(7, false);
   });
 
   it('renders error line when productRepo.findById returns null for a slot', async () => {
-    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { SetupSummaryView } = await import(
+      '../src/components/SetupSummaryView.js'
+    );
     // Make boardId=10 return null (product deleted)
     const brokenRepo = mockProductRepo({ 10: null });
     const { lastFrame } = render(
@@ -216,7 +258,7 @@ describe('SetupSummaryView', () => {
         rider: mockRider,
         onWishlist: vi.fn(),
         onNewSearch: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('deleted');
   });

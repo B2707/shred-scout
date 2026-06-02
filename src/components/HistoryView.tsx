@@ -4,8 +4,9 @@
  * Shows all observations newest-first: relative timestamp | $price | trend (▼/▲/—).
  * No arrow-key navigation needed (read-only table). q/Escape returns to wishlist.
  */
-import React from 'react';
+
 import { Box, Text, useInput } from 'ink';
+import type React from 'react';
 import type { PriceObservation } from '../data/repos/priceRepo.js';
 
 export interface HistoryViewProps {
@@ -25,7 +26,11 @@ function relativeTime(timestampMs: number): string {
   return `${diffDays}d ago`;
 }
 
-export function HistoryView({ observations, productTitle, onBack }: HistoryViewProps): React.JSX.Element {
+export function HistoryView({
+  observations,
+  productTitle,
+  onBack,
+}: HistoryViewProps): React.JSX.Element {
   useInput((_input, key) => {
     if (key.escape || _input === 'q') onBack();
   });
@@ -34,12 +39,17 @@ export function HistoryView({ observations, productTitle, onBack }: HistoryViewP
     return (
       <Box flexDirection="column" paddingX={1}>
         <Box>
-          <Text color="cyanBright" bold>Price History — </Text>
+          <Text color="cyanBright" bold>
+            Price History —{' '}
+          </Text>
           <Text>{productTitle}</Text>
         </Box>
         <Box marginTop={1} flexDirection="column">
           <Text bold>No price history yet.</Text>
-          <Text dimColor>Price is recorded when you save an item and each time the watch daemon polls.</Text>
+          <Text dimColor>
+            Price is recorded when you save an item and each time the watch
+            daemon polls.
+          </Text>
         </Box>
         <Box marginTop={1}>
           <Text dimColor>q back</Text>
@@ -51,12 +61,17 @@ export function HistoryView({ observations, productTitle, onBack }: HistoryViewP
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box>
-        <Text color="cyanBright" bold>Price History — </Text>
+        <Text color="cyanBright" bold>
+          Price History —{' '}
+        </Text>
         <Text>{productTitle}</Text>
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor bold>{'When      '.padEnd(10)}{'Price     '.padEnd(10)}Chg</Text>
+        <Text dimColor bold>
+          {'When      '.padEnd(10)}
+          {'Price     '.padEnd(10)}Chg
+        </Text>
       </Box>
 
       {observations.map((obs, i) => {
@@ -64,9 +79,15 @@ export function HistoryView({ observations, productTitle, onBack }: HistoryViewP
         let trend = '—';
         let trendColor: string | undefined;
         if (prior) {
-          if (obs.priceCents < prior.priceCents) { trend = '▼'; trendColor = 'green'; }
-          else if (obs.priceCents > prior.priceCents) { trend = '▲'; trendColor = 'red'; }
-          else { trendColor = undefined; }
+          if (obs.priceCents < prior.priceCents) {
+            trend = '▼';
+            trendColor = 'green';
+          } else if (obs.priceCents > prior.priceCents) {
+            trend = '▲';
+            trendColor = 'red';
+          } else {
+            trendColor = undefined;
+          }
         }
         const when = relativeTime(obs.observedAt).padEnd(10);
         const price = `$${(obs.priceCents / 100).toFixed(2)}`.padEnd(10);

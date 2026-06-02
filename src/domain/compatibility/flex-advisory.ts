@@ -8,8 +8,9 @@
  * Error contract: this function NEVER throws. Missing flexRating returns
  * { verdict: 'unknown', advisory: true } — same shape as the old LLM result.
  */
-import type { GearSetup, RuleResult } from './types.js';
+
 import type { RiderProfile } from '../../types/profile.js';
+import type { GearSetup, RuleResult } from './types.js';
 
 // Recommended board flex (1 = soft … 10 = stiff) per riding style. Covers every
 // canonical style the wizard/onboarding can produce (B22) — previously only
@@ -27,7 +28,10 @@ const FLEX_RANGES: Record<string, [number, number]> = {
 
 /** Normalizes a free-text riding style: trims, lowercases, collapses spaces/underscores to hyphens. */
 function normalizeStyle(style: string): string {
-  return style.trim().toLowerCase().replace(/[\s_]+/g, '-');
+  return style
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-');
 }
 
 /**
@@ -37,7 +41,10 @@ function normalizeStyle(style: string): string {
  * @param rider - Rider profile. Uses ridingStyle for range lookup.
  * @returns A RuleResult with advisory:true. Verdict is 'pass', 'warn', or 'unknown'.
  */
-export function flexAdvisory(setup: GearSetup, rider: RiderProfile): RuleResult {
+export function flexAdvisory(
+  setup: GearSetup,
+  rider: RiderProfile,
+): RuleResult {
   const flexRating = setup.board.flexRating;
 
   if (flexRating === undefined || flexRating === null) {

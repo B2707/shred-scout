@@ -10,8 +10,9 @@
  *
  * Phase 5: Rendered by ResultCard when detectSale() returns isSale=true.
  */
-import React from 'react';
+
 import { Text } from 'ink';
+import type React from 'react';
 
 export interface SaleDisplayProps {
   /** Current (sale) price in integer cents. */
@@ -24,7 +25,10 @@ export interface SaleDisplayProps {
  * Renders the sale pricing line.
  * Format: (was $X.XX)  $Y.YY  (N% OFF) — entire line in yellow.
  */
-export function SaleDisplay({ priceCents, compareAtCents }: SaleDisplayProps): React.JSX.Element {
+export function SaleDisplay({
+  priceCents,
+  compareAtCents,
+}: SaleDisplayProps): React.JSX.Element {
   if (compareAtCents === 0) return <></>;
   const pctOff = Math.round((1 - priceCents / compareAtCents) * 100);
   const originalDollars = (compareAtCents / 100).toFixed(2);
@@ -32,8 +36,8 @@ export function SaleDisplay({ priceCents, compareAtCents }: SaleDisplayProps): R
 
   return (
     <Text color="yellow" bold>
-      <Text dimColor>(was ${originalDollars})  </Text>
-      ${currentDollars}  ({pctOff}% OFF)
+      <Text dimColor>(was ${originalDollars}) </Text>${currentDollars} ({pctOff}
+      % OFF)
     </Text>
   );
 }

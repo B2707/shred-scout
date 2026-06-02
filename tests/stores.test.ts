@@ -2,10 +2,11 @@
  * Tests for src/data/stores.ts — loadStores() and syncStoreToJson().
  * Covers the fallback-to-defaults contract and dedup logic.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // We manipulate process.cwd() return value to point to temp directories.
 // This must be done before importing the module under test so the resolveStoresPath()
@@ -34,9 +35,15 @@ describe('loadStores', () => {
     const { loadStores } = await import('../src/data/stores.js');
     const stores = loadStores();
     expect(stores).toHaveLength(10);
-    expect(stores.every((s) => typeof s.name === 'string' && typeof s.storeUrl === 'string')).toBe(true);
+    expect(
+      stores.every(
+        (s) => typeof s.name === 'string' && typeof s.storeUrl === 'string',
+      ),
+    ).toBe(true);
     // Confirm a known entry is present
-    expect(stores.some((s) => s.storeUrl === 'https://stokedboardshop.com')).toBe(true);
+    expect(
+      stores.some((s) => s.storeUrl === 'https://stokedboardshop.com'),
+    ).toBe(true);
   });
 
   it('returns parsed stores when a valid stores.json exists', async () => {
@@ -44,7 +51,11 @@ describe('loadStores', () => {
       { name: 'alpha', baseUrl: 'https://alpha.com', type: 'shopify' },
       { name: 'beta', baseUrl: 'https://beta.com', type: 'html' },
     ];
-    writeFileSync(join(tempDir, 'stores.json'), JSON.stringify(twoStores, null, 2), 'utf-8');
+    writeFileSync(
+      join(tempDir, 'stores.json'),
+      JSON.stringify(twoStores, null, 2),
+      'utf-8',
+    );
     setCwd(tempDir);
     const { loadStores } = await import('../src/data/stores.js');
     const stores = loadStores();
@@ -64,8 +75,14 @@ describe('loadStores', () => {
   });
 
   it('falls back to defaults when JSON is valid but schema is wrong (missing baseUrl)', async () => {
-    const badSchema = [{ name: 'broken', notBaseUrl: 'https://example.com', type: 'shopify' }];
-    writeFileSync(join(tempDir, 'stores.json'), JSON.stringify(badSchema), 'utf-8');
+    const badSchema = [
+      { name: 'broken', notBaseUrl: 'https://example.com', type: 'shopify' },
+    ];
+    writeFileSync(
+      join(tempDir, 'stores.json'),
+      JSON.stringify(badSchema),
+      'utf-8',
+    );
     setCwd(tempDir);
     const { loadStores } = await import('../src/data/stores.js');
     const stores = loadStores();
@@ -75,30 +92,68 @@ describe('loadStores', () => {
 
 describe('syncStoreToJson', () => {
   it('appends a new entry to an existing stores.json', async () => {
-    const initial = [{ name: 'stoked', baseUrl: 'https://stokedboardshop.com', type: 'shopify' }];
-    writeFileSync(join(tempDir, 'stores.json'), JSON.stringify(initial, null, 2), 'utf-8');
+    const initial = [
+      {
+        name: 'stoked',
+        baseUrl: 'https://stokedboardshop.com',
+        type: 'shopify',
+      },
+    ];
+    writeFileSync(
+      join(tempDir, 'stores.json'),
+      JSON.stringify(initial, null, 2),
+      'utf-8',
+    );
     setCwd(tempDir);
     const { syncStoreToJson } = await import('../src/data/stores.js');
-    await syncStoreToJson({ name: 'newshop', baseUrl: 'https://newshop.com', type: 'shopify' });
-    const result = JSON.parse(readFileSync(join(tempDir, 'stores.json'), 'utf-8')) as unknown[];
+    await syncStoreToJson({
+      name: 'newshop',
+      baseUrl: 'https://newshop.com',
+      type: 'shopify',
+    });
+    const result = JSON.parse(
+      readFileSync(join(tempDir, 'stores.json'), 'utf-8'),
+    ) as unknown[];
     expect(result).toHaveLength(2);
   });
 
   it('skips writing when baseUrl already exists (dedup)', async () => {
-    const initial = [{ name: 'stoked', baseUrl: 'https://stokedboardshop.com', type: 'shopify' }];
-    writeFileSync(join(tempDir, 'stores.json'), JSON.stringify(initial, null, 2), 'utf-8');
+    const initial = [
+      {
+        name: 'stoked',
+        baseUrl: 'https://stokedboardshop.com',
+        type: 'shopify',
+      },
+    ];
+    writeFileSync(
+      join(tempDir, 'stores.json'),
+      JSON.stringify(initial, null, 2),
+      'utf-8',
+    );
     setCwd(tempDir);
     const { syncStoreToJson } = await import('../src/data/stores.js');
-    await syncStoreToJson({ name: 'stoked', baseUrl: 'https://stokedboardshop.com', type: 'shopify' });
-    const result = JSON.parse(readFileSync(join(tempDir, 'stores.json'), 'utf-8')) as unknown[];
+    await syncStoreToJson({
+      name: 'stoked',
+      baseUrl: 'https://stokedboardshop.com',
+      type: 'shopify',
+    });
+    const result = JSON.parse(
+      readFileSync(join(tempDir, 'stores.json'), 'utf-8'),
+    ) as unknown[];
     expect(result).toHaveLength(1); // still 1, not 2
   });
 
   it('creates stores.json from scratch when file is missing', async () => {
     setCwd(tempDir); // no stores.json in tempDir
     const { syncStoreToJson } = await import('../src/data/stores.js');
-    await syncStoreToJson({ name: 'fresh', baseUrl: 'https://fresh.com', type: 'shopify' });
-    const result = JSON.parse(readFileSync(join(tempDir, 'stores.json'), 'utf-8')) as unknown[];
+    await syncStoreToJson({
+      name: 'fresh',
+      baseUrl: 'https://fresh.com',
+      type: 'shopify',
+    });
+    const result = JSON.parse(
+      readFileSync(join(tempDir, 'stores.json'), 'utf-8'),
+    ) as unknown[];
     expect(result).toHaveLength(1);
   });
 });

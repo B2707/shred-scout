@@ -52,7 +52,9 @@ export function makeRetailerRepo(db: Database.Database): RetailerRepo {
 
   const stmtRemove = db.prepare('DELETE FROM retailer_configs WHERE id = ?');
 
-  const stmtCount = db.prepare<[], { n: number }>('SELECT COUNT(*) AS n FROM retailer_configs');
+  const stmtCount = db.prepare<[], { n: number }>(
+    'SELECT COUNT(*) AS n FROM retailer_configs',
+  );
 
   return {
     all() {
@@ -60,7 +62,12 @@ export function makeRetailerRepo(db: Database.Database): RetailerRepo {
     },
 
     add(config) {
-      stmtInsert.run(config.name, config.storeUrl, config.storefrontToken ?? null, Date.now());
+      stmtInsert.run(
+        config.name,
+        config.storeUrl,
+        config.storefrontToken ?? null,
+        Date.now(),
+      );
     },
 
     remove(id) {
@@ -72,7 +79,12 @@ export function makeRetailerRepo(db: Database.Database): RetailerRepo {
       if (n > 0) return;
       const insertMany = db.transaction((items: RetailerConfigInput[]) => {
         for (const item of items) {
-          stmtInsert.run(item.name, item.storeUrl, item.storefrontToken ?? null, Date.now());
+          stmtInsert.run(
+            item.name,
+            item.storeUrl,
+            item.storefrontToken ?? null,
+            Date.now(),
+          );
         }
       });
       insertMany(defaults);

@@ -1,9 +1,10 @@
 /**
  * ComparisonGroup component tests — covers PRES-02.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import React from 'react';
+
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -22,25 +23,47 @@ const makeProduct = (retailer: string, priceCents: number, id: string) => ({
   mount_pattern_raw: '4x4',
   image_url: null,
   price_cents: priceCents,
-  variants_json: JSON.stringify([{ price: (priceCents / 100).toFixed(2), compare_at_price: null, option1: 'L' }]),
+  variants_json: JSON.stringify([
+    {
+      price: (priceCents / 100).toFixed(2),
+      compare_at_price: null,
+      option1: 'L',
+    },
+  ]),
   fetched_at: Date.now(),
 });
 
 describe('ComparisonGroup', () => {
   it('renders the normalized title as a bold group header', async () => {
-    const { ComparisonGroup } = await import('../src/components/ComparisonGroup.js');
-    const products = [makeProduct('evo', 64999, '1'), makeProduct('tactics', 62999, '2')];
+    const { ComparisonGroup } = await import(
+      '../src/components/ComparisonGroup.js'
+    );
+    const products = [
+      makeProduct('evo', 64999, '1'),
+      makeProduct('tactics', 62999, '2'),
+    ];
     const { lastFrame } = render(
-      React.createElement(ComparisonGroup, { normalizedTitle: 'never summer proto synthesis', products }),
+      React.createElement(ComparisonGroup, {
+        normalizedTitle: 'never summer proto synthesis',
+        products,
+      }),
     );
     expect(lastFrame()).toContain('never summer proto synthesis');
   });
 
   it('renders each retailer name and price as a sub-row', async () => {
-    const { ComparisonGroup } = await import('../src/components/ComparisonGroup.js');
-    const products = [makeProduct('evo', 64999, '1'), makeProduct('tactics', 62999, '2')];
+    const { ComparisonGroup } = await import(
+      '../src/components/ComparisonGroup.js'
+    );
+    const products = [
+      makeProduct('evo', 64999, '1'),
+      makeProduct('tactics', 62999, '2'),
+    ];
     const { lastFrame } = render(
-      React.createElement(ComparisonGroup, { normalizedTitle: 'never summer proto synthesis', products }),
+      React.createElement(ComparisonGroup, {
+        normalizedTitle: 'never summer proto synthesis',
+        products,
+      }),
     );
     expect(lastFrame()).toContain('evo');
     expect(lastFrame()).toContain('tactics');
@@ -49,19 +72,35 @@ describe('ComparisonGroup', () => {
   });
 
   it('shows [Best Price] label on the cheapest retailer row', async () => {
-    const { ComparisonGroup } = await import('../src/components/ComparisonGroup.js');
-    const products = [makeProduct('evo', 64999, '1'), makeProduct('tactics', 62999, '2')];
+    const { ComparisonGroup } = await import(
+      '../src/components/ComparisonGroup.js'
+    );
+    const products = [
+      makeProduct('evo', 64999, '1'),
+      makeProduct('tactics', 62999, '2'),
+    ];
     const { lastFrame } = render(
-      React.createElement(ComparisonGroup, { normalizedTitle: 'never summer proto synthesis', products }),
+      React.createElement(ComparisonGroup, {
+        normalizedTitle: 'never summer proto synthesis',
+        products,
+      }),
     );
     expect(lastFrame()).toContain('[Best Price]');
   });
 
   it('does NOT show [Best Price] on the more expensive retailer row', async () => {
-    const { ComparisonGroup } = await import('../src/components/ComparisonGroup.js');
-    const products = [makeProduct('evo', 64999, '1'), makeProduct('tactics', 62999, '2')];
+    const { ComparisonGroup } = await import(
+      '../src/components/ComparisonGroup.js'
+    );
+    const products = [
+      makeProduct('evo', 64999, '1'),
+      makeProduct('tactics', 62999, '2'),
+    ];
     const { lastFrame } = render(
-      React.createElement(ComparisonGroup, { normalizedTitle: 'never summer proto synthesis', products }),
+      React.createElement(ComparisonGroup, {
+        normalizedTitle: 'never summer proto synthesis',
+        products,
+      }),
     );
     // tactics is cheapest; evo should NOT have [Best Price]
     const frame = lastFrame() ?? '';
@@ -71,10 +110,18 @@ describe('ComparisonGroup', () => {
   });
 
   it('excludes a $0 (unpriced) variant from Best Price and labels it unavailable (B9)', async () => {
-    const { ComparisonGroup } = await import('../src/components/ComparisonGroup.js');
-    const products = [makeProduct('evo', 0, '1'), makeProduct('tactics', 62999, '2')];
+    const { ComparisonGroup } = await import(
+      '../src/components/ComparisonGroup.js'
+    );
+    const products = [
+      makeProduct('evo', 0, '1'),
+      makeProduct('tactics', 62999, '2'),
+    ];
     const { lastFrame } = render(
-      React.createElement(ComparisonGroup, { normalizedTitle: 'never summer proto synthesis', products }),
+      React.createElement(ComparisonGroup, {
+        normalizedTitle: 'never summer proto synthesis',
+        products,
+      }),
     );
     const frame = lastFrame() ?? '';
     const evoLine = frame.split('\n').find((l) => l.includes('evo'));

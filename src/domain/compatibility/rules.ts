@@ -25,7 +25,11 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
   const { sizeUS } = setup.boot;
   const [min, max] = setup.binding.sizeRange;
 
-  if (!Number.isFinite(sizeUS) || !Number.isFinite(min) || !Number.isFinite(max)) {
+  if (
+    !Number.isFinite(sizeUS) ||
+    !Number.isFinite(min) ||
+    !Number.isFinite(max)
+  ) {
     return {
       ruleId: 'boot-to-binding-size',
       verdict: 'fail',
@@ -150,7 +154,12 @@ export function discToMount(setup: GearSetup): RuleResult {
   const { discPattern } = setup.binding;
 
   const VALID_PATTERNS = new Set<string>(['4x4', '2x4', 'channel']);
-  if (!mountingPattern || !discPattern || !VALID_PATTERNS.has(mountingPattern) || !VALID_PATTERNS.has(discPattern)) {
+  if (
+    !mountingPattern ||
+    !discPattern ||
+    !VALID_PATTERNS.has(mountingPattern) ||
+    !VALID_PATTERNS.has(discPattern)
+  ) {
     return {
       ruleId: 'binding-disc-to-mount',
       verdict: 'fail',

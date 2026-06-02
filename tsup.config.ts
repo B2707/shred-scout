@@ -12,5 +12,5 @@ export default defineConfig({
   clean: true,
   splitting: false,
   shims: false,
-  publicDir: 'src/fixtures',  // copies demo-products.json → dist/demo-products.json
+  publicDir: 'src/fixtures', // copies demo-products.json → dist/demo-products.json
 });

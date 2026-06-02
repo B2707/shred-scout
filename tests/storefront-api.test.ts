@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { adaptStorefrontProduct } from '../src/data/storefront-api.js';
+import { describe, expect, it } from 'vitest';
 import { normalizeProduct } from '../src/data/normalizer.js';
+import { adaptStorefrontProduct } from '../src/data/storefront-api.js';
 
 function variant(amount: string, available: boolean, size: string) {
   return {
@@ -25,7 +25,9 @@ const soldOutCheapestNode = {
   tags: ['boots'],
   description: '',
   featuredImage: null,
-  variants: { edges: [variant('199.00', false, '8'), variant('499.00', true, '10')] },
+  variants: {
+    edges: [variant('199.00', false, '8'), variant('499.00', true, '10')],
+  },
 };
 
 describe('adaptStorefrontProduct (DD-1)', () => {

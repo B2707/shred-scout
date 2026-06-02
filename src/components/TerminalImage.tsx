@@ -5,11 +5,13 @@
  * image resolves asynchronously (and so OSC escape sequences, which Yoga measures as
  * zero-height, still occupy space).
  */
-import React, { useState, useEffect } from 'react';
-import { Box, Text } from 'ink';
+
 import { readFile } from 'node:fs/promises';
-import terminalImage from 'terminal-image';
 import { execa } from 'execa';
+import { Box, Text } from 'ink';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import terminalImage from 'terminal-image';
 
 export interface TerminalImageProps {
   /** Local file path or http(s) URL. */
@@ -22,7 +24,10 @@ export interface TerminalImageProps {
 }
 
 /** Loads image bytes; for URLs, only returns a successful image/* response (no 404 HTML). */
-async function loadBytes(source: string, signal: AbortSignal): Promise<Buffer | null> {
+async function loadBytes(
+  source: string,
+  signal: AbortSignal,
+): Promise<Buffer | null> {
   if (/^https?:\/\//i.test(source)) {
     try {
       const res = await fetch(source, { signal });
@@ -41,7 +46,12 @@ async function loadBytes(source: string, signal: AbortSignal): Promise<Buffer | 
   }
 }
 
-export function TerminalImage({ source, supportsImages, width = 18, height = 9 }: TerminalImageProps): React.JSX.Element {
+export function TerminalImage({
+  source,
+  supportsImages,
+  width = 18,
+  height = 9,
+}: TerminalImageProps): React.JSX.Element {
   const [ansi, setAnsi] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,12 +62,24 @@ export function TerminalImage({ source, supportsImages, width = 18, height = 9 }
       if (!buf || cancelled) return;
       try {
         if (supportsImages) {
-          const out = await terminalImage.buffer(buf, { width, height, preserveAspectRatio: true });
+          const out = await terminalImage.buffer(buf, {
+            width,
+            height,
+            preserveAspectRatio: true,
+          });
           if (!cancelled) setAnsi(out);
         } else {
           const res = await execa(
             'chafa',
-            ['--size', `${width}x${height}`, '--format', 'symbols', '--symbols', 'block+border', '-'],
+            [
+              '--size',
+              `${width}x${height}`,
+              '--format',
+              'symbols',
+              '--symbols',
+              'block+border',
+              '-',
+            ],
             { input: buf, timeout: 5000, cancelSignal: ctrl.signal },
           );
           if (!cancelled) setAnsi(res.stdout);

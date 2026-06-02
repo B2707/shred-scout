@@ -9,9 +9,10 @@
  *
  * Run once at startup — pass the returned Database instance to all repo factory functions.
  */
-import { join } from 'node:path';
+
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
 import Database from 'better-sqlite3';
 
 /** A single migration entry — name must be stable (used as PK in schema_versions). */
@@ -139,7 +140,9 @@ export function defaultDatabasePath(): string {
  *                 Defaults to the platform-appropriate data directory.
  * @returns Initialized better-sqlite3 Database instance ready for use.
  */
-export function openDatabase(dbPath: string = defaultDatabasePath()): Database.Database {
+export function openDatabase(
+  dbPath: string = defaultDatabasePath(),
+): Database.Database {
   // Ensure the parent directory exists before opening/creating the file
   if (dbPath !== ':memory:') {
     const dir = join(dbPath, '..');
@@ -158,11 +161,13 @@ export function openDatabase(dbPath: string = defaultDatabasePath()): Database.D
   `);
 
   const applied = new Set(
-    (db.prepare('SELECT name FROM schema_versions').all() as { name: string }[]).map(r => r.name)
+    (
+      db.prepare('SELECT name FROM schema_versions').all() as { name: string }[]
+    ).map((r) => r.name),
   );
 
   const insertVersion = db.prepare(
-    'INSERT INTO schema_versions (name, applied_at) VALUES (?, ?)'
+    'INSERT INTO schema_versions (name, applied_at) VALUES (?, ?)',
   );
 
   for (const migration of MIGRATIONS) {

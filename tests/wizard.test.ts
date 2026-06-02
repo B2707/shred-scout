@@ -1,15 +1,21 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React, { act } from 'react';
 import { render } from 'ink-testing-library';
+import React, { act } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock profile module to prevent real conf writes during tests.
 // vi.mock is hoisted to the top of the file by vitest.
 vi.mock('../src/lib/profile.js', () => ({
   readProfile: vi.fn().mockReturnValue(null),
   writeProfile: vi.fn(),
-  validateBootSize: vi.fn().mockImplementation((v: number) => !isNaN(v) && v >= 4.0 && v <= 18.0),
-  validateHeightCm: vi.fn().mockImplementation((cm: number) => !isNaN(cm) && cm >= 120 && cm <= 250),
-  validateWeightKg: vi.fn().mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
+  validateBootSize: vi
+    .fn()
+    .mockImplementation((v: number) => !isNaN(v) && v >= 4.0 && v <= 18.0),
+  validateHeightCm: vi
+    .fn()
+    .mockImplementation((cm: number) => !isNaN(cm) && cm >= 120 && cm <= 250),
+  validateWeightKg: vi
+    .fn()
+    .mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
 }));
 
 // Import components after vi.mock registration (vi.mock is hoisted so this is safe)
@@ -26,7 +32,10 @@ afterEach(() => {
 
 // Helper to submit a text value by typing it and pressing Enter.
 // Uses act() to flush React state updates between the type and Enter keypresses.
-async function submitText(stdin: { write: (s: string) => void }, value: string): Promise<void> {
+async function submitText(
+  stdin: { write: (s: string) => void },
+  value: string,
+): Promise<void> {
   await act(async () => {
     stdin.write(value);
   });
@@ -62,13 +71,17 @@ describe('WizardScreen — step 1 (boot size)', () => {
     const { lastFrame, stdin } = renderWizard();
     await submitText(stdin, '3.9');
     expect(lastFrame()).toContain('Profile Setup (1/4)');
-    expect(lastFrame()).toContain('Boot size must be a number between 4.0 and 18.0');
+    expect(lastFrame()).toContain(
+      'Boot size must be a number between 4.0 and 18.0',
+    );
   });
 
   it('error message reads: Boot size must be a number between 4.0 and 18.0', async () => {
     const { lastFrame, stdin } = renderWizard();
     await submitText(stdin, '0');
-    expect(lastFrame()).toContain('Boot size must be a number between 4.0 and 18.0');
+    expect(lastFrame()).toContain(
+      'Boot size must be a number between 4.0 and 18.0',
+    );
   });
 });
 
@@ -90,9 +103,9 @@ describe('WizardScreen — step 2 (height)', () => {
     expect(lastFrame()).toContain('How tall are you?');
   });
 
-  it("advances to step 3 on valid feet/inches input (5'10\")", async () => {
+  it('advances to step 3 on valid feet/inches input (5\'10")', async () => {
     const { lastFrame, stdin } = await renderAtStep2();
-    await submitText(stdin, "5'10\"");
+    await submitText(stdin, '5\'10"');
     expect(lastFrame()).toContain('Profile Setup (3/4)');
     expect(lastFrame()).toContain('How much do you weigh?');
   });

@@ -4,10 +4,11 @@
  * highlight (green border + green label) reads clearly and the layout doesn't jump between
  * the selected and unselected states.
  */
-import React from 'react';
+
 import { Box, Text } from 'ink';
-import { TerminalImage } from '../TerminalImage.js';
+import type React from 'react';
 import { resolveAssetPath } from '../../lib/assets.js';
+import { TerminalImage } from '../TerminalImage.js';
 
 export interface ImageOptionProps {
   label: string;
@@ -18,7 +19,13 @@ export interface ImageOptionProps {
   supportsImages: boolean;
 }
 
-export function ImageOption({ label, description, image, selected, supportsImages }: ImageOptionProps): React.JSX.Element {
+export function ImageOption({
+  label,
+  description,
+  image,
+  selected,
+  supportsImages,
+}: ImageOptionProps): React.JSX.Element {
   return (
     <Box
       borderStyle="round"
@@ -28,12 +35,18 @@ export function ImageOption({ label, description, image, selected, supportsImage
     >
       {image && (
         <Box marginRight={1}>
-          <TerminalImage source={resolveAssetPath(image)} supportsImages={supportsImages} width={16} height={7} />
+          <TerminalImage
+            source={resolveAssetPath(image)}
+            supportsImages={supportsImages}
+            width={16}
+            height={7}
+          />
         </Box>
       )}
       <Box flexDirection="column" justifyContent="center">
         <Text bold color={selected ? 'green' : undefined}>
-          {selected ? '▶ ' : '  '}{label}
+          {selected ? '▶ ' : '  '}
+          {label}
         </Text>
         <Text dimColor={!selected}>{description}</Text>
       </Box>

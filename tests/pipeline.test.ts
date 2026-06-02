@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MockAgent, setGlobalDispatcher } from 'undici';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // MockAgent intercepts at the dispatcher level — no vi.doMock needed here.
 // Use beforeEach/afterEach for dispatcher setup (per PATTERNS.md).
@@ -29,7 +29,9 @@ describe('RequestPipeline', () => {
     };
     expect(p.concurrency).toBe(2);
     expect(p.timeout).toBe(15000);
-    expect(p.userAgent).toBe('shred-scout/1.0.0 (https://github.com/user/shred-scout)');
+    expect(p.userAgent).toBe(
+      'shred-scout/1.0.0 (https://github.com/user/shred-scout)',
+    );
     // Must NOT impersonate a browser
     expect(p.userAgent).not.toContain('Mozilla');
     expect(p.userAgent).not.toContain('Chrome');
@@ -45,7 +47,8 @@ describe('RequestPipeline', () => {
         path: '/test',
         method: 'GET',
         headers: (headers) =>
-          headers['user-agent'] === 'shred-scout/1.0.0 (https://github.com/user/shred-scout)',
+          headers['user-agent'] ===
+          'shred-scout/1.0.0 (https://github.com/user/shred-scout)',
       })
       .reply(200, '{}', { headers: { 'content-type': 'application/json' } });
 
@@ -62,7 +65,9 @@ describe('RequestPipeline', () => {
     // First attempt: 429
     pool
       .intercept({ path: '/products.json', method: 'GET' })
-      .reply(429, 'Too Many Requests', { headers: { 'content-type': 'text/plain' } });
+      .reply(429, 'Too Many Requests', {
+        headers: { 'content-type': 'text/plain' },
+      });
     // Second attempt: 200
     pool
       .intercept({ path: '/products.json', method: 'GET' })
@@ -85,7 +90,9 @@ describe('RequestPipeline', () => {
       .intercept({ path: '/missing', method: 'GET' })
       .reply(404, 'Not Found', { headers: { 'content-type': 'text/plain' } });
 
-    await expect(pipeline.fetch('https://www.evo.com/missing')).rejects.toThrow('Permanent HTTP 404');
+    await expect(pipeline.fetch('https://www.evo.com/missing')).rejects.toThrow(
+      'Permanent HTTP 404',
+    );
   });
 
   it('fetch() throws on HTTP 500 after retries exhausted', async () => {
@@ -97,7 +104,9 @@ describe('RequestPipeline', () => {
     for (let i = 0; i < 4; i++) {
       pool
         .intercept({ path: '/error', method: 'GET' })
-        .reply(500, 'Internal Server Error', { headers: { 'content-type': 'text/plain' } });
+        .reply(500, 'Internal Server Error', {
+          headers: { 'content-type': 'text/plain' },
+        });
     }
 
     await expect(pipeline.fetch('https://www.evo.com/error')).rejects.toThrow();

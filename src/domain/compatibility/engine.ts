@@ -5,10 +5,11 @@
  * combined results as a RuleResult[]. No I/O, no external state.
  * The async flexPairing advisory is NOT called here — it is a separate call.
  */
-import { bootToBindingSize, bootToBoardWaist, discToMount } from './rules.js';
-import { flexAdvisory } from './flex-advisory.js';
-import type { GearSetup, RuleResult } from './types.js';
+
 import type { RiderProfile } from '../../types/profile.js';
+import { flexAdvisory } from './flex-advisory.js';
+import { bootToBindingSize, bootToBoardWaist, discToMount } from './rules.js';
+import type { GearSetup, RuleResult } from './types.js';
 
 /**
  * Runs all three hard compatibility rules against a gear setup.
@@ -33,6 +34,9 @@ export function runRules(setup: GearSetup, _rider: RiderProfile): RuleResult[] {
  *
  * @returns 4 RuleResults: the 3 hard verdicts followed by the flex advisory (advisory:true).
  */
-export function evaluateCompatibility(setup: GearSetup, rider: RiderProfile): RuleResult[] {
+export function evaluateCompatibility(
+  setup: GearSetup,
+  rider: RiderProfile,
+): RuleResult[] {
   return [...runRules(setup, rider), flexAdvisory(setup, rider)];
 }

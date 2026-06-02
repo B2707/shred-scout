@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { tmpdir } from 'node:os';
 import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -12,9 +12,9 @@ afterEach(() => {
 const testCwd = mkdtempSync(join(tmpdir(), 'shred-scout-profile-test-'));
 
 describe('parseHeight()', () => {
-  it("parses 5'10\" as 178cm", async () => {
+  it('parses 5\'10" as 178cm', async () => {
     const { parseHeight } = await import('../src/lib/conversions.js');
-    expect(parseHeight("5'10\"")).toBe(178);
+    expect(parseHeight('5\'10"')).toBe(178);
   });
   it("parses 5'10 (no inch mark) as 178cm", async () => {
     const { parseHeight } = await import('../src/lib/conversions.js');
@@ -119,7 +119,9 @@ describe('readProfile() + writeProfile() round-trip', () => {
     vi.resetModules();
     // Override conf cwd to isolated temp dir so this test is independent
     vi.doMock('conf', async () => {
-      const { default: OrigConf } = await vi.importActual<{ default: typeof import('conf').default }>('conf');
+      const { default: OrigConf } = await vi.importActual<{
+        default: typeof import('conf').default;
+      }>('conf');
       return {
         default: class extends OrigConf<Record<string, unknown>> {
           constructor(opts: Record<string, unknown>) {
@@ -135,7 +137,9 @@ describe('readProfile() + writeProfile() round-trip', () => {
   it('writeProfile then readProfile returns stored profile', async () => {
     vi.resetModules();
     vi.doMock('conf', async () => {
-      const { default: OrigConf } = await vi.importActual<{ default: typeof import('conf').default }>('conf');
+      const { default: OrigConf } = await vi.importActual<{
+        default: typeof import('conf').default;
+      }>('conf');
       return {
         default: class extends OrigConf<Record<string, unknown>> {
           constructor(opts: Record<string, unknown>) {
@@ -145,7 +149,12 @@ describe('readProfile() + writeProfile() round-trip', () => {
       };
     });
     const { readProfile, writeProfile } = await import('../src/lib/profile.js');
-    const profile = { bootSize: 10.5, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain' };
+    const profile = {
+      bootSize: 10.5,
+      heightCm: 178,
+      weightKg: 75,
+      ridingStyle: 'all-mountain',
+    };
     writeProfile(profile);
     const result = readProfile();
     expect(result).not.toBeNull();
