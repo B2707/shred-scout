@@ -34,7 +34,7 @@ npm run demo
 
 Skips onboarding and drops straight into the guided gear wizard, then runs the full wizard → search → compatibility → results flow against cached fixture data. No API keys, no live network connection, and no prior setup required. Fixture products include boards, bindings, and boots across simulated retailers, with sale items and cross-retailer comparison pairs pre-populated.
 
-> To record a demo GIF, run [`scripts/record-demo.sh`](scripts/record-demo.sh) in a real terminal. `asciinema` + `agg` render text only — to capture the inline product images, screen-record an [iTerm2](https://iterm2.com/) or Kitty window instead (see the script header).
+> The wizard and result cards render real product images via the iTerm2/Kitty inline-image protocol, so the demo GIF must be screen-recorded from an [iTerm2](https://iterm2.com/) or Kitty window — terminal recorders (asciinema/agg/vhs) can't capture inline images. See [`scripts/record-demo.sh`](scripts/record-demo.sh) for the steps and a recording → GIF converter.
 
 ## How It Works
 
