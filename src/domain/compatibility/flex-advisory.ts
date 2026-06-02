@@ -1,21 +1,20 @@
 /**
  * Deterministic flex advisory rule for the Shred Scout compatibility engine.
  *
- * Replaces the LLM-based flexPairing() advisory with a synchronous rule that
- * maps rider.ridingStyle to an expected flex range and compares against the
- * board's flexRating field.
+ * A synchronous rule that maps rider.ridingStyle to an expected flex range and
+ * compares against the board's flexRating field.
  *
  * Error contract: this function NEVER throws. Missing flexRating returns
- * { verdict: 'unknown', advisory: true } — same shape as the old LLM result.
+ * { verdict: 'unknown', advisory: true }.
  */
 
 import type { RiderProfile } from '../../types/profile.js';
 import type { GearSetup, RuleResult } from './types.js';
 
 // Recommended board flex (1 = soft … 10 = stiff) per riding style. Covers every
-// canonical style the wizard/onboarding can produce (B22) — previously only
+// canonical style the wizard/onboarding can produce — previously only
 // beginner/all-mountain/freeride existed, so freestyle/park/powder/backcountry
-// (and the opener's own "freestyle" example) returned 'unknown'.
+// returned 'unknown'.
 const FLEX_RANGES: Record<string, [number, number]> = {
   beginner: [1, 4],
   park: [2, 5],

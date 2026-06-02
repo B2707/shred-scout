@@ -6,7 +6,7 @@
  *
  * Two real bugs are fixed here:
  *   - Binding sizeRange used to parse "M"/"L" with parseFloat -> NaN -> [0,999], making the
- *     boot-to-binding rule a meaningless always-pass (B13). We now resolve a real US range
+ *     boot-to-binding rule a meaningless always-pass. We now resolve a real US range
  *     from numeric variants, falling back to the per-brand BINDING_SIZE_RANGES span.
  *   - Board flexRating was never derived from the product, so the flex advisory was always
  *     'unknown'. We parse the flex_rating string ("6/10", "Medium-Stiff") into a 1–10 number.
@@ -82,7 +82,7 @@ export function letterToRange(
  * Resolution order:
  *   1. Explicit numeric sizes from the variants → exact [min, max].
  *   2. Letter sizes (S/M/L/XL) → the UNION of only the standard US ranges for the letters
- *      actually offered (DD-2). Collapsing letter bindings to the full vendor span made an
+ *      actually offered. Collapsing letter bindings to the full vendor span made an
  *      S-only binding "fit" a size-13 boot — a meaningless always-pass.
  *   3. No recognizable sizes at all → the per-brand (or generic) overall span.
  *
@@ -166,7 +166,7 @@ function parseVariantSizes(variantsJson: string): number[] {
 
 /**
  * Whether a boot product is offered in the rider's US size — the per-card signal that was
- * missing on boot cards (SC-05). A boot has nothing to cross-check against a board/binding,
+ * missing on boot cards. A boot has nothing to cross-check against a board/binding,
  * but "do they make it in my size?" is the relevant fit question, so we answer that:
  *
  *  - pass:    the rider's exact US size is among the offered variants
@@ -205,11 +205,11 @@ export function bootFit(
 
 /**
  * The single most relevant compatibility verdict for one product, relative to the rider —
- * the per-card "compatibility-verified" signal that was missing during shopping (A2/A3).
+ * the per-card "compatibility-verified" signal that was missing during shopping.
  *
  *  - board:   boot-to-board waist clearance for the rider's boot size
  *  - binding: whether the rider's boot fits the binding's size range
- *  - boot:    whether the boot is offered in the rider's US size (SC-05)
+ *  - boot:    whether the boot is offered in the rider's US size
  */
 export function productFit(
   product: NormalizedProduct,

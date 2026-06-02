@@ -3,7 +3,7 @@
  *
  * RequestPipeline wraps undici.fetch() with per-host p-queue concurrency limiting
  * (concurrency=2 per hostname) and p-retry exponential backoff (3 retries: 1s→2s→4s).
- * All HTTP calls in Phase 3 must go through this class — it is the single point of
+ * All HTTP calls must go through this class — it is the single point of
  * concurrency and error policy.
  *
  * Retry policy:

@@ -23,9 +23,7 @@ const program = new Command();
 
 program
   .name('shred-scout')
-  .description(
-    'Agentic terminal UI for finding compatible snowboard gear deals',
-  )
+  .description('Terminal UI for finding compatible snowboard gear deals')
   .version(
     `shred-scout ${pkgVersion}`,
     '-v, --version',
@@ -264,4 +262,13 @@ if (process.argv.length <= 2 && isTTY()) {
   process.exit(0);
 }
 
-await program.parseAsync();
+// Note: parseAsync() never resolves for the interactive `search`/`watch`
+// commands — their actions return a never-resolving promise to hold the process
+// open for Ink. Using a top-level `await` here would make Node emit an
+// "unsettled top-level await" warning (which also leaks into demo recordings).
+// Attaching a rejection handler instead lets the module finish evaluating with
+// no warning; Ink keeps the event loop alive, and `q` exits via process.exit(0).
+program.parseAsync().catch((err: unknown) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -88,21 +88,21 @@ describe('detectGearCategory()', () => {
     expect(detectGearCategory('Accessories', [], 'Helmet Cover')).toBeNull();
   });
 
-  it('layer 3 (title): "Snowboard Bindings" classifies as binding, not board (B10)', async () => {
+  it('layer 3 (title): "Snowboard Bindings" classifies as binding, not board', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     expect(
       detectGearCategory('', [], 'Union Force Snowboard Bindings 2026'),
     ).toBe('binding');
   });
 
-  it('layer 3 (title): "Snowboard Boots" classifies as boot, not board (B10)', async () => {
+  it('layer 3 (title): "Snowboard Boots" classifies as boot, not board', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     expect(
       detectGearCategory('', [], 'Burton Photon Snowboard Boots 2026'),
     ).toBe('boot');
   });
 
-  it('cross-layer: a boot with a bare "snowboard" tag classifies as boot, not board (SC-02/B10)', async () => {
+  it('cross-layer: a boot with a bare "snowboard" tag classifies as boot, not board', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     // The bare 'snowboard' tag matches the BOARD keyword at the tags layer, but the
     // title carries the dominant 'boot' keyword — boot must win across layers.
@@ -115,7 +115,7 @@ describe('detectGearCategory()', () => {
     ).toBe('boot');
   });
 
-  it('cross-layer: a binding with a bare "snowboard" tag classifies as binding, not board (SC-02/B10)', async () => {
+  it('cross-layer: a binding with a bare "snowboard" tag classifies as binding, not board', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     expect(detectGearCategory('', ['snowboard'], 'Union Force Bindings')).toBe(
       'binding',
@@ -223,7 +223,7 @@ describe('normalizeProduct()', () => {
     expect(result.price_cents).toBe(44995);
   });
 
-  it('prefers the cheapest IN-STOCK variant price (B20)', async () => {
+  it('prefers the cheapest IN-STOCK variant price', async () => {
     const { normalizeProduct } = await import('../src/data/normalizer.js');
     const raw = makeRawProduct({
       variants: [
@@ -245,7 +245,7 @@ describe('normalizeProduct()', () => {
     expect(result.price_cents).toBe(49995);
   });
 
-  it('falls back to the global min price when every variant is sold out (B20)', async () => {
+  it('falls back to the global min price when every variant is sold out', async () => {
     const { normalizeProduct } = await import('../src/data/normalizer.js');
     const raw = makeRawProduct({
       variants: [
@@ -311,7 +311,7 @@ describe('normalizeProduct()', () => {
     expect(result.retailer).toBe('tactics');
   });
 
-  it('sets waist_width_mm to null (Phase 3 — PDP scraping deferred to Phase 7)', async () => {
+  it('sets waist_width_mm to null (PDP scraping deferred)', async () => {
     const { normalizeProduct } = await import('../src/data/normalizer.js');
     const result = normalizeProduct(makeRawProduct(), 'evo');
     expect(result.waist_width_mm).toBeNull();

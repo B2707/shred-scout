@@ -3,10 +3,10 @@
  *
  * Format: [VERDICT:ruleId] — e.g. "[PASS:boot-to-binding-size]"
  *
- * Phase 5: This component is BUILT but NOT RENDERED anywhere in Phase 5.
+ * This component is BUILT but NOT RENDERED anywhere yet.
  * runRules() requires a complete GearSetup (board + binding + boot), which
- * individual product cards do not have. The badge will be wired in Phase 6
- * when complete setup comparison is available. See RESEARCH.md Pitfall 6.
+ * individual product cards do not have. The badge will be wired in
+ * when complete setup comparison is available.
  *
  * Caller is responsible for wrapping badges in <Box gap={1}> for horizontal spacing.
  */

@@ -2,8 +2,8 @@
  * Rider profile repository for Shred Scout.
  *
  * SQL mirror of the conf-based profile store (src/lib/profile.ts).
- * conf remains the primary store for Phase 1 compatibility; riderRepo provides
- * the SQL copy for Phase 4+ queries that join rider data with products.
+ * conf remains the primary store for compatibility; riderRepo provides
+ * the SQL copy for queries that join rider data with products.
  *
  * Upsert semantics: only one rider profile row ever exists (single-user CLI).
  * The rider_profile table uses id=1 with a CHECK constraint to enforce this.

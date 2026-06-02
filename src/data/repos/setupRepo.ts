@@ -2,7 +2,7 @@
  * Saved gear setup repository for Shred Scout.
  *
  * Stores board+binding+boot product ID triples plus a JSON snapshot of RuleResult[]
- * at save time. Phase 6 renders these saved setups in the wishlist view.
+ * at save time. These saved setups are rendered in the wishlist view.
  *
  * setupRepo references products.id FKs — products must exist before saving setups
  * with product IDs (null IDs are allowed for partial saves).
@@ -19,7 +19,7 @@ export interface SavedSetup {
   /** Parsed RuleResult[] snapshot from save time. */
   compatibility: RuleResult[] | null;
   savedAt: number;
-  /** Whether price-drop alerts are enabled for this setup (Phase 6). */
+  /** Whether price-drop alerts are enabled for this setup. */
   alertEnabled: boolean;
 }
 
@@ -109,7 +109,7 @@ export function makeSetupRepo(db: Database.Database) {
      * slots are preserved (COALESCE). Returns the setup's row id.
      *
      * Without this, each save created a separate single-slot row and the "Setup
-     * Complete" summary was unreachable forever (B3).
+     * Complete" summary was unreachable forever.
      */
     saveSlot(input: SaveSetupInput): number {
       const current = selectIncompleteStmt.get();
@@ -204,7 +204,7 @@ export function makeSetupRepo(db: Database.Database) {
     /**
      * Persists a compatibility snapshot (RuleResult[]) for a setup. Called when a setup
      * becomes complete so the wishlist can render its CompatBadge — previously the column
-     * was always NULL because handleSave never passed it (B19).
+     * was always NULL because handleSave never passed it.
      */
     setCompatibility(id: number, results: RuleResult[]): void {
       setCompatStmt.run(JSON.stringify(results), id);

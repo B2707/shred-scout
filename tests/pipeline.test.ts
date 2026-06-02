@@ -2,7 +2,7 @@ import { MockAgent, setGlobalDispatcher } from 'undici';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // MockAgent intercepts at the dispatcher level — no vi.doMock needed here.
-// Use beforeEach/afterEach for dispatcher setup (per PATTERNS.md).
+// Use beforeEach/afterEach for dispatcher setup.
 
 let mockAgent: MockAgent;
 

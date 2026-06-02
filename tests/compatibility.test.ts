@@ -322,10 +322,10 @@ describe('bootToBindingSize()', () => {
 });
 
 // ─── bootToBoardWaist() ──────────────────────────────────────────────────────
-// Overhang-per-side model (B17): bootSoleMm = sizeUS*8.1+209; overhang = (bootSole - waist)/2.
+// Overhang-per-side model: bootSoleMm = sizeUS*8.1+209; overhang = (bootSole - waist)/2.
 //   pass: overhang <= 20mm    warn: 20 < overhang <= 35mm    fail: overhang > 35mm
 // Some overhang is normal and desirable for leverage; binding angles reduce real drag.
-// Missing / non-positive waist => 'unknown' advisory, NOT fail (B18).
+// Missing / non-positive waist => 'unknown' advisory, NOT fail.
 //   US10 bootSole=290: pass>=250, warn 220..249, fail <220.
 //   US9  bootSole=281.9: pass>=~242.   US7 bootSole=265.7: pass>=~226.
 
@@ -341,7 +341,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('pass');
   });
 
-  it('US10: waist=258 returns pass (standard all-mountain board fits a size-10 rider — B17)', async () => {
+  it('US10: waist=258 returns pass (standard all-mountain board fits a size-10 rider)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -350,7 +350,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('pass');
   });
 
-  it('US10: waist=254 returns pass (standard board must NOT false-fail — B17)', async () => {
+  it('US10: waist=254 returns pass (standard board must NOT false-fail)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -404,7 +404,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('fail');
   });
 
-  it('US10: waist=0 returns unknown advisory (missing data, NOT a fail — B18)', async () => {
+  it('US10: waist=0 returns unknown advisory (missing data, NOT a fail)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -415,7 +415,7 @@ describe('bootToBoardWaist()', () => {
 
   // ── US9 boot tests ───────────────────────────────────────────────────────
 
-  it('US9: waist=255 returns pass (size-9 rider on a standard board — B17)', async () => {
+  it('US9: waist=255 returns pass (size-9 rider on a standard board)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -611,7 +611,7 @@ describe('runRules()', () => {
     expect(results[2]?.verdict).toBe('fail');
   });
 
-  it('each RuleResult.reason is a non-empty string (COMP-03: reason for badge rendering)', async () => {
+  it('each RuleResult.reason is a non-empty string (reason for badge rendering)', async () => {
     const { runRules } = await import('../src/domain/compatibility/engine.js');
     const results = runRules(makeSetup({}), BASE_RIDER);
     for (const r of results) {
@@ -619,7 +619,7 @@ describe('runRules()', () => {
     }
   });
 
-  it('each RuleResult.ruleId is a non-empty string (COMP-03: stable ruleId for badge key)', async () => {
+  it('each RuleResult.ruleId is a non-empty string (stable ruleId for badge key)', async () => {
     const { runRules } = await import('../src/domain/compatibility/engine.js');
     const results = runRules(makeSetup({}), BASE_RIDER);
     for (const r of results) {
@@ -628,7 +628,7 @@ describe('runRules()', () => {
   });
 });
 
-// ─── evaluateCompatibility() — hard rules + flex advisory (A6/B23) ─────────────
+// ─── evaluateCompatibility() — hard rules + flex advisory ──────────────────────
 
 describe('evaluateCompatibility()', () => {
   it('returns the 3 hard rules PLUS the flex advisory', async () => {
@@ -644,7 +644,7 @@ describe('evaluateCompatibility()', () => {
     ]);
   });
 
-  it('consumes the rider riding style through the flex advisory (A6/B23)', async () => {
+  it('consumes the rider riding style through the flex advisory', async () => {
     const { evaluateCompatibility } = await import(
       '../src/domain/compatibility/engine.js'
     );

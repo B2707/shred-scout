@@ -6,9 +6,9 @@
  *
  * Design: Ink does not support text strikethrough universally (ANSI SGR 9 is
  * absent on macOS Terminal.app). The approved format is a parenthetical
- * "(was $X.XX)" in dimColor — see UI-SPEC.md sale display contract.
+ * "(was $X.XX)" in dimColor for the sale display.
  *
- * Phase 5: Rendered by ResultCard when detectSale() returns isSale=true.
+ * Rendered by ResultCard when detectSale() returns isSale=true.
  */
 
 import { Text } from 'ink';

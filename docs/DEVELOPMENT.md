@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Development Guide
 
 This guide covers everything needed to work on Shred Scout locally — from initial setup through the build pipeline, code style rules, and extending the scraping and compatibility systems.

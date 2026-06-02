@@ -5,9 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../src/lib/profile.js', () => ({
   readProfile: vi.fn().mockReturnValue(null),
   writeProfile: vi.fn(),
-  readApiKey: vi.fn().mockReturnValue(null),
-  writeApiKey: vi.fn(),
-  loadApiKeyToEnv: vi.fn(),
   validateBootSize: vi
     .fn()
     .mockImplementation(

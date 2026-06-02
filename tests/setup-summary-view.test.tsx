@@ -184,7 +184,7 @@ describe('SetupSummaryView', () => {
     expect(onNewSearch).toHaveBeenCalledOnce();
   });
 
-  it('offers a price-alert opt-in on the Setup Complete screen (UI-2)', async () => {
+  it('offers a price-alert opt-in on the Setup Complete screen', async () => {
     const { SetupSummaryView } = await import(
       '../src/components/SetupSummaryView.js'
     );
@@ -203,7 +203,7 @@ describe('SetupSummaryView', () => {
     expect(frame).toContain('[a]');
   });
 
-  it('pressing a enables the price alert and flips the status (UI-2)', async () => {
+  it('pressing a enables the price alert and flips the status', async () => {
     const { SetupSummaryView } = await import(
       '../src/components/SetupSummaryView.js'
     );
@@ -225,7 +225,7 @@ describe('SetupSummaryView', () => {
     expect((lastFrame() ?? '').toLowerCase()).toMatch(/price alert on/);
   });
 
-  it('pressing a twice toggles the alert back off (UI-2)', async () => {
+  it('pressing a twice toggles the alert back off', async () => {
     const { SetupSummaryView } = await import(
       '../src/components/SetupSummaryView.js'
     );

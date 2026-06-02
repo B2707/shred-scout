@@ -5,7 +5,7 @@
  * Image rendering is delegated to <TerminalImage> (terminal-image on iTerm2/Kitty, chafa
  * fallback elsewhere, fetch validated so a 404 page never renders as garbage). Using a
  * compact left thumbnail in a row layout — instead of a full-width image under a 20-row
- * blank spacer — keeps cards dense and scannable (C2).
+ * blank spacer — keeps cards dense and scannable.
  */
 
 import { Box, Text, useStdout } from 'ink';
@@ -17,7 +17,7 @@ import type { RiderProfile } from '../types/profile.js';
 import { SaleDisplay } from './SaleDisplay.js';
 import { TerminalImage } from './TerminalImage.js';
 
-/** Per-category accent color for the metadata line (C6). */
+/** Per-category accent color for the metadata line. */
 const CATEGORY_COLOR: Record<string, string> = {
   board: 'cyan',
   binding: 'magenta',
@@ -65,16 +65,16 @@ export interface ResultCardProps {
   supportsImages: boolean;
   /** 1-based display index for "[N]" save-item prefix. Omit to hide the prefix. */
   index?: number;
-  /** Rider profile — when present, the card shows a per-product compatibility badge (A2/A3). */
+  /** Rider profile — when present, the card shows a per-product compatibility badge. */
   rider?: RiderProfile;
 }
 
-/** Maps a per-product fit verdict to a compact, colored card badge (A2/A3, SC-05). */
+/** Maps a per-product fit verdict to a compact, colored card badge. */
 function fitBadge(
   result: RuleResult,
   bootSize: number,
 ): { symbol: string; color: string; label: string; dim: boolean } {
-  // Boot cards answer "is it made in my size?" rather than a cross-fit verdict (SC-05);
+  // Boot cards answer "is it made in my size?" rather than a cross-fit verdict;
   // the rule's own reason string already carries the size-specific wording.
   if (result.ruleId === 'boot-size-fit') {
     switch (result.verdict) {
@@ -154,7 +154,7 @@ export function ResultCard({
       ? `${product.title.slice(0, maxTitleWidth - 1)}…`
       : product.title;
 
-  // Price — non-positive means "not scraped" (e.g. evo PDP); show "Price unavailable" (B9).
+  // Price — non-positive means "not scraped" (e.g. evo PDP); show "Price unavailable".
   const hasPrice = product.price_cents > 0;
   const priceLabel = hasPrice
     ? `$${(product.price_cents / 100).toFixed(2)}`
@@ -166,7 +166,7 @@ export function ResultCard({
   );
   const categoryLabel = product.gear_category ?? 'unknown';
 
-  // Per-product compatibility badge relative to the rider (A2/A3).
+  // Per-product compatibility badge relative to the rider.
   const fit = rider ? productFit(product, rider) : null;
   const fitView = fit && rider ? fitBadge(fit, rider.bootSize) : null;
 
@@ -190,7 +190,7 @@ export function ResultCard({
       )}
 
       <Box flexDirection="column" flexGrow={1}>
-        {/* Title + price row — price right-aligned into a scannable column (C5) */}
+        {/* Title + price row — price right-aligned into a scannable column */}
         <Box justifyContent="space-between">
           <Box>
             {index !== undefined && <Text dimColor>[{index}] </Text>}
@@ -201,7 +201,7 @@ export function ResultCard({
           </Text>
         </Box>
 
-        {/* Metadata row — color-coded gear category · retailer (C6) */}
+        {/* Metadata row — color-coded gear category · retailer */}
         <Text>
           <Text color={CATEGORY_COLOR[categoryLabel] ?? 'white'}>
             {categoryLabel}
@@ -209,7 +209,7 @@ export function ResultCard({
           <Text dimColor> · {product.retailer}</Text>
         </Text>
 
-        {/* Compatibility badge — whether this product fits the rider (A2/A3) */}
+        {/* Compatibility badge — whether this product fits the rider */}
         {fitView && (
           <Text
             color={fitView.color}

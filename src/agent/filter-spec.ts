@@ -1,20 +1,20 @@
 /**
  * FilterSpec type and applyFilterSpec() pure filter function.
  *
- * FilterSpec is the structured shape Claude returns from the refine_results tool.
+ * FilterSpec is the structured shape returned from the refine_results tool.
  * Each field is independently optional; applyFilterSpec applies the AND of all
  * present fields.
  *
- * Phase 4 limitation (per RESEARCH.md Pitfall 6): NormalizedProduct has no flex
- * column. flex filtering is implemented as a best-effort case-insensitive title
- * keyword match. Phase 7 PDP scraping will add real flex data.
+ * Limitation: NormalizedProduct has no flex column. flex filtering is
+ * implemented as a best-effort case-insensitive title keyword match. PDP
+ * scraping will add real flex data.
  */
 import type { NormalizedProduct } from '../data/normalizer.js';
 
 export interface FilterSpec {
   /** Maximum price in USD (e.g. 400 = $400.00). Excludes products where price_cents > priceMax * 100. */
   priceMax?: number;
-  /** Best-effort title keyword match in Phase 4 — Phase 7 will use real spec data. */
+  /** Best-effort title keyword match — real spec data to come from PDP scraping. */
   flex?: 'soft' | 'medium' | 'stiff';
   /** Case-insensitive substring match against product title. */
   color?: string;
@@ -45,7 +45,7 @@ export function applyFilterSpec(
         return false;
     }
     if (spec.flex !== undefined) {
-      // Phase 4 best-effort: title keyword match. Phase 7 PDP scraping will use real flex data.
+      // Best-effort: title keyword match. PDP scraping will use real flex data.
       if (!p.title.toLowerCase().includes(spec.flex)) return false;
     }
     return true;

@@ -132,8 +132,8 @@ export function adaptStorefrontProduct(
       price: e.node.price.amount,
       compare_at_price: e.node.compareAtPrice?.amount ?? null,
       option1: e.node.selectedOptions[0]?.value ?? null,
-      // Carry availability through so the in-stock price filter (B20) also works on the
-      // preferred GraphQL path — not just /products.json (DD-1).
+      // Carry availability through so the in-stock price filter also works on the
+      // preferred GraphQL path — not just /products.json.
       available: e.node.availableForSale,
     })),
   };

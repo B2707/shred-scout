@@ -1,8 +1,6 @@
 # Architecture
 
-<!-- GSD-GENERATED -->
-
-Shred Scout is a terminal UI application (TUI) that scrapes snowboard gear from Shopify-powered retailers, normalizes and persists the products locally, and renders them in an interactive React/Ink interface. There is no backend server and no LLM in the runtime path.
+Shred Scout is a terminal UI application (TUI) that scrapes snowboard gear from Shopify-powered retailers, normalizes and persists the products locally, and renders them in an interactive React/Ink interface. There is no backend server — all processing happens locally and deterministically.
 
 ## Directory structure
 
@@ -95,9 +93,9 @@ App (screen = 'search')
 
 Ink renders React component trees to the terminal using yoga-based layout. All UI state flows through React — `useState` + `useReducer` — so the search results, loading indicator, and wizard steps are all driven by normal React re-renders. No stdout writes outside of Ink's renderer.
 
-### No LLM in the search path
+### Deterministic search path
 
-`runSearch()` in `src/agent/search-pipeline.ts` is entirely deterministic: scrape → normalize → SQLite upsert → return. The LLM pipeline (AgentLoop) was removed in Phase 8. The `ANTHROPIC_API_KEY` configuration entry is vestigial but harmless.
+`runSearch()` in `src/agent/search-pipeline.ts` is entirely deterministic: scrape → normalize → SQLite upsert → return. There is no inference step or external model API anywhere in the search path.
 
 ### Shopify products.json pagination
 
@@ -118,7 +116,7 @@ Mount pattern data is inferred at normalization time by `inferMountPattern()` in
 ### SQLite + conf for persistence
 
 Two separate stores serve different roles:
-- **`conf`** (JSON config file) — rider profile and API key; read synchronously during React init
+- **`conf`** (JSON config file) — rider profile; read synchronously during React init
 - **`better-sqlite3`** (SQLite) — product catalog, price history, saved setups; opened per-search and closed in a `finally` block to avoid connection leaks
 
 ### HTTP request pipeline

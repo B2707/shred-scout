@@ -1,8 +1,8 @@
 /**
- * SearchView tests — uses mocked runSearch() instead of mock AgentLoop.
+ * SearchView tests — uses a mocked runSearch().
  * Verifies product rendering, ComparisonGroup grouping, and empty state.
- * Phase 10: the conversational opener was removed (UI-3); the wizard always supplies
- * initialQuery, so the results view renders immediately on mount.
+ * The wizard always supplies initialQuery, so the results view renders
+ * immediately on mount.
  */
 
 import { render } from 'ink-testing-library';
@@ -92,7 +92,7 @@ describe('SearchView', () => {
     ridingStyle: 'all-mountain' as const,
   };
 
-  it('renders the results view (no opener prompt) even when mounted WITHOUT initialQuery — guards UI-3', async () => {
+  it('renders the results view (no opener prompt) even when mounted WITHOUT initialQuery', async () => {
     // Discriminating regression guard: the removed opener only ever showed on the
     // initialQuery-absent path, so a test that omits initialQuery is what actually fails
     // against the pre-fix code. (The other tests all pass initialQuery and would pass either way.)
@@ -121,7 +121,7 @@ describe('SearchView', () => {
     expect(frame).toContain('[/] filters'); // results footer renders instead
   });
 
-  it('shows the results view immediately on mount (no opener — UI-3)', async () => {
+  it('shows the results view immediately on mount (no opener)', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
       products: [],
@@ -227,7 +227,7 @@ describe('SearchView', () => {
     expect(lastFrame()).toContain('No compatible gear found');
   });
 
-  it('paginates large result sets and pages through them with the arrow keys (SC-04)', async () => {
+  it('paginates large result sets and pages through them with the arrow keys', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     const products = Array.from({ length: 7 }, (_, i) =>
       makeProduct('evo', 50000 + i, String(i + 1), `Snowboard Model ${i + 1}`),

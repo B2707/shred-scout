@@ -2,7 +2,7 @@
  * Domain types for the Shred Scout compatibility engine.
  *
  * GearSetup is the single input to all hard rules and the flexPairing advisory.
- * RuleResult is the single output type — used directly as badge data in Phase 5.
+ * RuleResult is the single output type — used directly as badge data.
  * No runtime code lives here — types only.
  */
 
@@ -12,7 +12,7 @@
  * IMPORTANT: 'channel' means Burton Channel (EST/Re:Flex) ONLY.
  * Non-Burton channel systems (Nitro 3D, Sparks track) are NOT cross-compatible
  * with Burton Channel boards/bindings and MUST be mapped to '4x4' or '2x4'
- * during product ingestion (Phase 3) to prevent false-pass verdicts in discToMount().
+ * during product ingestion to prevent false-pass verdicts in discToMount().
  */
 export type MountPattern = '4x4' | '2x4' | 'channel';
 
@@ -55,14 +55,14 @@ export interface GearSetup {
 
 /**
  * Result of a single compatibility rule evaluation.
- * ruleId is stable and human-readable — used as badge key in Phase 5.
+ * ruleId is stable and human-readable — used as badge key.
  *
  * Hard vs advisory contract:
  *   - bootToBindingSize and discToMount return pass/warn/fail only (advisory absent).
  *   - bootToBoardWaist returns pass/warn/fail, plus an 'unknown' ADVISORY when the board's
- *     waist width is unavailable (most Shopify boards) — missing data must not read as fail (B18).
+ *     waist width is unavailable (most Shopify boards) — missing data must not read as fail.
  *   - flexPairing/flexAdvisory always sets advisory:true and may return pass/warn/unknown.
- *   - Phase 5 badge rendering should check `result.advisory === true` to identify advisory results.
+ *   - Badge rendering should check `result.advisory === true` to identify advisory results.
  *     Checking `!result.advisory` treats both explicit false AND undefined as "hard rule" — which
  *     is correct given the contract above, but relying on it implicitly is fragile.
  */
@@ -71,7 +71,7 @@ export interface RuleResult {
   ruleId: string;
   /** Verdict severity. Hard rules return pass/warn/fail only. flexPairing returns pass or unknown. */
   verdict: Verdict;
-  /** Human-readable reason string — rendered directly as badge tooltip/label in Phase 5. */
+  /** Human-readable reason string — rendered directly as badge tooltip/label. */
   reason: string;
   /**
    * True only for flexPairing advisory — distinguishes soft recommendations from hard rules.

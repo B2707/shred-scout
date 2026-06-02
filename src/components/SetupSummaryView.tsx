@@ -2,7 +2,7 @@
  * SetupSummaryView — shown automatically when all three gear slots (board, binding, boot)
  * have been saved to the wishlist. Displays the saved products with compatibility verdict.
  *
- * Phase 9: final screen in the save flow. Triggered by handleSetupSaved in App.tsx
+ * Final screen in the save flow. Triggered by handleSetupSaved in App.tsx
  * when setupRepo.findCompleteSetup() returns a non-null row.
  */
 
@@ -34,7 +34,7 @@ export interface SetupSummaryViewProps {
   /**
    * Toggles the price alert for this setup. Surfaced here because the completing (3rd) save
    * unmounts SearchView before its alert opt-in modal can show — so the opt-in would otherwise
-   * be silently skipped on the very setup that just completed (UI-2).
+   * be silently skipped on the very setup that just completed.
    */
   onToggleAlert?: (id: number, enabled: boolean) => void;
 }

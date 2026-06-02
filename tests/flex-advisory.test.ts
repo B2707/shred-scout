@@ -79,10 +79,10 @@ describe('flexAdvisory', () => {
 });
 
 // ---------------------------------------------------------------------------
-// flexAdvisory — canonical styles + alias normalization (B22)
+// flexAdvisory — canonical styles + alias normalization
 // ---------------------------------------------------------------------------
 
-describe('flexAdvisory — canonical riding styles (B22)', () => {
+describe('flexAdvisory — canonical riding styles', () => {
   const rider = (ridingStyle: string): RiderProfile => ({
     bootSize: 10,
     heightCm: 180,
