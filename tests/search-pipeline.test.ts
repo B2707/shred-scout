@@ -57,7 +57,7 @@ vi.mock('../src/data/pipeline.js', () => ({
   RequestPipeline: class MockRequestPipeline {},
 }));
 
-import { runSearch } from '../src/agent/search-pipeline.js';
+import { runSearch, filterByQuery } from '../src/agent/search-pipeline.js';
 
 function makeProfile(): RiderProfile {
   return {
@@ -154,5 +154,62 @@ describe('runSearch', () => {
         if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);
       }
     });
+  });
+
+  it('filters live results by the typed query keyword (B2)', async () => {
+    mockShopifyFetchAll.mockResolvedValue([
+      { title: 'Union Force Bindings 2026', vendor: 'Union', product_type: 'Snowboard Binding', gear_category: 'binding' },
+      { title: 'Burton Custom Snowboard 2026', vendor: 'Burton', product_type: 'Snowboard', gear_category: 'board' },
+    ]);
+    const { products } = await runSearch('union', makeProfile(), mockPipeline);
+    expect(products).toHaveLength(1);
+    expect(products[0]!.vendor).toBe('Union');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// filterByQuery — keyword/category filtering (B2)
+// ---------------------------------------------------------------------------
+
+describe('filterByQuery (B2)', () => {
+  const P = (over: Partial<NormalizedProduct>): NormalizedProduct =>
+    ({ title: '', vendor: '', product_type: '', gear_category: 'board', ...over }) as NormalizedProduct;
+  const sample = [
+    P({ title: 'Union Force Bindings 2026', vendor: 'Union', gear_category: 'binding' }),
+    P({ title: 'YES Greats Snowboard 2026', vendor: 'YES', gear_category: 'board' }),
+    P({ title: 'Burton Photon Snowboard Boots 2026', vendor: 'Burton', gear_category: 'boot' }),
+  ];
+
+  it('returns all products for an empty/whitespace query', () => {
+    expect(filterByQuery(sample, '')).toHaveLength(3);
+    expect(filterByQuery(sample, '   ')).toHaveLength(3);
+  });
+
+  it('maps a category synonym to the gear_category (boards -> board)', () => {
+    const r = filterByQuery(sample, 'boards');
+    expect(r).toHaveLength(1);
+    expect(r[0]!.gear_category).toBe('board');
+  });
+
+  it('maps "boots" to the boot category', () => {
+    const r = filterByQuery(sample, 'boots');
+    expect(r).toHaveLength(1);
+    expect(r[0]!.gear_category).toBe('boot');
+  });
+
+  it('filters by brand keyword', () => {
+    const r = filterByQuery(sample, 'union');
+    expect(r).toHaveLength(1);
+    expect(r[0]!.vendor).toBe('Union');
+  });
+
+  it('combines category + keyword (burton boots)', () => {
+    const r = filterByQuery(sample, 'burton boots');
+    expect(r).toHaveLength(1);
+    expect(r[0]!.gear_category).toBe('boot');
+  });
+
+  it('returns empty for a no-match query (proves the query is honored)', () => {
+    expect(filterByQuery(sample, 'xyzzy')).toHaveLength(0);
   });
 });

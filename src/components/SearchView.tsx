@@ -137,6 +137,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
 
   const handleSubmit = useCallback((query: string) => {
     if (isLoading) return;
+    if (!query.trim()) return; // B2: empty Enter must not fire a full-catalog search
     void (async () => {
       setIsLoading(true);
       setProducts([]);
