@@ -154,6 +154,37 @@ describe('runSearch', () => {
         if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);
       }
     });
+
+    it('gives every demo product a resolvable offline image so cards are never empty (SC-03)', async () => {
+      const { copyFileSync, unlinkSync, existsSync } = await import('node:fs');
+      const { fileURLToPath } = await import('node:url');
+      const { dirname: getDirname, join: pathJoin } = await import('node:path');
+      const { createRequire } = await import('node:module');
+
+      const requireFn = createRequire(import.meta.url);
+      const fixtureSourcePath = requireFn.resolve('../src/fixtures/demo-products.json');
+      const searchPipelineUrl = new URL('../src/agent/search-pipeline.ts', import.meta.url);
+      const searchPipelineDir = getDirname(fileURLToPath(searchPipelineUrl));
+      const tempFixturePath = pathJoin(searchPipelineDir, 'demo-products.json');
+
+      const copied = !existsSync(tempFixturePath);
+      if (copied) copyFileSync(fixtureSourcePath, tempFixturePath);
+
+      try {
+        // No query → all fixtures, including the ones that had null/404 image URLs.
+        const result = await runSearch('', makeProfile(), mockPipeline, { demo: true });
+
+        expect(result.products.length).toBeGreaterThan(0);
+        for (const p of result.products) {
+          expect(p.image_url, `${p.shopify_id} should carry an image`).toBeTruthy();
+          // Offline demo: images must be local files, not network URLs that can 404.
+          expect(/^https?:/i.test(p.image_url ?? '')).toBe(false);
+          expect(existsSync(p.image_url ?? ''), `${p.image_url} should exist on disk`).toBe(true);
+        }
+      } finally {
+        if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);
+      }
+    });
   });
 
   it('filters live results by the typed query keyword (B2)', async () => {
