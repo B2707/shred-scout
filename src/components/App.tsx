@@ -25,6 +25,7 @@ import { makePriceRepo } from '../data/repos/priceRepo.js';
 import { makeProductRepo } from '../data/repos/productRepo.js';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
 import type { PriceObservation } from '../data/repos/priceRepo.js';
+import type { NormalizedProduct } from '../data/normalizer.js';
 
 type Screen = 'onboarding' | 'wizard' | 'search' | 'wishlist' | 'history' | 'summary';
 
@@ -70,6 +71,9 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   const [summarySetup, setSummarySetup] = useState<SavedSetup | null>(null);
   // The query + pre-applied filters produced by the guided wizard (drives the results screen).
   const [wizardSearch, setWizardSearch] = useState<{ query: string; filters: string[] } | null>(null);
+  // Cached results + filters from the current search, preserved across wishlist/history
+  // navigation so returning doesn't re-fetch or reset (B7). A ref so writes don't re-render.
+  const sessionRef = useRef<{ products: NormalizedProduct[]; filters: string[] } | null>(null);
   // Track which product's history to show in HistoryView
   const [historyObservations, setHistoryObservations] = useState<PriceObservation[]>([]);
   const [historyProductTitle, setHistoryProductTitle] = useState<string>('');
@@ -144,9 +148,15 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
 
   // Guided wizard finished — turn the answers into a search and show the results.
+  // Clear any cached session so the new wizard query actually runs.
   const handleWizardComplete = useCallback((answers: WizardAnswers) => {
+    sessionRef.current = null;
     setWizardSearch(wizardToSearch(answers));
     setScreen('search');
+  }, []);
+
+  const handleSession = useCallback((products: NormalizedProduct[], filters: string[]) => {
+    sessionRef.current = { products, filters };
   }, []);
 
   const handleOpenHistory = (productId: number): void => {
@@ -242,7 +252,9 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           onSetupSaved={handleSetupSaved}
           onModalChange={handleModalChange}
           initialQuery={wizardSearch?.query}
-          initialFilters={wizardSearch?.filters}
+          initialFilters={sessionRef.current?.filters ?? wizardSearch?.filters}
+          initialProducts={sessionRef.current?.products}
+          onSession={handleSession}
         />
       </>
     );
