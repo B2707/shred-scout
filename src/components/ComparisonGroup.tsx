@@ -25,8 +25,10 @@ export interface ComparisonGroupProps {
 }
 
 export function ComparisonGroup({ normalizedTitle, products }: ComparisonGroupProps): React.JSX.Element {
-  // Find the minimum price_cents to identify the cheapest retailer row.
-  const minPrice = Math.min(...products.map((p) => p.price_cents));
+  // Cheapest among POSITIVE prices only — a $0 (unpriced, e.g. evo PDP-not-scraped)
+  // product must never win [Best Price] (B9). null when no product has a real price.
+  const positivePrices = products.map((p) => p.price_cents).filter((c) => c > 0);
+  const minPrice = positivePrices.length > 0 ? Math.min(...positivePrices) : null;
 
   return (
     <Box flexDirection="column" paddingX={1} marginBottom={1}>
@@ -35,12 +37,13 @@ export function ComparisonGroup({ normalizedTitle, products }: ComparisonGroupPr
 
       {/* Sub-rows — each retailer's price, indented, cheapest highlighted */}
       {products.map((p) => {
-        const isCheapest = p.price_cents === minPrice;
-        const priceDollars = (p.price_cents / 100).toFixed(2);
+        const hasPrice = p.price_cents > 0;
+        const isCheapest = hasPrice && p.price_cents === minPrice;
+        const priceLabel = hasPrice ? `$${(p.price_cents / 100).toFixed(2)}` : 'Price unavailable';
         return (
           <Box key={p.shopify_id} paddingLeft={4}>
-            <Text bold={isCheapest} color={isCheapest ? 'green' : undefined}>
-              {p.retailer}{'  '}${priceDollars}
+            <Text bold={isCheapest} color={isCheapest ? 'green' : undefined} dimColor={!hasPrice}>
+              {p.retailer}{'  '}{priceLabel}
               {isCheapest ? '  [Best Price]' : ''}
             </Text>
           </Box>
