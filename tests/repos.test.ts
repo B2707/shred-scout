@@ -271,3 +271,54 @@ describe('productRepo — Phase 6 extensions', () => {
     expect(repo.findById(999999)).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// productRepo — upsert id correctness (B1 regression)
+// ---------------------------------------------------------------------------
+
+function makeNP(overrides: Partial<Record<string, unknown>> = {}): any {
+  return {
+    shopify_id: 'sid',
+    retailer: 'evo',
+    title: 'Product',
+    handle: 'product',
+    vendor: 'Vendor',
+    product_type: 'Snowboard',
+    gear_category: 'board',
+    waist_width_mm: null,
+    flex_rating: null,
+    mount_pattern: null,
+    mount_pattern_raw: null,
+    image_url: null,
+    price_cents: 50000,
+    variants_json: '[]',
+    fetched_at: Date.now(),
+    ...overrides,
+  };
+}
+
+describe('productRepo — upsert id correctness (B1)', () => {
+  it('re-upserting an existing product returns its OWN id, not the last-inserted rowid', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeProductRepo(db);
+    const idA = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A' }));
+    const idB = repo.upsert(makeNP({ shopify_id: 'B', title: 'Binding B' }));
+    // Re-upsert A (ON CONFLICT UPDATE path) — must return A's id, not B's.
+    const idA2 = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A (updated)' }));
+    expect(idA2).toBe(idA);
+    expect(idA2).not.toBe(idB);
+    const row = repo.findById(idA2);
+    expect(row?.shopify_id).toBe('A');
+    expect(row?.title).toBe('Board A (updated)');
+  });
+
+  it('upsert distinguishes same shopify_id across different retailers', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeProductRepo(db);
+    const idEvo = repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }));
+    const idTactics = repo.upsert(makeNP({ shopify_id: 'X', retailer: 'tactics' }));
+    expect(idEvo).not.toBe(idTactics);
+    // Re-upsert the evo one — should resolve back to idEvo.
+    expect(repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }))).toBe(idEvo);
+  });
+});
