@@ -69,3 +69,35 @@ describe('flexAdvisory', () => {
     expect(flexAdvisory(makeSetup(undefined), makeRider('freeride')).ruleId).toBe('flex-pairing');
   });
 });
+
+// ---------------------------------------------------------------------------
+// flexAdvisory — canonical styles + alias normalization (B22)
+// ---------------------------------------------------------------------------
+
+describe('flexAdvisory — canonical riding styles (B22)', () => {
+  const rider = (ridingStyle: string): RiderProfile => ({ bootSize: 10, heightCm: 180, weightKg: 80, ridingStyle });
+
+  it.each(['beginner', 'park', 'freestyle', 'all-mountain', 'powder', 'freeride', 'backcountry'])(
+    'returns a real verdict (never unknown) for known style "%s"',
+    (style) => {
+      const result = flexAdvisory(makeSetup(5), rider(style));
+      expect(result.verdict).not.toBe('unknown');
+    },
+  );
+
+  it('normalizes display-cased and spaced styles', () => {
+    expect(flexAdvisory(makeSetup(5), rider('All-Mountain')).verdict).not.toBe('unknown');
+    expect(flexAdvisory(makeSetup(5), rider('all mountain')).verdict).not.toBe('unknown');
+    expect(flexAdvisory(makeSetup(5), rider('FREESTYLE')).verdict).not.toBe('unknown');
+  });
+
+  it('park favors softer flex (soft passes, stiff warns)', () => {
+    expect(flexAdvisory(makeSetup(3), rider('park')).verdict).toBe('pass');
+    expect(flexAdvisory(makeSetup(9), rider('park')).verdict).toBe('warn');
+  });
+
+  it('powder favors stiffer flex (stiff passes, very soft warns)', () => {
+    expect(flexAdvisory(makeSetup(7), rider('powder')).verdict).toBe('pass');
+    expect(flexAdvisory(makeSetup(2), rider('powder')).verdict).toBe('warn');
+  });
+});
