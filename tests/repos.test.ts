@@ -291,6 +291,18 @@ describe('setupRepo — saveSlot (B3)', () => {
     expect(repo.list()).toHaveLength(1);
     expect(repo.list()[0]!.boardId).toBe(p3);
   });
+
+  it('setCompatibility persists a snapshot read back by findCompleteSetup (B19)', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ bindingId: p2 });
+    const id = repo.saveSlot({ bootId: p3 });
+    const results = [{ ruleId: 'boot-to-board-waist', verdict: 'pass' as const, reason: 'ok' }];
+    repo.setCompatibility(id, results);
+    expect(repo.findCompleteSetup()?.compatibility).toEqual(results);
+  });
 });
 
 // ---------------------------------------------------------------------------

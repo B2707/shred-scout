@@ -16,6 +16,8 @@ import { WishlistView } from './WishlistView.js';
 import { HistoryView } from './HistoryView.js';
 import { SetupSummaryView } from './SetupSummaryView.js';
 import { openDatabase } from '../data/db.js';
+import { evaluateCompatibility } from '../domain/compatibility/engine.js';
+import { toBoard, toBinding, toBoot } from '../domain/compatibility/product-adapter.js';
 import { makeSetupRepo } from '../data/repos/setupRepo.js';
 import { makePriceRepo } from '../data/repos/priceRepo.js';
 import { makeProductRepo } from '../data/repos/productRepo.js';
@@ -114,10 +116,25 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
     setSetups(setupRepo.list());
     const complete = setupRepo.findCompleteSetup();
     if (complete) {
+      // Compute + persist the compatibility snapshot once the setup is complete (B19)
+      // so the wishlist CompatBadge renders. Skip if already stored.
+      if (!complete.compatibility && profile) {
+        const board = complete.boardId !== null ? productRepo.findById(complete.boardId) : null;
+        const binding = complete.bindingId !== null ? productRepo.findById(complete.bindingId) : null;
+        const boot = complete.bootId !== null ? productRepo.findById(complete.bootId) : null;
+        if (board && binding && boot) {
+          const results = evaluateCompatibility(
+            { board: toBoard(board), binding: toBinding(binding), boot: toBoot(profile.bootSize) },
+            profile,
+          );
+          setupRepo.setCompatibility(complete.id, results);
+          complete.compatibility = results;
+        }
+      }
       setSummarySetup(complete);
       setScreen('summary');
     }
-  }, [setupRepo]);
+  }, [setupRepo, productRepo, profile]);
   const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
 
   const handleOpenHistory = (productId: number): void => {
