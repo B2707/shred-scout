@@ -152,6 +152,59 @@ describe('SetupSummaryView', () => {
     expect(onNewSearch).toHaveBeenCalledOnce();
   });
 
+  it('offers a price-alert opt-in on the Setup Complete screen (UI-2)', async () => {
+    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const { lastFrame } = render(
+      React.createElement(SetupSummaryView, {
+        setup: makeSetup({ alertEnabled: false }),
+        productRepo: mockProductRepo() as any,
+        rider: mockRider,
+        onWishlist: vi.fn(),
+        onNewSearch: vi.fn(),
+        onToggleAlert: vi.fn(),
+      })
+    );
+    const frame = lastFrame()!;
+    expect(frame.toLowerCase()).toContain('price alert');
+    expect(frame).toContain('[a]');
+  });
+
+  it('pressing a enables the price alert and flips the status (UI-2)', async () => {
+    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const onToggleAlert = vi.fn();
+    const { stdin, lastFrame } = render(
+      React.createElement(SetupSummaryView, {
+        setup: makeSetup({ id: 7, alertEnabled: false }),
+        productRepo: mockProductRepo() as any,
+        rider: mockRider,
+        onWishlist: vi.fn(),
+        onNewSearch: vi.fn(),
+        onToggleAlert,
+      })
+    );
+    await act(async () => { stdin.write('a'); });
+    expect(onToggleAlert).toHaveBeenCalledWith(7, true);
+    expect(lastFrame()!.toLowerCase()).toMatch(/price alert on/);
+  });
+
+  it('pressing a twice toggles the alert back off (UI-2)', async () => {
+    const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
+    const onToggleAlert = vi.fn();
+    const { stdin } = render(
+      React.createElement(SetupSummaryView, {
+        setup: makeSetup({ id: 7, alertEnabled: false }),
+        productRepo: mockProductRepo() as any,
+        rider: mockRider,
+        onWishlist: vi.fn(),
+        onNewSearch: vi.fn(),
+        onToggleAlert,
+      })
+    );
+    await act(async () => { stdin.write('a'); });
+    await act(async () => { stdin.write('a'); });
+    expect(onToggleAlert).toHaveBeenLastCalledWith(7, false);
+  });
+
   it('renders error line when productRepo.findById returns null for a slot', async () => {
     const { SetupSummaryView } = await import('../src/components/SetupSummaryView.js');
     // Make boardId=10 return null (product deleted)

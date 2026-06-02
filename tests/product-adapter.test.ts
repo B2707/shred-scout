@@ -5,6 +5,7 @@ import {
   toBoard,
   toBinding,
   productFit,
+  bootFit,
 } from '../src/domain/compatibility/product-adapter.js';
 import type { NormalizedProduct } from '../src/data/normalizer.js';
 import type { RiderProfile } from '../src/types/profile.js';
@@ -35,24 +36,36 @@ describe('parseFlexRating (B13)', () => {
   });
 });
 
-describe('resolveBindingSizeRange (B13)', () => {
+describe('resolveBindingSizeRange (B13 / DD-2)', () => {
   it('uses numeric US sizes from variants', () => {
     expect(
       resolveBindingSizeRange('Union', JSON.stringify([{ option1: '8' }, { option1: '10' }, { option1: '11' }])),
     ).toEqual([8, 11]);
   });
 
-  it('falls back to the per-brand span for letter sizes (Union -> [5.5,15])', () => {
+  it('maps offered letter sizes to their standard US ranges, not the full vendor span (DD-2)', () => {
+    // M = [7,10], L = [9,12] -> union [7,12]; NOT the old always-pass [5.5,15] span.
     expect(
       resolveBindingSizeRange('Union', JSON.stringify([{ option1: 'M' }, { option1: 'L' }])),
-    ).toEqual([5.5, 15]);
+    ).toEqual([7, 12]);
   });
 
-  it('uses the generic span for an unknown vendor with letter sizes', () => {
-    expect(resolveBindingSizeRange('Frobozz', JSON.stringify([{ option1: 'M' }]))).toEqual([5, 15]);
+  it('a single-letter (S-only) binding resolves to just the S range (DD-2)', () => {
+    // The bug: an S-only binding used to report the full [5.5,15] span and "fit" any boot.
+    expect(resolveBindingSizeRange('Union', JSON.stringify([{ option1: 'S' }]))).toEqual([5, 8]);
   });
 
-  it('NEVER returns the meaningless [0,999] always-pass range', () => {
+  it('maps word-form sizes (Small/Large) the same as letters (DD-2)', () => {
+    expect(
+      resolveBindingSizeRange('Burton', JSON.stringify([{ option1: 'Small' }, { option1: 'Large' }])),
+    ).toEqual([5, 12]);
+  });
+
+  it('letter mapping is brand-independent (unknown vendor, M -> [7,10]) (DD-2)', () => {
+    expect(resolveBindingSizeRange('Frobozz', JSON.stringify([{ option1: 'M' }]))).toEqual([7, 10]);
+  });
+
+  it('falls back to the per-brand/generic span only when NO sizes are recognizable', () => {
     const r = resolveBindingSizeRange(null, '[]');
     expect(r[0]).toBeGreaterThan(0);
     expect(r[1]).toBeLessThan(999);
@@ -64,9 +77,9 @@ describe('toBoard / toBinding (B13)', () => {
     expect(toBoard(baseNP({ flex_rating: '7/10' })).flexRating).toBe(7);
   });
 
-  it('toBinding resolves a real size range, not [0,999]', () => {
+  it('toBinding resolves a real per-letter size range, not [0,999] or the full span', () => {
     const b = toBinding(baseNP({ vendor: 'Union', variants_json: JSON.stringify([{ option1: 'M' }, { option1: 'L' }]) }));
-    expect(b.sizeRange).toEqual([5.5, 15]);
+    expect(b.sizeRange).toEqual([7, 12]);
   });
 });
 
@@ -98,7 +111,49 @@ describe('productFit — per-card compatibility for the rider (A2/A3)', () => {
     expect(r?.verdict).toBe('pass');
   });
 
-  it('returns null for a boot (no cross-fit check)', () => {
-    expect(productFit(baseNP({ gear_category: 'boot' }), rider(10))).toBeNull();
+  it('FAILS an S-only binding for a large-boot rider (DD-2 — no more always-pass)', () => {
+    const r = productFit(
+      baseNP({ gear_category: 'binding', vendor: 'Union', variants_json: JSON.stringify([{ option1: 'S' }]) }),
+      rider(13),
+    );
+    expect(r?.ruleId).toBe('boot-to-binding-size');
+    expect(r?.verdict).toBe('fail');
+  });
+
+  it('returns a boot-size-fit signal for a boot, not null (SC-05)', () => {
+    const r = productFit(
+      baseNP({ gear_category: 'boot', variants_json: JSON.stringify([{ option1: '10' }]) }),
+      rider(10),
+    );
+    expect(r?.ruleId).toBe('boot-size-fit');
+    expect(r?.verdict).toBe('pass');
+  });
+});
+
+describe('bootFit — boot cards show a size-availability signal (SC-05)', () => {
+  const bootNP = (variants: Array<{ option1: string }>): NormalizedProduct =>
+    baseNP({ gear_category: 'boot', variants_json: JSON.stringify(variants) });
+
+  it('passes when the boot is offered in the rider US size', () => {
+    const r = bootFit(bootNP([{ option1: '9' }, { option1: '10' }, { option1: '11' }]), 10);
+    expect(r.ruleId).toBe('boot-size-fit');
+    expect(r.verdict).toBe('pass');
+  });
+
+  it('warns when the boot is not offered in the rider size', () => {
+    const r = bootFit(bootNP([{ option1: '7' }, { option1: '8' }]), 11);
+    expect(r.verdict).toBe('warn');
+    expect(r.reason).toMatch(/11/);
+  });
+
+  it('parses a size embedded in option text like "US 10.5"', () => {
+    const r = bootFit(bootNP([{ option1: 'US 10.5' }]), 10.5);
+    expect(r.verdict).toBe('pass');
+  });
+
+  it('gives an informational (unknown) advisory when no sizes are parseable', () => {
+    const r = bootFit(baseNP({ gear_category: 'boot', variants_json: '[]' }), 10);
+    expect(r.verdict).toBe('unknown');
+    expect(r.advisory).toBe(true);
   });
 });

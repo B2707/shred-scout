@@ -64,8 +64,17 @@ export interface ResultCardProps {
   rider?: RiderProfile;
 }
 
-/** Maps a per-product fit verdict to a compact, colored card badge (A2/A3). */
+/** Maps a per-product fit verdict to a compact, colored card badge (A2/A3, SC-05). */
 function fitBadge(result: RuleResult, bootSize: number): { symbol: string; color: string; label: string; dim: boolean } {
+  // Boot cards answer "is it made in my size?" rather than a cross-fit verdict (SC-05);
+  // the rule's own reason string already carries the size-specific wording.
+  if (result.ruleId === 'boot-size-fit') {
+    switch (result.verdict) {
+      case 'pass': return { symbol: '✓', color: 'green', label: `Comes in your US ${bootSize}`, dim: false };
+      case 'warn': return { symbol: '⚠', color: 'yellow', label: result.reason, dim: false };
+      default: return { symbol: '·', color: 'cyan', label: `Your boot size: US ${bootSize}`, dim: true };
+    }
+  }
   switch (result.verdict) {
     case 'pass': return { symbol: '✓', color: 'green', label: `Fits your US ${bootSize} boots`, dim: false };
     case 'warn': return { symbol: '⚠', color: 'yellow', label: `Borderline fit for US ${bootSize}`, dim: false };

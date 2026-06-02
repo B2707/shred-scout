@@ -5,7 +5,7 @@
  * Phase 9: final screen in the save flow. Triggered by handleSetupSaved in App.tsx
  * when setupRepo.findCompleteSetup() returns a non-null row.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
 import type { makeProductRepo } from '../data/repos/productRepo.js';
@@ -25,6 +25,12 @@ export interface SetupSummaryViewProps {
   onWishlist: () => void;
   /** Invoked when user presses 'n' — routes to new search. */
   onNewSearch: () => void;
+  /**
+   * Toggles the price alert for this setup. Surfaced here because the completing (3rd) save
+   * unmounts SearchView before its alert opt-in modal can show — so the opt-in would otherwise
+   * be silently skipped on the very setup that just completed (UI-2).
+   */
+  onToggleAlert?: (id: number, enabled: boolean) => void;
 }
 
 function formatPrice(cents: number): string {
@@ -37,7 +43,9 @@ export function SetupSummaryView({
   rider,
   onWishlist,
   onNewSearch,
+  onToggleAlert,
 }: SetupSummaryViewProps): React.JSX.Element {
+  const [alertEnabled, setAlertEnabled] = useState(setup.alertEnabled);
   const board = productRepo.findById(setup.boardId!);
   const binding = productRepo.findById(setup.bindingId!);
   const boot = productRepo.findById(setup.bootId!);
@@ -76,6 +84,11 @@ export function SetupSummaryView({
   useInput((input) => {
     if (input === 'q') onWishlist();
     else if (input === 'n') onNewSearch();
+    else if (input === 'a') {
+      const next = !alertEnabled;
+      setAlertEnabled(next);
+      onToggleAlert?.(setup.id, next);
+    }
   });
 
   function renderSlot(label: string, product: NormalizedProduct | null): React.JSX.Element {
@@ -118,7 +131,15 @@ export function SetupSummaryView({
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor>[q] back to wishlist · [n] new search</Text>
+        {alertEnabled ? (
+          <Text color="green">🔔 Price alert on — watching this setup for price drops</Text>
+        ) : (
+          <Text dimColor>Price alert off — press [a] to watch this setup for price drops</Text>
+        )}
+      </Box>
+
+      <Box marginTop={1}>
+        <Text dimColor>[a] {alertEnabled ? 'disable' : 'enable'} price alert · [q] back to wishlist · [n] new search</Text>
       </Box>
     </Box>
   );
