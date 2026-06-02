@@ -119,6 +119,34 @@ describe('SearchView', () => {
     expect(lastFrame()).toContain('No compatible gear found');
   });
 
+  it('paginates large result sets and pages through them with the arrow keys (SC-04)', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    const products = Array.from({ length: 7 }, (_, i) =>
+      makeProduct('evo', 50000 + i, String(i + 1), `Snowboard Model ${i + 1}`));
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products, errors: [] });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame, stdin } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, initialQuery: 'boards', setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    );
+    await settle(120);
+    const page1 = lastFrame()!;
+    // 7 results, 5 per page -> page 1 shows exactly 5 cards (one rounded border each).
+    expect(page1).toContain('Page 1 of 2');
+    expect((page1.match(/╭/g) ?? []).length).toBe(5);
+
+    // Right arrow advances to page 2, which holds the remaining 2 cards.
+    await act(async () => { stdin.write('[C'); });
+    await settle(40);
+    const page2 = lastFrame()!;
+    expect(page2).toContain('Page 2 of 2');
+    expect((page2.match(/╭/g) ?? []).length).toBe(2);
+
+    // Left arrow goes back to page 1.
+    await act(async () => { stdin.write('[D'); });
+    await settle(40);
+    expect(lastFrame()).toContain('Page 1 of 2');
+  });
+
   it('renders the filter chip row on mount', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });

@@ -42,6 +42,10 @@ const ALL_CHIPS: Array<{ key: FilterKey; label: string; shortcut: string }> = [
   { key: 'u700',    label: '<$700',   shortcut: '7' },
 ];
 
+// Result cards are tall (bordered, ~5 rows each), so a long list pushes earlier cards off
+// the top of the terminal. Render one page at a time and let ←/→ move between pages (SC-04).
+const PAGE_SIZE = 5;
+
 export interface SearchViewProps {
   profile: RiderProfile;
   supportsImages: boolean;
@@ -124,6 +128,14 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
       return true;
     });
   }, [groups, activeFilters]);
+
+  // Result pagination (SC-04). page is reset to 0 on every new search and filter change;
+  // safePage additionally clamps for the single render before that reset effect fires.
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [products, activeFilters]);
+  const pageCount = Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visibleGroups = filteredGroups.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   function showSaveMsg(msg: string): void {
     if (saveMsgTimerRef.current) clearTimeout(saveMsgTimerRef.current);
@@ -265,10 +277,13 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     });
   }, { isActive: mode === 'filter' });
 
-  // Browse mode — open the filter panel ('/') or the save input ('s'). q/w/n go to App.
-  useInput((input) => {
+  // Browse mode — open the filter panel ('/') or the save input ('s'), page with ←/→.
+  // q/w/n go to App.
+  useInput((input, key) => {
     if (input === '/') setMode('filter');
     else if (input === 's' && products.length > 0) setMode('save');
+    else if (key.rightArrow) setPage(Math.min(pageCount - 1, safePage + 1));
+    else if (key.leftArrow) setPage(Math.max(0, safePage - 1));
   }, { isActive: mode === 'browse' && alertOptIn === null && !isLoading });
 
   // Filter mode — leave the panel with '/', Esc, or Enter.
@@ -291,7 +306,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     : mode === 'filter' ? 'Filter panel — press a chip letter to toggle · [/ or Esc] done'
     : mode === 'save' ? 'Type the item number, then Enter · [Esc] cancel'
     : alertOptIn ? 'Respond to the price-alert prompt above · [y/n]'
-    : `${shownCount} result${shownCount === 1 ? '' : 's'}${shownCount < products.length ? ` of ${products.length}` : ''}   [/] filters   [s] save   [n] new setup   [w] wishlist   [q] quit`;
+    : `${shownCount} result${shownCount === 1 ? '' : 's'}${shownCount < products.length ? ` of ${products.length}` : ''}   [/] filters   [s] save${pageCount > 1 ? '   [←/→] page' : ''}   [n] new setup   [w] wishlist   [q] quit`;
 
   // Results UI: the wizard supplies the query, so this renders immediately on mount.
   const resultsUI = (
@@ -320,7 +335,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
       )}
 
       <Box flexDirection="column">
-        {filteredGroups.map((group) =>
+        {visibleGroups.map((group) =>
           group.type === 'comparison' ? (
             <ComparisonGroup
               key={group.normalizedTitle}
@@ -338,6 +353,13 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           )
         )}
       </Box>
+
+      {/* Pagination indicator — only when results span more than one page (SC-04). */}
+      {pageCount > 1 && !isLoading && (
+        <Box>
+          <Text dimColor>Page {safePage + 1} of {pageCount} — [←/→] to page through {shownCount} results</Text>
+        </Box>
+      )}
 
       {shownCount === 0 && !isLoading && (
         <Box flexDirection="column" paddingX={1} marginTop={1}>
