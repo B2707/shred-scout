@@ -133,13 +133,60 @@ export function toBoot(bootSizeUS: number): Boot {
 const PLACEHOLDER_BINDING: Binding = { sizeRange: [0, 99], discPattern: '4x4' };
 const PLACEHOLDER_BOARD: Board = { waistWidthMm: 300, mountingPattern: '4x4' };
 
+/** Extracts the numeric US sizes from a product's variant options ("10", "10.5", "US 10.5"). */
+function parseVariantSizes(variantsJson: string): number[] {
+  try {
+    const variants = JSON.parse(variantsJson) as Array<{ option1?: string }>;
+    return variants
+      .map(v => {
+        const m = (v.option1 ?? '').match(/(\d+(?:\.\d+)?)/);
+        return m ? parseFloat(m[1]!) : Number.NaN;
+      })
+      .filter(n => Number.isFinite(n) && n > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Whether a boot product is offered in the rider's US size — the per-card signal that was
+ * missing on boot cards (SC-05). A boot has nothing to cross-check against a board/binding,
+ * but "do they make it in my size?" is the relevant fit question, so we answer that:
+ *
+ *  - pass:    the rider's exact US size is among the offered variants
+ *  - warn:    the boot lists sizes, but not the rider's
+ *  - unknown: no parseable sizes (advisory reference only — never reads as incompatible)
+ */
+export function bootFit(product: NormalizedProduct, bootSizeUS: number): RuleResult {
+  const sizes = parseVariantSizes(product.variants_json);
+  if (sizes.length === 0) {
+    return {
+      ruleId: 'boot-size-fit',
+      verdict: 'unknown',
+      reason: `Boot — confirm US ${bootSizeUS} is offered before buying`,
+      advisory: true,
+    };
+  }
+  if (sizes.some(s => Math.abs(s - bootSizeUS) < 0.01)) {
+    return { ruleId: 'boot-size-fit', verdict: 'pass', reason: `Comes in your US ${bootSizeUS}` };
+  }
+  const min = Math.min(...sizes);
+  const max = Math.max(...sizes);
+  const range = min === max ? `US ${min}` : `US ${min}–${max}`;
+  return {
+    ruleId: 'boot-size-fit',
+    verdict: 'warn',
+    reason: `Offered in ${range} — not your US ${bootSizeUS}`,
+  };
+}
+
 /**
  * The single most relevant compatibility verdict for one product, relative to the rider —
  * the per-card "compatibility-verified" signal that was missing during shopping (A2/A3).
  *
  *  - board:   boot-to-board waist clearance for the rider's boot size
  *  - binding: whether the rider's boot fits the binding's size range
- *  - boot:    null (nothing to cross-check from a single boot)
+ *  - boot:    whether the boot is offered in the rider's US size (SC-05)
  */
 export function productFit(product: NormalizedProduct, rider: RiderProfile): RuleResult | null {
   const boot = toBoot(rider.bootSize);
@@ -148,6 +195,8 @@ export function productFit(product: NormalizedProduct, rider: RiderProfile): Rul
       return bootToBoardWaist({ board: toBoard(product), binding: PLACEHOLDER_BINDING, boot });
     case 'binding':
       return bootToBindingSize({ board: PLACEHOLDER_BOARD, binding: toBinding(product), boot });
+    case 'boot':
+      return bootFit(product, rider.bootSize);
     default:
       return null;
   }

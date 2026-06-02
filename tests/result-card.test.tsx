@@ -90,6 +90,21 @@ describe('ResultCard', () => {
     expect(lastFrame()).toContain('Fits your US 10 boots');
   });
 
+  it('shows a size-availability badge on a boot card (SC-05)', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const rider = { bootSize: 10, heightCm: 180, weightKg: 80, ridingStyle: 'all-mountain' };
+    const boot = {
+      ...baseProduct,
+      gear_category: 'boot' as const,
+      title: 'Thirtytwo Lashed Boot',
+      variants_json: JSON.stringify([{ price: '299.99', compare_at_price: null, option1: '9' }, { price: '299.99', compare_at_price: null, option1: '10' }]),
+    };
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: boot, supportsImages: false, rider }),
+    );
+    expect(lastFrame()).toMatch(/US 10/);
+  });
+
   it('omits the compatibility badge when no rider is provided', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
