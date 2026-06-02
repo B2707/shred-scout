@@ -10,6 +10,8 @@ import { Box, Text, useInput, useApp } from 'ink';
 import type { RiderProfile } from '../types/profile.js';
 import { readProfile } from '../lib/profile.js';
 import { WizardScreen } from './wizard/WizardScreen.js';
+import { GearWizard } from './wizard/GearWizard.js';
+import { wizardToSearch, type WizardAnswers } from './wizard/wizard-config.js';
 import { Header } from './Header.js';
 import { SearchView } from './SearchView.js';
 import { WishlistView } from './WishlistView.js';
@@ -24,7 +26,7 @@ import { makeProductRepo } from '../data/repos/productRepo.js';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
 import type { PriceObservation } from '../data/repos/priceRepo.js';
 
-type Screen = 'onboarding' | 'search' | 'wishlist' | 'history' | 'summary';
+type Screen = 'onboarding' | 'wizard' | 'search' | 'wishlist' | 'history' | 'summary';
 
 /** Hardcoded demo rider profile — skips wizard and uses in-memory DB */
 const DEMO_PROFILE: RiderProfile = {
@@ -46,9 +48,9 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   // once at mount — not on every re-render.
   // Demo mode: always start on 'search' screen with hardcoded profile (no wizard).
   const [screen, setScreen] = useState<Screen>(() => {
-    if (isDemoMode) return 'search';
+    if (isDemoMode) return 'wizard';
     const p = readProfile();
-    return p ? 'search' : 'onboarding';
+    return p ? 'wizard' : 'onboarding';
   });
   const [profile, setProfile] = useState<RiderProfile | null>(() => {
     if (isDemoMode) return DEMO_PROFILE;
@@ -66,6 +68,8 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   const [setups, setSetups] = useState<SavedSetup[]>(() => setupRepo.list());
   // Summary screen: snapshot of the complete setup that triggered the transition
   const [summarySetup, setSummarySetup] = useState<SavedSetup | null>(null);
+  // The query + pre-applied filters produced by the guided wizard (drives the results screen).
+  const [wizardSearch, setWizardSearch] = useState<{ query: string; filters: string[] } | null>(null);
   // Track which product's history to show in HistoryView
   const [historyObservations, setHistoryObservations] = useState<PriceObservation[]>([]);
   const [historyProductTitle, setHistoryProductTitle] = useState<string>('');
@@ -137,6 +141,12 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   }, [setupRepo, productRepo, profile]);
   const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
 
+  // Guided wizard finished — turn the answers into a search and show the results.
+  const handleWizardComplete = useCallback((answers: WizardAnswers) => {
+    setWizardSearch(wizardToSearch(answers));
+    setScreen('search');
+  }, []);
+
   const handleOpenHistory = (productId: number): void => {
     const observations = priceRepo.history(productId);
     setHistoryObservations(observations);
@@ -150,9 +160,22 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
       <WizardScreen
         onComplete={(p: RiderProfile) => {
           setProfile(p);
-          setScreen('search');
+          setScreen('wizard');
         }}
       />
+    );
+  }
+
+  if (screen === 'wizard') {
+    return (
+      <>
+        {profile && <Header profile={profile} />}
+        <GearWizard
+          supportsImages={supportsImages}
+          onComplete={handleWizardComplete}
+          onQuit={() => exit()}
+        />
+      </>
     );
   }
 
@@ -196,7 +219,7 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           productRepo={productRepo}
           rider={profile}
           onWishlist={() => { setSummarySetup(null); setScreen('wishlist'); }}
-          onNewSearch={() => { setSummarySetup(null); setScreen('search'); }}
+          onNewSearch={() => { setSummarySetup(null); setScreen('wizard'); }}
         />
       </>
     );
@@ -216,6 +239,8 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           isDemoMode={isDemoMode}
           onSetupSaved={handleSetupSaved}
           onModalChange={handleModalChange}
+          initialQuery={wizardSearch?.query}
+          initialFilters={wizardSearch?.filters}
         />
       </>
     );
