@@ -18,6 +18,12 @@ export interface WishlistViewProps {
   onToggleAlert: (id: number, enabled: boolean) => void;
   /** Called with a non-null product ID when user presses h; App.tsx routes to history screen. */
   onOpenHistory: (productId: number) => void;
+  /**
+   * Reports whether an input-blocking prompt (the delete-confirm [y/n]) is active, so App.tsx
+   * can gate its global 'q' back-navigation — otherwise 'q' at the prompt bubbles up and
+   * navigates away mid-confirm (UI-4). Mirrors SearchView's onModalChange/blockQuitRef pattern.
+   */
+  onModalChange?: (active: boolean) => void;
 }
 
 function relativeTime(timestampMs: number): string {
@@ -37,11 +43,19 @@ export function WishlistView({
   onDelete,
   onToggleAlert,
   onOpenHistory,
+  onModalChange,
 }: WishlistViewProps): React.JSX.Element {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Report the delete-confirm prompt's open/closed state up so App.tsx can suppress its
+  // global 'q' handler while the [y/n] prompt owns input (UI-4). Reset to false on unmount.
+  useEffect(() => {
+    onModalChange?.(confirmDelete !== null);
+    return () => onModalChange?.(false);
+  }, [confirmDelete, onModalChange]);
 
   const showStatus = useCallback((msg: string) => {
     if (statusTimerRef.current) clearTimeout(statusTimerRef.current);

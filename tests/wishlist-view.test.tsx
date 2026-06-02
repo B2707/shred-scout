@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import React from 'react';
+import React, { act } from 'react';
 import { render } from 'ink-testing-library';
 import type { SavedSetup } from '../src/data/repos/setupRepo.js';
 
@@ -107,5 +107,41 @@ describe('WishlistView', () => {
     expect(lastFrame()).toContain('d delete');
     expect(lastFrame()).toContain('h history');
     expect(lastFrame()).toContain('a toggle alert');
+  });
+
+  it('reports modal active while the delete-confirm prompt is open (UI-4)', async () => {
+    const { WishlistView } = await import('../src/components/WishlistView.js');
+    const onModalChange = vi.fn();
+    const { stdin, lastFrame } = render(
+      React.createElement(WishlistView, {
+        setups: [makeSavedSetup()],
+        resolveTitle: () => 'Board',
+        onDelete: vi.fn(),
+        onToggleAlert: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onModalChange,
+      })
+    );
+    await act(async () => { stdin.write('d'); });
+    expect(lastFrame()).toContain('[y/n]');
+    expect(onModalChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('reports modal inactive again when delete-confirm is cancelled (UI-4)', async () => {
+    const { WishlistView } = await import('../src/components/WishlistView.js');
+    const onModalChange = vi.fn();
+    const { stdin } = render(
+      React.createElement(WishlistView, {
+        setups: [makeSavedSetup()],
+        resolveTitle: () => 'Board',
+        onDelete: vi.fn(),
+        onToggleAlert: vi.fn(),
+        onOpenHistory: vi.fn(),
+        onModalChange,
+      })
+    );
+    await act(async () => { stdin.write('d'); });
+    await act(async () => { stdin.write('n'); });
+    expect(onModalChange).toHaveBeenLastCalledWith(false);
   });
 });
