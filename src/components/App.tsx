@@ -97,8 +97,11 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
       if (input === 'w') { setSetups(setupRepo.list()); setScreen('wishlist'); return; }
       if (input === 'n') { setScreen('wizard'); return; }
     }
-    if (screen === 'wishlist' && input === 'q') {
-      setScreen('search');
+    if (screen === 'wishlist') {
+      // Gate 'q' while WishlistView's delete-confirm prompt owns input (UI-4) — same
+      // blockQuitRef mechanism the search screen uses, fed by WishlistView.onModalChange.
+      if (blockQuitRef.current) return;
+      if (input === 'q') setScreen('search');
     }
     if (screen === 'history' && input === 'q') {
       setScreen('wishlist');
@@ -203,6 +206,7 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           onDelete={handleDelete}
           onToggleAlert={handleToggleAlert}
           onOpenHistory={handleOpenHistory}
+          onModalChange={handleModalChange}
         />
       </>
     );
