@@ -95,6 +95,23 @@ describe('detectGearCategory()', () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     expect(detectGearCategory('', [], 'Burton Photon Snowboard Boots 2026')).toBe('boot');
   });
+
+  it('cross-layer: a boot with a bare "snowboard" tag classifies as boot, not board (SC-02/B10)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    // The bare 'snowboard' tag matches the BOARD keyword at the tags layer, but the
+    // title carries the dominant 'boot' keyword — boot must win across layers.
+    expect(detectGearCategory('', ['snowboard', 'mens', 'on-sale'], 'Burton Photon Boots')).toBe('boot');
+  });
+
+  it('cross-layer: a binding with a bare "snowboard" tag classifies as binding, not board (SC-02/B10)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(detectGearCategory('', ['snowboard'], 'Union Force Bindings')).toBe('binding');
+  });
+
+  it('product_type stays authoritative: "Snowboards" type wins board even if title has a stray keyword', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(detectGearCategory('Snowboards', ['snowboard'], 'Custom Board')).toBe('board');
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -89,16 +89,19 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   // Gate search-screen quit behind blockQuitRef so SearchView's modal can own 'q'.
   useInput((input: string) => {
     // On the results screen, suppress all global keys while a SearchView mode/modal owns
-    // input (filter panel, save box, alert prompt, or the legacy opener) — blockQuitRef is
-    // set via onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
+    // input (filter panel, save box, or the alert prompt) — blockQuitRef is set via
+    // onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
     if (screen === 'search') {
       if (blockQuitRef.current) return;
       if (input === 'q') { exit(); return; }
       if (input === 'w') { setSetups(setupRepo.list()); setScreen('wishlist'); return; }
       if (input === 'n') { setScreen('wizard'); return; }
     }
-    if (screen === 'wishlist' && input === 'q') {
-      setScreen('search');
+    if (screen === 'wishlist') {
+      // Gate 'q' while WishlistView's delete-confirm prompt owns input (UI-4) — same
+      // blockQuitRef mechanism the search screen uses, fed by WishlistView.onModalChange.
+      if (blockQuitRef.current) return;
+      if (input === 'q') setScreen('search');
     }
     if (screen === 'history' && input === 'q') {
       setScreen('wishlist');
@@ -203,6 +206,7 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           onDelete={handleDelete}
           onToggleAlert={handleToggleAlert}
           onOpenHistory={handleOpenHistory}
+          onModalChange={handleModalChange}
         />
       </>
     );
@@ -234,6 +238,7 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           rider={profile}
           onWishlist={() => { setSummarySetup(null); setScreen('wishlist'); }}
           onNewSearch={() => { setSummarySetup(null); setScreen('wizard'); }}
+          onToggleAlert={handleToggleAlert}
         />
       </>
     );

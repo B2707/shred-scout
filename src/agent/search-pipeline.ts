@@ -27,6 +27,26 @@ import { loadStores } from '../data/stores.js';
 import { SmartShopifySource } from '../data/smart-source.js';
 import { EvoHtmlScrapeSource } from '../data/scrapers/evo.js';
 import type { ProductSource } from '../data/sources.js';
+import { resolveAssetPath } from '../lib/assets.js';
+
+/** Bundled category icon used as the offline demo thumbnail for each gear type (SC-03). */
+const DEMO_CATEGORY_ASSET: Record<string, string> = {
+  board: 'cat-board.png',
+  binding: 'cat-binding.png',
+  boot: 'cat-boot.png',
+};
+
+/**
+ * In --demo mode there is no network, so the fixtures' real product photo URLs can't load
+ * (and several 404 anyway). Point every demo card at a bundled local category icon so cards
+ * always render an image instead of an empty reserved box (SC-03).
+ */
+function withDemoImages(products: NormalizedProduct[]): NormalizedProduct[] {
+  return products.map(p => {
+    const asset = DEMO_CATEGORY_ASSET[String(p.gear_category)] ?? 'cat-setup.png';
+    return { ...p, image_url: resolveAssetPath(asset) };
+  });
+}
 
 /** Options for controlling runSearch behavior. */
 export interface RunSearchOptions {
@@ -76,7 +96,7 @@ export async function runSearch(
     }) ?? candidates[0];
     const fixtureJson = readFileSync(fixturePath, 'utf-8');
     const products = JSON.parse(fixtureJson) as NormalizedProduct[];
-    return { products: filterByQuery(products, query), errors: [] };
+    return { products: withDemoImages(filterByQuery(products, query)), errors: [] };
   }
 
   // Use caller-provided connection when available — avoids double-open and SQLite

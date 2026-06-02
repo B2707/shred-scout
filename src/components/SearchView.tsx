@@ -5,7 +5,8 @@
  * No AgentLoop, no useAgent, no EventEmitter — plain async await.
  * Phase 8: deterministic search pipeline wired directly into UI state.
  * Phase 6: save TextInput below results, alert opt-in flow, repo props from App.tsx.
- * Phase 9: conversational opener (boot size + riding style confirm) before search.
+ * Phase 10: the guided wizard always supplies initialQuery, so the search runs
+ * immediately on mount — the old Phase 9 conversational opener was dead and is gone (UI-3).
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
@@ -22,14 +23,6 @@ import type { ProductGroup } from '../types/product-groups.js';
 import type { makeSetupRepo } from '../data/repos/setupRepo.js';
 import type { makePriceRepo } from '../data/repos/priceRepo.js';
 import type { makeProductRepo } from '../data/repos/productRepo.js';
-
-// Conversational opener state machine — runs once per component lifetime (once per launch).
-type OpenerState =
-  | { step: 'q1' }
-  | { step: 'q1-edit' }
-  | { step: 'q2' }
-  | { step: 'q2-edit' }
-  | { step: 'done' };
 
 // Filter chip types — category, flex, and price dimensions
 type FilterKey =
@@ -48,6 +41,10 @@ const ALL_CHIPS: Array<{ key: FilterKey; label: string; shortcut: string }> = [
   { key: 'u500',    label: '<$500',   shortcut: '5' },
   { key: 'u700',    label: '<$700',   shortcut: '7' },
 ];
+
+// Result cards are tall (bordered, ~5 rows each), so a long list pushes earlier cards off
+// the top of the terminal. Render one page at a time and let ←/→ move between pages (SC-04).
+const PAGE_SIZE = 5;
 
 export interface SearchViewProps {
   profile: RiderProfile;
@@ -68,8 +65,8 @@ export interface SearchViewProps {
    */
   onModalChange: (active: boolean) => void;
   /**
-   * When provided (the guided wizard drove this search), the conversational opener is
-   * skipped and the search runs immediately for this query. undefined → legacy opener flow.
+   * The query the guided wizard produced — the search runs immediately for it on mount.
+   * Always supplied in practice; if absent, the results screen simply starts empty.
    */
   initialQuery?: string;
   /** Chip filters to pre-apply, from the wizard answers (category/flex/price keys). */
@@ -132,16 +129,13 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     });
   }, [groups, activeFilters]);
 
-  // Conversational opener state — skipped entirely when the wizard drove this search.
-  const [opener, setOpener] = useState<OpenerState>(initialQuery !== undefined ? { step: 'done' } : { step: 'q1' });
-  const [openerBootSize, setOpenerBootSize] = useState<number>(profile.bootSize);
-  const [openerStyle, setOpenerStyle] = useState<string>(profile.ridingStyle);
-
-  // Display form of the opener riding style: 'all-mountain' → 'All-Mountain'
-  const displayOpenerStyle = openerStyle
-    .split('-')
-    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join('-');
+  // Result pagination (SC-04). page is reset to 0 on every new search and filter change;
+  // safePage additionally clamps for the single render before that reset effect fires.
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [products, activeFilters]);
+  const pageCount = Math.max(1, Math.ceil(filteredGroups.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visibleGroups = filteredGroups.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   function showSaveMsg(msg: string): void {
     if (saveMsgTimerRef.current) clearTimeout(saveMsgTimerRef.current);
@@ -239,25 +233,13 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     };
   }, []);
 
-  // Lock App.tsx's global keys (q/w/n) whenever this view owns input — during the opener,
-  // an open filter/save mode, or the alert modal — so those keys don't quit/navigate while
-  // the user is typing or filtering (B6/B15/B16). Ink useInput has no stop-propagation.
-  const inputLocked = opener.step !== 'done' || mode !== 'browse' || alertOptIn !== null;
+  // Lock App.tsx's global keys (q/w/n) whenever this view owns input — an open filter/save
+  // mode or the alert modal — so those keys don't quit/navigate while the user is typing or
+  // filtering (B6/B15/B16). Ink useInput has no stop-propagation.
+  const inputLocked = mode !== 'browse' || alertOptIn !== null;
   useEffect(() => {
     onModalChange(inputLocked);
   }, [inputLocked, onModalChange]);
-
-  // Conversational opener y/n handler — only active during q1 and q2 steps.
-  // Must be gated with alertOptIn === null so it does not collide with the alert modal handler.
-  useInput((input, key) => {
-    if (opener.step === 'q1') {
-      if (input === 'y' || key.return) { setOpener({ step: 'q2' }); return; }
-      if (input === 'n') { setOpener({ step: 'q1-edit' }); return; }
-    } else if (opener.step === 'q2') {
-      if (input === 'y' || key.return) { setOpener({ step: 'done' }); return; }
-      if (input === 'n') { setOpener({ step: 'q2-edit' }); return; }
-    }
-  }, { isActive: (opener.step === 'q1' || opener.step === 'q2') && alertOptIn === null });
 
   // Alert opt-in y/n handler — only active when alertOptIn is set
   useInput((input, key) => {
@@ -295,11 +277,14 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     });
   }, { isActive: mode === 'filter' });
 
-  // Browse mode — open the filter panel ('/') or the save input ('s'). q/w/n go to App.
-  useInput((input) => {
+  // Browse mode — open the filter panel ('/') or the save input ('s'), page with ←/→.
+  // q/w/n go to App.
+  useInput((input, key) => {
     if (input === '/') setMode('filter');
     else if (input === 's' && products.length > 0) setMode('save');
-  }, { isActive: opener.step === 'done' && mode === 'browse' && alertOptIn === null && !isLoading });
+    else if (key.rightArrow) setPage(Math.min(pageCount - 1, safePage + 1));
+    else if (key.leftArrow) setPage(Math.max(0, safePage - 1));
+  }, { isActive: mode === 'browse' && alertOptIn === null && !isLoading });
 
   // Filter mode — leave the panel with '/', Esc, or Enter.
   useInput((input, key) => {
@@ -311,43 +296,6 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     if (key.escape) setMode('browse');
   }, { isActive: mode === 'save' && alertOptIn === null });
 
-  // Opener UI: shown before the search box appears
-  const openerUI = (
-    <Box flexDirection="column" paddingX={1}>
-      {opener.step === 'q1' && (
-        <Text>Your boot size is <Text bold>{openerBootSize}</Text> — still right? [y/n]</Text>
-      )}
-      {opener.step === 'q1-edit' && (
-        <TextInput
-          placeholder="Enter boot size (US):"
-          onSubmit={(v) => {
-            const parsed = parseFloat(v);
-            // Reject empty Enter, non-numeric input, and implausible values.
-            // Stay in q1-edit rather than silently advancing with a bad value (WR-03).
-            if (isNaN(parsed) || parsed <= 0) return;
-            setOpenerBootSize(parsed);
-            setOpener({ step: 'q2' });
-          }}
-        />
-      )}
-      {opener.step === 'q2' && (
-        <Text>Riding style: <Text bold>{displayOpenerStyle}</Text> — change anything? [y/n]</Text>
-      )}
-      {opener.step === 'q2-edit' && (
-        <TextInput
-          placeholder="Enter riding style (e.g. all-mountain, freeride, freestyle):"
-          onSubmit={(v) => {
-            const trimmed = v.trim().toLowerCase();
-            if (trimmed.length > 0) {
-              setOpenerStyle(trimmed);
-            }
-            setOpener({ step: 'done' });
-          }}
-        />
-      )}
-    </Box>
-  );
-
   // Number of products actually shown (after filters) — used in the footer so the count
   // never claims "7 results" while filters hide them all.
   const shownCount = filteredGroups.reduce((n, g) => n + (g.type === 'single' ? 1 : g.products.length), 0);
@@ -358,9 +306,9 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     : mode === 'filter' ? 'Filter panel — press a chip letter to toggle · [/ or Esc] done'
     : mode === 'save' ? 'Type the item number, then Enter · [Esc] cancel'
     : alertOptIn ? 'Respond to the price-alert prompt above · [y/n]'
-    : `${shownCount} result${shownCount === 1 ? '' : 's'}${shownCount < products.length ? ` of ${products.length}` : ''}   [/] filters   [s] save   [n] new setup   [w] wishlist   [q] quit`;
+    : `${shownCount} result${shownCount === 1 ? '' : 's'}${shownCount < products.length ? ` of ${products.length}` : ''}   [/] filters   [s] save${pageCount > 1 ? '   [←/→] page' : ''}   [n] new setup   [w] wishlist   [q] quit`;
 
-  // Results UI: shown after the opener completes (the wizard skips the opener entirely).
+  // Results UI: the wizard supplies the query, so this renders immediately on mount.
   const resultsUI = (
     <>
       {/* Filter chips — active green; cyan while the filter panel is open */}
@@ -387,7 +335,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
       )}
 
       <Box flexDirection="column">
-        {filteredGroups.map((group) =>
+        {visibleGroups.map((group) =>
           group.type === 'comparison' ? (
             <ComparisonGroup
               key={group.normalizedTitle}
@@ -405,6 +353,13 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           )
         )}
       </Box>
+
+      {/* Pagination indicator — only when results span more than one page (SC-04). */}
+      {pageCount > 1 && !isLoading && (
+        <Box>
+          <Text dimColor>Page {safePage + 1} of {pageCount} — [←/→] to page through {shownCount} results</Text>
+        </Box>
+      )}
 
       {shownCount === 0 && !isLoading && (
         <Box flexDirection="column" paddingX={1} marginTop={1}>
@@ -452,7 +407,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {opener.step !== 'done' ? openerUI : resultsUI}
+      {resultsUI}
     </Box>
   );
 }
