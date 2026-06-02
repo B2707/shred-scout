@@ -9,7 +9,7 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { TextInput } from '@inkjs/ui';
+import { TextInput, Spinner } from '@inkjs/ui';
 import type Database from 'better-sqlite3';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
@@ -67,11 +67,22 @@ export interface SearchViewProps {
    * Uses a ref internally (not state) to avoid triggering re-renders on the parent.
    */
   onModalChange: (active: boolean) => void;
+  /**
+   * When provided (the guided wizard drove this search), the conversational opener is
+   * skipped and the search runs immediately for this query. undefined → legacy opener flow.
+   */
+  initialQuery?: string;
+  /** Chip filters to pre-apply, from the wizard answers (category/flex/price keys). */
+  initialFilters?: string[];
+  /** Cached results from a prior visit — when present, skip re-fetching on remount (B7). */
+  initialProducts?: NormalizedProduct[];
+  /** Reports the current results + active filters up so App can preserve the session (B7). */
+  onSession?: (products: NormalizedProduct[], filters: string[]) => void;
 }
 
-export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
+export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange, initialQuery, initialFilters, initialProducts, onSession }: SearchViewProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
-  const [products, setProducts] = useState<NormalizedProduct[]>([]);
+  const [products, setProducts] = useState<NormalizedProduct[]>(() => initialProducts ?? []);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
   const pipelineRef = useRef<RequestPipeline>(new RequestPipeline());
 
@@ -88,14 +99,17 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
   // Save UX state
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const saveMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Pending alert opt-in: after successful save, prompt [y/n]
+  // Pending alert opt-in: after a successful save, prompt [y/n]
   const [alertOptIn, setAlertOptIn] = useState<{ setupId: number; title: string } | null>(null);
-  // Track the alert opt-in delay timer so it can be cancelled on rapid saves
-  const alertOptInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Results-screen input mode — exactly ONE input is ever active, which removes the
+  // chip-shortcut / text-box / quit-key collisions (B4/B5/B6/B8/B16).
+  const [mode, setMode] = useState<'browse' | 'filter' | 'save'>('browse');
 
-  // Filter chip state — toggled by single-letter shortcuts after opener completes.
+  // Filter chip state — pre-applied from the wizard answers, then toggled by shortcuts.
   // Must be declared before filteredGroups useMemo to avoid temporal dead zone.
-  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
+  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(
+    () => new Set((initialFilters ?? []) as FilterKey[]),
+  );
 
   // filteredGroups: derived from groups + activeFilters — reactively narrows results.
   // When no filters are active, returns groups verbatim (same reference) to skip re-renders.
@@ -118,8 +132,8 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     });
   }, [groups, activeFilters]);
 
-  // Conversational opener state — once per process launch
-  const [opener, setOpener] = useState<OpenerState>({ step: 'q1' });
+  // Conversational opener state — skipped entirely when the wizard drove this search.
+  const [opener, setOpener] = useState<OpenerState>(initialQuery !== undefined ? { step: 'done' } : { step: 'q1' });
   const [openerBootSize, setOpenerBootSize] = useState<number>(profile.bootSize);
   const [openerStyle, setOpenerStyle] = useState<string>(profile.ridingStyle);
 
@@ -135,7 +149,9 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     saveMsgTimerRef.current = setTimeout(() => setSaveMsg(null), 2000);
   }
 
-  const handleSubmit = useCallback((query: string) => {
+  // Runs a search for the given query. Empty query is allowed here (used by the wizard's
+  // "Full Setup" path, which wants every category); the user-facing box guards empty Enter.
+  const runQuery = useCallback((query: string) => {
     if (isLoading) return;
     void (async () => {
       setIsLoading(true);
@@ -151,7 +167,22 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
         setIsLoading(false);
       }
     })();
-  }, [isLoading, profile]);
+  }, [isLoading, profile, isDemoMode, db]);
+
+  // Auto-run the wizard-driven search once on mount — but not when results were restored
+  // from a cached session (returning from the wishlist), which would needlessly re-fetch (B7).
+  const didInitRef = useRef(false);
+  useEffect(() => {
+    if (initialQuery !== undefined && initialProducts === undefined && !didInitRef.current) {
+      didInitRef.current = true;
+      runQuery(initialQuery);
+    }
+  }, [initialQuery, initialProducts, runQuery]);
+
+  // Report results + active filters up so App can restore them after navigating away (B7).
+  useEffect(() => {
+    onSession?.(products, Array.from(activeFilters));
+  }, [products, activeFilters, onSession]);
 
   const handleSave = useCallback((input: string) => {
     const n = parseInt(input.trim(), 10);
@@ -161,13 +192,6 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     }
     const product = savableProducts[n - 1]!;
     void (async () => {
-      // Cancel any pending alert opt-in timer before processing a new save attempt.
-      // Without this, a stale timer from a prior new-save could fire during the
-      // "already saved" modal and overwrite alertOptIn with a stale setupId.
-      if (alertOptInTimerRef.current) {
-        clearTimeout(alertOptInTimerRef.current);
-        alertOptInTimerRef.current = null;
-      }
       try {
         // Upsert to get/confirm the SQLite integer PK (T-06-07: validated range above)
         const productId = productRepo.upsert(product);
@@ -176,9 +200,9 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           s.boardId === productId || s.bindingId === productId || s.bootId === productId
         );
         if (existing) {
-          // Use setSaveMsg directly (not showSaveMsg) so the message does NOT
-          // auto-clear via a timer — it must persist as long as alertOptIn is active.
-          // Both are cleared together when the user responds with y/n/Escape.
+          // setSaveMsg directly (not showSaveMsg) so the prompt persists while the
+          // alert opt-in modal is active; both clear together on y/n/Esc.
+          setMode('browse');
           setSaveMsg('Already saved — enable/update alert? [y/n]');
           setAlertOptIn({ setupId: existing.id, title: product.title });
           return;
@@ -189,7 +213,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           : product.gear_category === 'binding'
           ? { bindingId: productId }
           : { bootId: productId };
-        const setupId = setupRepo.save(saveInput);
+        const setupId = setupRepo.saveSlot(saveInput);
         // Record initial price snapshot at save time (A1: immediate history)
         try {
           priceRepo.record(productId, product.price_cents);
@@ -197,32 +221,31 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           // FK violation if product not in DB — safe to ignore (upsert should have covered this)
         }
         onSetupSaved();
-        showSaveMsg(`✓ Saved ${product.title}`);
-        // Show alert opt-in prompt after 2s confirmation message clears
-        alertOptInTimerRef.current = setTimeout(() => {
-          setAlertOptIn({ setupId, title: product.title });
-          setSaveMsg('Enable price alert? [y/n]');
-        }, 2000);
+        // Immediately prompt for the price alert (no 2s timer — that swallowed rapid
+        // follow-up keystrokes, B8). Leave save mode; the alert modal owns input now.
+        setMode('browse');
+        setSaveMsg(`✓ Saved ${product.title} — enable price alert? [y/n]`);
+        setAlertOptIn({ setupId, title: product.title });
       } catch (err) {
         showSaveMsg(err instanceof Error ? err.message : String(err));
       }
     })();
   }, [savableProducts, setupRepo, priceRepo, productRepo, onSetupSaved]);
 
-  // Clear pending timers on unmount to prevent state updates on an unmounted component.
+  // Clear the save-message timer on unmount to avoid setting state after unmount.
   useEffect(() => {
     return () => {
       if (saveMsgTimerRef.current) clearTimeout(saveMsgTimerRef.current);
-      if (alertOptInTimerRef.current) clearTimeout(alertOptInTimerRef.current);
     };
   }, []);
 
-  // Notify App.tsx when the alert opt-in modal becomes active or inactive.
-  // App.tsx gates its global 'q' quit handler behind this flag so 'q' dismisses
-  // the modal rather than exiting the app (Ink useInput has no stop-propagation).
+  // Lock App.tsx's global keys (q/w/n) whenever this view owns input — during the opener,
+  // an open filter/save mode, or the alert modal — so those keys don't quit/navigate while
+  // the user is typing or filtering (B6/B15/B16). Ink useInput has no stop-propagation.
+  const inputLocked = opener.step !== 'done' || mode !== 'browse' || alertOptIn !== null;
   useEffect(() => {
-    onModalChange(alertOptIn !== null);
-  }, [alertOptIn, onModalChange]);
+    onModalChange(inputLocked);
+  }, [inputLocked, onModalChange]);
 
   // Conversational opener y/n handler — only active during q1 and q2 steps.
   // Must be gated with alertOptIn === null so it does not collide with the alert modal handler.
@@ -251,9 +274,9 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     }
   }, { isActive: alertOptIn !== null });
 
-  // Filter chip toggle handler — only active after opener completes and no modal is open.
-  // Price chips (u300/u500/u700) are single-select: selecting one clears the others so
-  // Math.max() in filteredGroups always reflects exactly one price ceiling (WR-02).
+  // Filter chips toggle ONLY in filter mode (entered with '/'), so chip letters never
+  // collide with typing in the save box or with the global quit key (B5).
+  // Price chips (u300/u500/u700) are single-select.
   const PRICE_CHIPS: FilterKey[] = ['u300', 'u500', 'u700'];
   useInput((input) => {
     const chip = ALL_CHIPS.find(c => c.shortcut === input);
@@ -270,7 +293,23 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
       }
       return next;
     });
-  }, { isActive: opener.step === 'done' && alertOptIn === null && !isLoading });
+  }, { isActive: mode === 'filter' });
+
+  // Browse mode — open the filter panel ('/') or the save input ('s'). q/w/n go to App.
+  useInput((input) => {
+    if (input === '/') setMode('filter');
+    else if (input === 's' && products.length > 0) setMode('save');
+  }, { isActive: opener.step === 'done' && mode === 'browse' && alertOptIn === null && !isLoading });
+
+  // Filter mode — leave the panel with '/', Esc, or Enter.
+  useInput((input, key) => {
+    if (input === '/' || key.escape || key.return) setMode('browse');
+  }, { isActive: mode === 'filter' });
+
+  // Save mode — Esc cancels (Enter is handled by the save TextInput).
+  useInput((_input, key) => {
+    if (key.escape) setMode('browse');
+  }, { isActive: mode === 'save' && alertOptIn === null });
 
   // Opener UI: shown before the search box appears
   const openerUI = (
@@ -309,19 +348,44 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     </Box>
   );
 
-  // Search UI: shown after opener completes
-  const searchUI = (
+  // Number of products actually shown (after filters) — used in the footer so the count
+  // never claims "7 results" while filters hide them all.
+  const shownCount = filteredGroups.reduce((n, g) => n + (g.type === 'single' ? 1 : g.products.length), 0);
+
+  // Discoverable, mode-aware footer hint (C3).
+  const footerHint =
+    isLoading ? 'Searching…'
+    : mode === 'filter' ? 'Filter panel — press a chip letter to toggle · [/ or Esc] done'
+    : mode === 'save' ? 'Type the item number, then Enter · [Esc] cancel'
+    : alertOptIn ? 'Respond to the price-alert prompt above · [y/n]'
+    : `${shownCount} result${shownCount === 1 ? '' : 's'}${shownCount < products.length ? ` of ${products.length}` : ''}   [/] filters   [s] save   [n] new setup   [w] wishlist   [q] quit`;
+
+  // Results UI: shown after the opener completes (the wizard skips the opener entirely).
+  const resultsUI = (
     <>
+      {/* Filter chips — active green; cyan while the filter panel is open */}
       <Box flexDirection="row" marginY={1}>
         {ALL_CHIPS.map(chip => {
           const active = activeFilters.has(chip.key);
           return (
-            <Text key={chip.key} color={active ? 'green' : undefined} bold={active} dimColor={!active}>
+            <Text
+              key={chip.key}
+              color={active ? 'green' : (mode === 'filter' ? 'cyan' : undefined)}
+              bold={active}
+              dimColor={!active && mode !== 'filter'}
+            >
               {`[${chip.label}:${chip.shortcut}] `}
             </Text>
           );
         })}
       </Box>
+
+      {isLoading && (
+        <Box marginTop={1}>
+          <Spinner label="Searching deals across retailers…" />
+        </Box>
+      )}
+
       <Box flexDirection="column">
         {filteredGroups.map((group) =>
           group.type === 'comparison' ? (
@@ -336,16 +400,28 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
               product={group.product}
               supportsImages={supportsImages}
               index={savableProducts.indexOf(group.product) + 1}
+              rider={profile}
             />
           )
         )}
       </Box>
-      {products.length === 0 && !isLoading && (
+
+      {shownCount === 0 && !isLoading && (
         <Box flexDirection="column" paddingX={1} marginTop={1}>
-          <Text bold>No results yet</Text>
-          <Text dimColor>Type a search above to find compatible gear.</Text>
+          {products.length > 0 ? (
+            <>
+              <Text bold>All {products.length} results are hidden by your filters</Text>
+              <Text dimColor>Press [/] to adjust filters, or [n] to start a new guided setup.</Text>
+            </>
+          ) : (
+            <>
+              <Text bold>No compatible gear found</Text>
+              <Text dimColor>Press [n] to start a new guided setup, or [/] to widen your filters.</Text>
+            </>
+          )}
         </Box>
       )}
+
       {searchErrors.length > 0 && (
         <Box flexDirection="column">
           {searchErrors.map((err, i) => (
@@ -353,26 +429,30 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           ))}
         </Box>
       )}
-      <Box marginTop={1}>
-        {isLoading
-          ? <Text dimColor>Searching...</Text>
-          : <TextInput placeholder="Search for gear..." onSubmit={handleSubmit} />
-        }
-      </Box>
-      {!isLoading && products.length > 0 && (
+
+      {/* Save input — only in save mode and only while no alert modal is up */}
+      {mode === 'save' && !alertOptIn && (
         <Box marginTop={1}>
-          {saveMsg
-            ? <Text color={saveMsg.startsWith('✓') ? 'green' : 'yellow'}>{saveMsg}</Text>
-            : <TextInput placeholder="Save item #:" onSubmit={handleSave} />
-          }
+          <Text>Save item #: </Text>
+          <TextInput placeholder="number, then Enter" onSubmit={(v) => { setMode('browse'); handleSave(v); }} />
         </Box>
       )}
+
+      {saveMsg && (
+        <Box marginTop={1}>
+          <Text color={saveMsg.startsWith('✓') ? 'green' : 'yellow'}>{saveMsg}</Text>
+        </Box>
+      )}
+
+      <Box marginTop={1}>
+        <Text dimColor>{footerHint}</Text>
+      </Box>
     </>
   );
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {opener.step !== 'done' ? openerUI : searchUI}
+      {opener.step !== 'done' ? openerUI : resultsUI}
     </Box>
   );
 }

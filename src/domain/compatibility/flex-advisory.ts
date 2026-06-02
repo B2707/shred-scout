@@ -11,11 +11,24 @@
 import type { GearSetup, RuleResult } from './types.js';
 import type { RiderProfile } from '../../types/profile.js';
 
+// Recommended board flex (1 = soft … 10 = stiff) per riding style. Covers every
+// canonical style the wizard/onboarding can produce (B22) — previously only
+// beginner/all-mountain/freeride existed, so freestyle/park/powder/backcountry
+// (and the opener's own "freestyle" example) returned 'unknown'.
 const FLEX_RANGES: Record<string, [number, number]> = {
   beginner: [1, 4],
+  park: [2, 5],
+  freestyle: [3, 6],
   'all-mountain': [4, 7],
+  powder: [5, 8],
+  backcountry: [6, 9],
   freeride: [7, 10],
 };
+
+/** Normalizes a free-text riding style: trims, lowercases, collapses spaces/underscores to hyphens. */
+function normalizeStyle(style: string): string {
+  return style.trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
 
 /**
  * Assesses board flex compatibility for the rider's riding style.
@@ -36,7 +49,7 @@ export function flexAdvisory(setup: GearSetup, rider: RiderProfile): RuleResult 
     };
   }
 
-  const range = FLEX_RANGES[rider.ridingStyle];
+  const range = FLEX_RANGES[normalizeStyle(rider.ridingStyle)];
   if (!range) {
     return {
       ruleId: 'flex-pairing',

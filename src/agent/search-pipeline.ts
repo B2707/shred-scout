@@ -61,7 +61,6 @@ export async function runSearch(
   pipeline: RequestPipeline,
   options: RunSearchOptions = {},
 ): Promise<{ products: NormalizedProduct[]; errors: string[] }> {
-  void query;
   void rider;
 
   // Demo mode: return fixture products from bundled JSON without any HTTP calls
@@ -77,7 +76,7 @@ export async function runSearch(
     }) ?? candidates[0];
     const fixtureJson = readFileSync(fixturePath, 'utf-8');
     const products = JSON.parse(fixtureJson) as NormalizedProduct[];
-    return { products, errors: [] };
+    return { products: filterByQuery(products, query), errors: [] };
   }
 
   // Use caller-provided connection when available — avoids double-open and SQLite
@@ -92,12 +91,16 @@ export async function runSearch(
 
   const configs = retailerRepo.all();
 
-  const sources: ProductSource[] = [
-    // Dynamic Shopify sources — GraphQL Storefront API preferred, /products.json fallback
-    ...configs.map(c => new SmartShopifySource(c.name, c.storeUrl, c.storefrontToken)),
-    // Non-Shopify HTML scraper (evo.com — Phase 7)
-    new EvoHtmlScrapeSource(),
-  ];
+  // One source per configured store, picking the scraper by host: evo.com uses the HTML
+  // scraper, everything else the Shopify source. Previously evo was ALSO appended
+  // unconditionally, so it was queried twice — once as Shopify against evo, once as HTML (B21).
+  const sources: ProductSource[] = configs.map(c => {
+    let host = '';
+    try { host = new URL(c.storeUrl).hostname.replace(/^www\./, ''); } catch { /* keep '' */ }
+    return host.includes('evo.com')
+      ? new EvoHtmlScrapeSource()
+      : new SmartShopifySource(c.name, c.storeUrl, c.storefrontToken);
+  });
 
   const all: NormalizedProduct[] = [];
   const errors: string[] = [];
@@ -111,12 +114,56 @@ export async function runSearch(
           all.push(product);
         }
       } catch (err) {
+        // evo is a best-effort HTML scraper behind Cloudflare; its failure must not spam a
+        // yellow error banner on every live search — skip it silently (B21).
+        if (source instanceof EvoHtmlScrapeSource) continue;
         errors.push(`${source.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
-    return { products: all, errors };
+    return { products: filterByQuery(all, query), errors };
   } finally {
     if (shouldClose) db.close();
   }
+}
+
+/**
+ * Category synonyms used by filterByQuery to map a free-text term to a gear_category.
+ * Lets a query like "boards" or "boots" narrow by category even though product titles
+ * say "Snowboard" (compound) rather than the bare plural.
+ */
+const CATEGORY_SYNONYMS: Record<string, 'board' | 'binding' | 'boot'> = {
+  board: 'board', boards: 'board', snowboard: 'board', snowboards: 'board', deck: 'board',
+  binding: 'binding', bindings: 'binding',
+  boot: 'boot', boots: 'boot',
+};
+
+/**
+ * Narrows a product list by a free-text query (B2 — previously `void query`).
+ *
+ * Tokens split on non-alphanumerics. Recognized category words (board/boots/...) constrain
+ * gear_category; all remaining tokens must each appear (substring, case-insensitive) in the
+ * product's title or vendor. An empty/whitespace query returns the list unchanged.
+ * Pure function — no I/O.
+ */
+export function filterByQuery(products: NormalizedProduct[], query: string): NormalizedProduct[] {
+  const terms = query.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  if (terms.length === 0) return products;
+
+  const categories = new Set<string>();
+  const keywords: string[] = [];
+  for (const term of terms) {
+    const cat = CATEGORY_SYNONYMS[term];
+    if (cat) categories.add(cat);
+    else keywords.push(term);
+  }
+
+  return products.filter(product => {
+    if (categories.size > 0 && !categories.has(String(product.gear_category))) return false;
+    if (keywords.length > 0) {
+      const haystack = `${product.title} ${product.vendor ?? ''}`.toLowerCase();
+      if (!keywords.every(k => haystack.includes(k))) return false;
+    }
+    return true;
+  });
 }

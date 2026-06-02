@@ -58,9 +58,10 @@ export interface GearSetup {
  * ruleId is stable and human-readable — used as badge key in Phase 5.
  *
  * Hard vs advisory contract:
- *   - Hard rules (bootToBindingSize, bootToBoardWaist, discToMount) via runRules() NEVER emit
- *     verdict 'unknown' and NEVER set advisory:true. Their advisory field is absent (undefined).
- *   - flexPairing is the ONLY source of 'unknown' verdicts and always sets advisory:true.
+ *   - bootToBindingSize and discToMount return pass/warn/fail only (advisory absent).
+ *   - bootToBoardWaist returns pass/warn/fail, plus an 'unknown' ADVISORY when the board's
+ *     waist width is unavailable (most Shopify boards) — missing data must not read as fail (B18).
+ *   - flexPairing/flexAdvisory always sets advisory:true and may return pass/warn/unknown.
  *   - Phase 5 badge rendering should check `result.advisory === true` to identify advisory results.
  *     Checking `!result.advisory` treats both explicit false AND undefined as "hard rule" — which
  *     is correct given the contract above, but relying on it implicitly is fragile.

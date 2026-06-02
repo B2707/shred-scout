@@ -39,6 +39,7 @@ export function makeProductRepo(db: Database.Database) {
       price_cents       = excluded.price_cents,
       variants_json     = excluded.variants_json,
       fetched_at        = excluded.fetched_at
+    RETURNING id
   `);
 
   const selectByRetailerStmt = db.prepare(
@@ -51,10 +52,14 @@ export function makeProductRepo(db: Database.Database) {
     /**
      * Inserts or updates a normalized product row.
      * @returns The products.id (integer PK) of the upserted row — pass to priceRepo.record().
+     *
+     * Uses INSERT ... ON CONFLICT DO UPDATE ... RETURNING id so the returned id is
+     * always the affected row's own PK. (lastInsertRowid is wrong on the UPDATE path:
+     * it reports the last *inserted* rowid, returning a DIFFERENT product's id — B1.)
      */
     upsert(product: NormalizedProduct): number {
-      const result = upsertStmt.run(product);
-      return result.lastInsertRowid as number;
+      const row = upsertStmt.get(product) as { id: number };
+      return row.id;
     },
 
     /**

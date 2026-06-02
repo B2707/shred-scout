@@ -252,6 +252,60 @@ describe('setupRepo — findCompleteSetup', () => {
 });
 
 // ---------------------------------------------------------------------------
+// setupRepo — saveSlot merges into one in-progress setup (B3)
+// ---------------------------------------------------------------------------
+
+describe('setupRepo — saveSlot (B3)', () => {
+  it('accumulates board+binding+boot into a SINGLE complete row', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ bindingId: p2 });
+    repo.saveSlot({ bootId: p3 });
+    expect(repo.list()).toHaveLength(1);
+    const complete = repo.findCompleteSetup();
+    expect(complete).not.toBeNull();
+    expect(complete?.boardId).toBe(p1);
+    expect(complete?.bindingId).toBe(p2);
+    expect(complete?.bootId).toBe(p3);
+  });
+
+  it('starts a NEW setup once the current one is complete', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ bindingId: p2 });
+    repo.saveSlot({ bootId: p3 }); // completes setup #1
+    repo.saveSlot({ boardId: p1 }); // begins a fresh in-progress setup
+    expect(repo.list()).toHaveLength(2);
+  });
+
+  it('replaces the same slot when re-saved before completion (no new row)', () => {
+    const db = openDatabase(':memory:');
+    const [p1, , p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ boardId: p3 }); // changed board choice
+    expect(repo.list()).toHaveLength(1);
+    expect(repo.list()[0]!.boardId).toBe(p3);
+  });
+
+  it('setCompatibility persists a snapshot read back by findCompleteSetup (B19)', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ bindingId: p2 });
+    const id = repo.saveSlot({ bootId: p3 });
+    const results = [{ ruleId: 'boot-to-board-waist', verdict: 'pass' as const, reason: 'ok' }];
+    repo.setCompatibility(id, results);
+    expect(repo.findCompleteSetup()?.compatibility).toEqual(results);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // productRepo — Phase 6 extensions
 // ---------------------------------------------------------------------------
 
@@ -269,5 +323,56 @@ describe('productRepo — Phase 6 extensions', () => {
     const db = openDatabase(':memory:');
     const repo = makeProductRepo(db);
     expect(repo.findById(999999)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// productRepo — upsert id correctness (B1 regression)
+// ---------------------------------------------------------------------------
+
+function makeNP(overrides: Partial<Record<string, unknown>> = {}): any {
+  return {
+    shopify_id: 'sid',
+    retailer: 'evo',
+    title: 'Product',
+    handle: 'product',
+    vendor: 'Vendor',
+    product_type: 'Snowboard',
+    gear_category: 'board',
+    waist_width_mm: null,
+    flex_rating: null,
+    mount_pattern: null,
+    mount_pattern_raw: null,
+    image_url: null,
+    price_cents: 50000,
+    variants_json: '[]',
+    fetched_at: Date.now(),
+    ...overrides,
+  };
+}
+
+describe('productRepo — upsert id correctness (B1)', () => {
+  it('re-upserting an existing product returns its OWN id, not the last-inserted rowid', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeProductRepo(db);
+    const idA = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A' }));
+    const idB = repo.upsert(makeNP({ shopify_id: 'B', title: 'Binding B' }));
+    // Re-upsert A (ON CONFLICT UPDATE path) — must return A's id, not B's.
+    const idA2 = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A (updated)' }));
+    expect(idA2).toBe(idA);
+    expect(idA2).not.toBe(idB);
+    const row = repo.findById(idA2);
+    expect(row?.shopify_id).toBe('A');
+    expect(row?.title).toBe('Board A (updated)');
+  });
+
+  it('upsert distinguishes same shopify_id across different retailers', () => {
+    const db = openDatabase(':memory:');
+    const repo = makeProductRepo(db);
+    const idEvo = repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }));
+    const idTactics = repo.upsert(makeNP({ shopify_id: 'X', retailer: 'tactics' }));
+    expect(idEvo).not.toBe(idTactics);
+    // Re-upsert the evo one — should resolve back to idEvo.
+    expect(repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }))).toBe(idEvo);
   });
 });

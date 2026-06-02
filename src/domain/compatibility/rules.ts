@@ -6,7 +6,8 @@
  *
  * Rule thresholds (locked decisions from CONTEXT.md):
  *   boot-to-binding-size: warn within 0.25 US size of either edge (strict <, not <=)
- *   boot-to-board-waist:  warn if waistWidthMm < bootLengthMm - 15; fail if < bootLengthMm - 25
+ *   boot-to-board-waist:  overhang per side = (bootSole − waist)/2; pass ≤20mm, warn ≤35mm,
+ *                         fail >35mm; missing waist → 'unknown' advisory (B17/B18)
  *   binding-disc-to-mount: fail when exactly one side is 'channel' (XOR)
  */
 import type { GearSetup, RuleResult } from './types.js';
@@ -72,53 +73,63 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
 /**
  * Checks whether the board's waist width provides adequate toe/heel clearance.
  *
- * Formula: bootLengthMm = sizeUS × 8.1 + 209  (conservative outer shell estimate)
- * Pass:  waistWidthMm >= bootLengthMm - 15
- * Warn:  waistWidthMm >= bootLengthMm - 25 AND < bootLengthMm - 15
- * Fail:  waistWidthMm < bootLengthMm - 25
+ * Models overhang per side, since some overhang is normal (and desirable for leverage),
+ * and binding angles reduce real-world drag — the old "waist must be within 15–25mm of
+ * boot length" thresholds false-failed standard 250–258mm boards for size-10 riders (B17).
  *
- * Boundary at exactly (bootLengthMm - 15) = PASS; at exactly (bootLengthMm - 25) = WARN.
+ *   bootSoleMm    = sizeUS × 8.1 + 209   (outer-sole length estimate)
+ *   overhangPerSide = (bootSoleMm − waistWidthMm) / 2
+ *   Pass:  overhangPerSide ≤ 20mm
+ *   Warn:  20mm < overhangPerSide ≤ 35mm
+ *   Fail:  overhangPerSide > 35mm
+ *
+ * Missing / non-positive waist width returns an 'unknown' ADVISORY rather than a hard
+ * fail (B18) — most Shopify boards expose no waist spec, and "unknown" must not read as
+ * "incompatible".
  */
 export function bootToBoardWaist(setup: GearSetup): RuleResult {
   const { sizeUS } = setup.boot;
   const { waistWidthMm } = setup.board;
 
-  if (!Number.isFinite(sizeUS) || !Number.isFinite(waistWidthMm)) {
+  if (!Number.isFinite(sizeUS) || sizeUS <= 0) {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'fail',
-      reason: `Invalid numeric input — sizeUS=${sizeUS}, waistWidthMm=${waistWidthMm}`,
+      reason: `Invalid boot size — sizeUS=${sizeUS}`,
     };
   }
 
-  if (waistWidthMm <= 0) {
+  if (!Number.isFinite(waistWidthMm) || waistWidthMm <= 0) {
+    return {
+      ruleId: 'boot-to-board-waist',
+      verdict: 'unknown',
+      reason: `Board waist width unavailable — can't verify toe/heel clearance for US ${sizeUS} boots`,
+      advisory: true,
+    };
+  }
+
+  const bootSoleMm = sizeUS * 8.1 + 209;
+  const overhangPerSide = (bootSoleMm - waistWidthMm) / 2;
+  const overhangLabel = Math.round(Math.max(0, overhangPerSide));
+
+  if (overhangPerSide > 35) {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'fail',
-      reason: `Invalid waist width ${waistWidthMm}mm — must be positive`,
+      reason: `Board waist ${waistWidthMm}mm is too narrow for US ${sizeUS} boots (~${Math.round(overhangPerSide)}mm overhang per side — significant toe/heel drag)`,
     };
   }
-
-  const bootLengthMm = sizeUS * 8.1 + 209;
-
-  if (waistWidthMm < bootLengthMm - 25) {
-    return {
-      ruleId: 'boot-to-board-waist',
-      verdict: 'fail',
-      reason: `Board waist ${waistWidthMm}mm is too narrow for US ${sizeUS} boots (minimum ${Math.round(bootLengthMm - 25)}mm to avoid toe/heel drag)`,
-    };
-  }
-  if (waistWidthMm < bootLengthMm - 15) {
+  if (overhangPerSide > 20) {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'warn',
-      reason: `Board waist ${waistWidthMm}mm may cause heel/toe drag with US ${sizeUS} boots — consider a wider board`,
+      reason: `Board waist ${waistWidthMm}mm gives ~${Math.round(overhangPerSide)}mm overhang per side with US ${sizeUS} boots — a slightly wider board would reduce drag risk`,
     };
   }
   return {
     ruleId: 'boot-to-board-waist',
     verdict: 'pass',
-    reason: `Board waist ${waistWidthMm}mm provides adequate clearance for US ${sizeUS} boots`,
+    reason: `Board waist ${waistWidthMm}mm provides adequate clearance for US ${sizeUS} boots (~${overhangLabel}mm overhang per side)`,
   };
 }
 

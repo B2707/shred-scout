@@ -11,8 +11,8 @@ import type { SavedSetup } from '../data/repos/setupRepo.js';
 import type { makeProductRepo } from '../data/repos/productRepo.js';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
-import { runRules } from '../domain/compatibility/engine.js';
-import type { Board, Binding, Boot } from '../domain/compatibility/types.js';
+import { evaluateCompatibility } from '../domain/compatibility/engine.js';
+import { toBoard, toBinding, toBoot } from '../domain/compatibility/product-adapter.js';
 
 export interface SetupSummaryViewProps {
   /** The complete setup to display. boardId/bindingId/bootId are guaranteed non-null by caller. */
@@ -29,52 +29,6 @@ export interface SetupSummaryViewProps {
 
 function formatPrice(cents: number): string {
   return '$' + (cents / 100).toFixed(2);
-}
-
-/**
- * Maps a NormalizedProduct to the Board domain type for runRules.
- * Falls back to 0mm waist and '4x4' mount when data is absent.
- */
-function toBoard(p: NormalizedProduct): Board {
-  return {
-    waistWidthMm: p.waist_width_mm ?? 0,
-    mountingPattern: p.mount_pattern,
-  };
-}
-
-/**
- * Maps a NormalizedProduct to the Binding domain type for runRules.
- * Attempts to parse sizeRange from variants_json option1; falls back to [0, 999].
- */
-function toBinding(p: NormalizedProduct): Binding {
-  let sizeRange: [number, number] = [0, 999];
-  try {
-    const variants = JSON.parse(p.variants_json) as Array<{ option1?: string }>;
-    const sizes: number[] = [];
-    for (const v of variants) {
-      const n = parseFloat(v.option1 ?? '');
-      if (Number.isFinite(n) && n > 0) sizes.push(n);
-    }
-    if (sizes.length >= 2) {
-      sizeRange = [Math.min(...sizes), Math.max(...sizes)];
-    } else if (sizes.length === 1) {
-      sizeRange = [sizes[0]! - 1, sizes[0]! + 1];
-    }
-  } catch {
-    // keep fallback
-  }
-  return {
-    sizeRange,
-    discPattern: p.mount_pattern,
-  };
-}
-
-/**
- * Maps a NormalizedProduct to the Boot domain type for runRules.
- * Uses the rider's bootSize as the authoritative size value.
- */
-function toBoot(riderBootSize: number): Boot {
-  return { sizeUS: riderBootSize };
 }
 
 export function SetupSummaryView({
@@ -96,7 +50,7 @@ export function SetupSummaryView({
   let reasons: string[] = [];
 
   if (!missing) {
-    const results = runRules(
+    const results = evaluateCompatibility(
       {
         board: toBoard(board),
         binding: toBinding(binding),
