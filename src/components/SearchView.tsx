@@ -337,6 +337,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
               product={group.product}
               supportsImages={supportsImages}
               index={savableProducts.indexOf(group.product) + 1}
+              rider={profile}
             />
           )
         )}
