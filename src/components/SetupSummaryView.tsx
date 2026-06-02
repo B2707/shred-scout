@@ -11,7 +11,7 @@ import type { SavedSetup } from '../data/repos/setupRepo.js';
 import type { makeProductRepo } from '../data/repos/productRepo.js';
 import type { RiderProfile } from '../types/profile.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
-import { runRules } from '../domain/compatibility/engine.js';
+import { evaluateCompatibility } from '../domain/compatibility/engine.js';
 import type { Board, Binding, Boot } from '../domain/compatibility/types.js';
 
 export interface SetupSummaryViewProps {
@@ -96,7 +96,7 @@ export function SetupSummaryView({
   let reasons: string[] = [];
 
   if (!missing) {
-    const results = runRules(
+    const results = evaluateCompatibility(
       {
         board: toBoard(board),
         binding: toBinding(binding),

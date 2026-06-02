@@ -416,3 +416,27 @@ describe('runRules()', () => {
   });
 });
 
+// ─── evaluateCompatibility() — hard rules + flex advisory (A6/B23) ─────────────
+
+describe('evaluateCompatibility()', () => {
+  it('returns the 3 hard rules PLUS the flex advisory', async () => {
+    const { evaluateCompatibility } = await import('../src/domain/compatibility/engine.js');
+    const results = evaluateCompatibility(makeSetup({}), BASE_RIDER);
+    expect(results.map(r => r.ruleId)).toEqual([
+      'boot-to-binding-size',
+      'boot-to-board-waist',
+      'binding-disc-to-mount',
+      'flex-pairing',
+    ]);
+  });
+
+  it('consumes the rider riding style through the flex advisory (A6/B23)', async () => {
+    const { evaluateCompatibility } = await import('../src/domain/compatibility/engine.js');
+    // freeride wants stiff (7–10); a soft (flex 3) board should warn on the advisory.
+    const results = evaluateCompatibility(makeSetup({ flexRating: 3 }), { ...BASE_RIDER, ridingStyle: 'freeride' });
+    const flex = results.find(r => r.ruleId === 'flex-pairing');
+    expect(flex?.advisory).toBe(true);
+    expect(flex?.verdict).toBe('warn');
+  });
+});
+
