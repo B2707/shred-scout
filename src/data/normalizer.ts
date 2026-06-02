@@ -95,26 +95,25 @@ export function detectGearCategory(
   const ti = title.toLowerCase();
   const allTags = tags.map(t => t.toLowerCase());
 
-  // Layer 1: product_type
-  // Check boot before board — "Snowboard Boots" contains "board" as a substring
-  // but the dominant keyword is "boot"; boot check runs first to prevent false board classification.
+  // Layer 1: product_type — the most authoritative signal, so it gets the first say
+  // with full boot > binding > board priority. "Snowboard Boots" contains "board" as a
+  // substring but the dominant keyword is "boot"; boot runs first to prevent false board.
   if (BOOT_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'boot';
   if (BINDING_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'binding';
   if (BOARD_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'board';
 
-  // Layer 2: tags — same priority order as layer 1: boot > binding > board.
-  // "Snowboard Boots" tags contain 'snowboard' (a BOARD keyword) so boot must
-  // be checked first to prevent false board classification.
-  if (allTags.some(t => BOOT_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'boot';
-  if (allTags.some(t => BINDING_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'binding';
-  if (allTags.some(t => BOARD_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'board';
+  // Layers 2+3 (tags + title) — category-major priority ACROSS both layers (SC-02/B10).
+  // A boot/binding keyword in EITHER tags or title must outrank a bare 'snowboard'/'board'
+  // keyword: a boot whose only board-ish signal is a generic 'snowboard' tag (common on
+  // every snowboard-shop listing) must not be misclassified as a board. Checking each
+  // category across both layers — instead of finishing the tags layer before the title
+  // layer — is what fixes the bare-tag collision.
+  const matchesIn = (keywords: string[]): boolean =>
+    allTags.some(t => keywords.some(k => t.includes(k))) || keywords.some(k => ti.includes(k));
 
-  // Layer 3: title keywords — boot > binding > board priority (same as layers 1–2).
-  // "Snowboard Bindings"/"Snowboard Boots" titles contain the BOARD keyword 'snowboard',
-  // so boot and binding must be checked first to avoid mislabeling them as boards (B10).
-  if (BOOT_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'boot';
-  if (BINDING_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'binding';
-  if (BOARD_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'board';
+  if (matchesIn(BOOT_TYPE_KEYWORDS)) return 'boot';
+  if (matchesIn(BINDING_TYPE_KEYWORDS)) return 'binding';
+  if (matchesIn(BOARD_TYPE_KEYWORDS)) return 'board';
 
   return null;
 }
