@@ -190,7 +190,7 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
           : product.gear_category === 'binding'
           ? { bindingId: productId }
           : { bootId: productId };
-        const setupId = setupRepo.save(saveInput);
+        const setupId = setupRepo.saveSlot(saveInput);
         // Record initial price snapshot at save time (A1: immediate history)
         try {
           priceRepo.record(productId, product.price_cents);

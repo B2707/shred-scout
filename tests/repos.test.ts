@@ -252,6 +252,48 @@ describe('setupRepo — findCompleteSetup', () => {
 });
 
 // ---------------------------------------------------------------------------
+// setupRepo — saveSlot merges into one in-progress setup (B3)
+// ---------------------------------------------------------------------------
+
+describe('setupRepo — saveSlot (B3)', () => {
+  it('accumulates board+binding+boot into a SINGLE complete row', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ bindingId: p2 });
+    repo.saveSlot({ bootId: p3 });
+    expect(repo.list()).toHaveLength(1);
+    const complete = repo.findCompleteSetup();
+    expect(complete).not.toBeNull();
+    expect(complete?.boardId).toBe(p1);
+    expect(complete?.bindingId).toBe(p2);
+    expect(complete?.bootId).toBe(p3);
+  });
+
+  it('starts a NEW setup once the current one is complete', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ bindingId: p2 });
+    repo.saveSlot({ bootId: p3 }); // completes setup #1
+    repo.saveSlot({ boardId: p1 }); // begins a fresh in-progress setup
+    expect(repo.list()).toHaveLength(2);
+  });
+
+  it('replaces the same slot when re-saved before completion (no new row)', () => {
+    const db = openDatabase(':memory:');
+    const [p1, , p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    repo.saveSlot({ boardId: p1 });
+    repo.saveSlot({ boardId: p3 }); // changed board choice
+    expect(repo.list()).toHaveLength(1);
+    expect(repo.list()[0]!.boardId).toBe(p3);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // productRepo — Phase 6 extensions
 // ---------------------------------------------------------------------------
 
