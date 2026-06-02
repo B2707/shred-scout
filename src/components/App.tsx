@@ -89,8 +89,8 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   // Gate search-screen quit behind blockQuitRef so SearchView's modal can own 'q'.
   useInput((input: string) => {
     // On the results screen, suppress all global keys while a SearchView mode/modal owns
-    // input (filter panel, save box, alert prompt, or the legacy opener) — blockQuitRef is
-    // set via onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
+    // input (filter panel, save box, or the alert prompt) — blockQuitRef is set via
+    // onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
     if (screen === 'search') {
       if (blockQuitRef.current) return;
       if (input === 'q') { exit(); return; }
