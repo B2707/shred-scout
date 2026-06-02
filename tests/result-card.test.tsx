@@ -1,18 +1,12 @@
 /**
  * ResultCard component tests.
- * terminal-image is mocked to return a fixed ANSI string — no real terminal required.
+ * Images render via the iTerm2 inline-image escape; fetch is mocked so no real
+ * network or terminal is required.
  */
 
 import { render } from 'ink-testing-library';
 import React, { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Must be hoisted: terminal-image uses async buffer() API — mock before ResultCard import
-vi.mock('terminal-image', () => ({
-  default: {
-    buffer: vi.fn().mockResolvedValue('[mock-image]'),
-  },
-}));
 
 // Mock execa so the chafa availability check and rendering don't attempt real subprocesses
 vi.mock('execa', () => ({
@@ -173,7 +167,7 @@ describe('ResultCard', () => {
         supportsImages: false,
       }),
     );
-    expect(lastFrame()).not.toContain('[mock-image]');
+    expect(lastFrame()).not.toContain(']1337;File=');
   });
 
   it('sets imageAnsi state when supportsImages=true and image_url is set', async () => {
@@ -187,7 +181,7 @@ describe('ResultCard', () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
-    expect(lastFrame()).toContain('[mock-image]');
+    expect(lastFrame()).toContain(']1337;File=');
   });
 
   it('does NOT render an image when the fetch is a 404 HTML page', async () => {
@@ -211,7 +205,7 @@ describe('ResultCard', () => {
       await new Promise((r) => setTimeout(r, 50));
     });
     // No corrupt escape sequence decoded from the 404 HTML — image simply omitted.
-    expect(lastFrame()).not.toContain('[mock-image]');
+    expect(lastFrame()).not.toContain(']1337;File=');
   });
 
   it('renders text card without image section when image_url is null', async () => {
@@ -226,7 +220,7 @@ describe('ResultCard', () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
-    expect(lastFrame()).not.toContain('[mock-image]');
+    expect(lastFrame()).not.toContain(']1337;File=');
     expect(lastFrame()).toContain('Never Summer Proto Synthesis');
   });
 
