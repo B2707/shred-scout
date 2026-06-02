@@ -238,6 +238,7 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           rider={profile}
           onWishlist={() => { setSummarySetup(null); setScreen('wishlist'); }}
           onNewSearch={() => { setSummarySetup(null); setScreen('wizard'); }}
+          onToggleAlert={handleToggleAlert}
         />
       </>
     );
