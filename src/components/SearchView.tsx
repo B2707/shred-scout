@@ -67,9 +67,16 @@ export interface SearchViewProps {
    * Uses a ref internally (not state) to avoid triggering re-renders on the parent.
    */
   onModalChange: (active: boolean) => void;
+  /**
+   * When provided (the guided wizard drove this search), the conversational opener is
+   * skipped and the search runs immediately for this query. undefined → legacy opener flow.
+   */
+  initialQuery?: string;
+  /** Chip filters to pre-apply, from the wizard answers (category/flex/price keys). */
+  initialFilters?: string[];
 }
 
-export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange }: SearchViewProps): React.JSX.Element {
+export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange, initialQuery, initialFilters }: SearchViewProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<NormalizedProduct[]>([]);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
@@ -93,9 +100,11 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
   // Track the alert opt-in delay timer so it can be cancelled on rapid saves
   const alertOptInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Filter chip state — toggled by single-letter shortcuts after opener completes.
+  // Filter chip state — pre-applied from the wizard answers, then toggled by shortcuts.
   // Must be declared before filteredGroups useMemo to avoid temporal dead zone.
-  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
+  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(
+    () => new Set((initialFilters ?? []) as FilterKey[]),
+  );
 
   // filteredGroups: derived from groups + activeFilters — reactively narrows results.
   // When no filters are active, returns groups verbatim (same reference) to skip re-renders.
@@ -118,8 +127,8 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     });
   }, [groups, activeFilters]);
 
-  // Conversational opener state — once per process launch
-  const [opener, setOpener] = useState<OpenerState>({ step: 'q1' });
+  // Conversational opener state — skipped entirely when the wizard drove this search.
+  const [opener, setOpener] = useState<OpenerState>(initialQuery !== undefined ? { step: 'done' } : { step: 'q1' });
   const [openerBootSize, setOpenerBootSize] = useState<number>(profile.bootSize);
   const [openerStyle, setOpenerStyle] = useState<string>(profile.ridingStyle);
 
@@ -135,9 +144,10 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     saveMsgTimerRef.current = setTimeout(() => setSaveMsg(null), 2000);
   }
 
-  const handleSubmit = useCallback((query: string) => {
+  // Runs a search for the given query. Empty query is allowed here (used by the wizard's
+  // "Full Setup" path, which wants every category); the user-facing box guards empty Enter.
+  const runQuery = useCallback((query: string) => {
     if (isLoading) return;
-    if (!query.trim()) return; // B2: empty Enter must not fire a full-catalog search
     void (async () => {
       setIsLoading(true);
       setProducts([]);
@@ -152,7 +162,21 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
         setIsLoading(false);
       }
     })();
-  }, [isLoading, profile]);
+  }, [isLoading, profile, isDemoMode, db]);
+
+  const handleSubmit = useCallback((query: string) => {
+    if (!query.trim()) return; // B2: empty Enter must not fire a full-catalog search
+    runQuery(query);
+  }, [runQuery]);
+
+  // Auto-run the wizard-driven search once on mount.
+  const didInitRef = useRef(false);
+  useEffect(() => {
+    if (initialQuery !== undefined && !didInitRef.current) {
+      didInitRef.current = true;
+      runQuery(initialQuery);
+    }
+  }, [initialQuery, runQuery]);
 
   const handleSave = useCallback((input: string) => {
     const n = parseInt(input.trim(), 10);
