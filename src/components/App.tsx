@@ -84,17 +84,19 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   // Global quit handler — screen-aware to allow child screens to handle q/Escape.
   // Gate search-screen quit behind blockQuitRef so SearchView's modal can own 'q'.
   useInput((input: string) => {
-    if (screen === 'search' && input === 'q' && !blockQuitRef.current) {
-      exit();
+    // On the results screen, suppress all global keys while a SearchView mode/modal owns
+    // input (filter panel, save box, alert prompt, or the legacy opener) — blockQuitRef is
+    // set via onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
+    if (screen === 'search') {
+      if (blockQuitRef.current) return;
+      if (input === 'q') { exit(); return; }
+      if (input === 'w') { setSetups(setupRepo.list()); setScreen('wishlist'); return; }
+      if (input === 'n') { setScreen('wizard'); return; }
     }
     if (screen === 'wishlist' && input === 'q') {
       setScreen('search');
     }
     if (screen === 'history' && input === 'q') {
-      setScreen('wishlist');
-    }
-    if (screen === 'search' && input === 'w') {
-      setSetups(setupRepo.list()); // refresh before showing
       setScreen('wishlist');
     }
   });

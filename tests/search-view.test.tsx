@@ -65,12 +65,9 @@ async function advancePastOpener(stdin: { write: (s: string) => void }): Promise
   });
 }
 
-async function submitSearch(stdin: { write: (s: string) => void }, query: string): Promise<void> {
-  await act(async () => { stdin.write(query); });
-  await act(async () => { stdin.write('\r'); });
-  await act(async () => {
-    await new Promise<void>((resolve) => setTimeout(resolve, 100));
-  });
+/** Wait for an async effect (e.g. the wizard auto-run search) to settle. */
+async function settle(ms = 100): Promise<void> {
+  await act(async () => { await new Promise<void>((resolve) => setTimeout(resolve, ms)); });
 }
 
 const mockRepo = () => ({
@@ -96,14 +93,16 @@ describe('SearchView', () => {
     expect(lastFrame()).not.toContain('Search for gear...');
   });
 
-  it('renders search box after advancing past opener with two y presses', async () => {
+  it('skips the opener and shows the results view when wizard-driven (initialQuery)', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });
     const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    const { lastFrame } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, initialQuery: 'boards', initialFilters: ['board'], setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
-    await advancePastOpener(stdin);
-    expect(lastFrame()).toContain('Search for gear...');
+    await settle(80);
     expect(lastFrame()).not.toContain('still right? [y/n]');
+    expect(lastFrame()).toContain('[/] filters');
   });
 
   it('renders ComparisonGroup when 2 products share the same normalized title', async () => {
@@ -113,11 +112,10 @@ describe('SearchView', () => {
       errors: [],
     });
     const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    const { lastFrame } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, initialQuery: 'boards', setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
-    await advancePastOpener(stdin);
-    await submitSearch(stdin, 'boards');
+    await settle(120);
     expect(lastFrame()).toContain('[Best Price]');
   });
 
@@ -128,22 +126,23 @@ describe('SearchView', () => {
       errors: [],
     });
     const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    const { lastFrame } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, initialQuery: 'boards', setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
-    await advancePastOpener(stdin);
-    await submitSearch(stdin, 'boards');
+    await settle(120);
     expect(lastFrame()).toContain('Never Summer V.O.L.E.');
     expect(lastFrame()).not.toContain('[Best Price]');
   });
 
-  it('renders empty state copy after opener when no products have arrived', async () => {
+  it('renders empty-state copy when a wizard-driven search returns nothing', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({ products: [], errors: [] });
     const { SearchView } = await import('../src/components/SearchView.js');
-    const { lastFrame, stdin } = render(
-      React.createElement(SearchView, { profile, supportsImages: false, setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
+    const { lastFrame } = render(
+      React.createElement(SearchView, { profile, supportsImages: false, initialQuery: 'boards', setupRepo: mockRepo() as any, priceRepo: mockRepo() as any, productRepo: mockRepo() as any, onSetupSaved: () => {}, onModalChange: () => {} }),
     );
-    await advancePastOpener(stdin);
-    expect(lastFrame()).toContain('No results yet');
+    await settle(80);
+    expect(lastFrame()).toContain('No compatible gear found');
   });
 
   it('renders filter chip row after opener completes', async () => {
