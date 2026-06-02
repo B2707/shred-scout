@@ -19,8 +19,12 @@ mkdirSync(OUT_DIR, { recursive: true });
 const W = 160, H = 100;
 const BG = [18, 20, 26];        // dark slate, matches a dark terminal
 const SNOW = [70, 78, 92];      // ground line
+const SNOWW = [232, 238, 245];  // white snow caps / snowflakes
 const BOARD = [56, 189, 248];   // cyan board
 const ACCENT = [250, 204, 21];  // yellow accent
+const RAMP = [251, 146, 60];    // orange ramp/rail accent
+const STEEL = [148, 163, 184];  // metal / coin rim
+const GREEN = [34, 197, 94];    // beginner "green circle" trail symbol
 
 // ── tiny RGBA canvas ────────────────────────────────────────────────────────
 function canvas() {
@@ -67,6 +71,48 @@ function drawProfile(d, yOffset) {
     const x = x0 + t * (x1 - x0);
     px(d, x, groundY + 4, ACCENT); px(d, x, groundY + 5, ACCENT);
   }
+}
+
+// ── extra primitives for the abstract option icons ──────────────────────────
+function mountain(d, cx, baseY, halfW, height, color, capColor) {
+  for (let i = 0; i < height; i++) {
+    const w = Math.round(halfW * (1 - i / height));
+    for (let x = cx - w; x <= cx + w; x++) px(d, x, baseY - i, color);
+  }
+  if (capColor) {
+    const capStart = Math.round(height * 0.68);
+    for (let i = capStart; i < height; i++) {
+      const w = Math.round(halfW * (1 - i / height));
+      for (let x = cx - w; x <= cx + w; x++) px(d, x, baseY - i, capColor);
+    }
+  }
+}
+function line(d, x0, y0, x1, y1, thick, color) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy; const t = Math.max(1, thick);
+  for (;;) {
+    for (let oy = 0; oy < t; oy++) for (let ox = 0; ox < t; ox++) px(d, x0 + ox, y0 + oy, color);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx) { err += dx; y0 += sy; }
+  }
+}
+function ring(d, cx, cy, r, thick, color) {
+  for (let a = 0; a < 360; a += 2) {
+    const rad = (a * Math.PI) / 180;
+    for (let k = 0; k < thick; k++) px(d, cx + Math.cos(rad) * (r - k), cy + Math.sin(rad) * (r - k), color);
+  }
+}
+function snowflake(d, x, y, color) {
+  px(d, x, y, color); px(d, x - 1, y, color); px(d, x + 1, y, color); px(d, x, y - 1, color); px(d, x, y + 1, color);
+}
+function coin(d, cx, cy) {
+  for (let yy = -7; yy <= 7; yy++) for (let xx = -20; xx <= 20; xx++) {
+    if ((xx * xx) / (20 * 20) + (yy * yy) / (7 * 7) <= 1) px(d, cx + xx, cy + yy, ACCENT);
+  }
+  for (let xx = -20; xx <= 20; xx++) { px(d, cx + xx, cy - 7, STEEL); px(d, cx + xx, cy + 7, STEEL); }
 }
 
 // ── PNG encoder ─────────────────────────────────────────────────────────────
@@ -137,13 +183,65 @@ const categories = {
   'cat-setup': categorySetup,
 };
 
+// ── riding-style icons ──────────────────────────────────────────────────────
+function styleAllMountain(d) {
+  const base = H - 24; rect(d, 16, base, W - 32, 2, SNOW);
+  mountain(d, W / 2 - 36, base, 20, 30, BOARD, SNOWW);
+  mountain(d, W / 2, base, 28, 46, BOARD, SNOWW);
+  mountain(d, W / 2 + 36, base, 20, 30, BOARD, SNOWW);
+}
+function stylePark(d) {
+  const base = H - 24; rect(d, 16, base, W - 32, 2, SNOW);
+  rect(d, W / 2 - 42, base - 24, 44, 5, STEEL);          // rail
+  rect(d, W / 2 - 40, base - 24, 3, 24, STEEL); rect(d, W / 2 - 2, base - 24, 3, 24, STEEL); // legs
+  for (let i = 0; i < 28; i++) { const w = Math.round(28 * (i / 28)); for (let x = W / 2 + 12; x <= W / 2 + 12 + w; x++) px(d, x, base - i, RAMP); } // ramp
+}
+function styleFreestyle(d) {
+  const cx = W / 2, cy = H / 2 - 2; ring(d, cx, cy, 24, 4, ACCENT);
+  line(d, cx + 2, cy - 24, cx + 16, cy - 21, 3, ACCENT); line(d, cx + 2, cy - 24, cx + 6, cy - 10, 3, ACCENT); // rotation arrowhead
+}
+function stylePowder(d) {
+  const base = H - 24; rect(d, 16, base, W - 32, 2, SNOW); mountain(d, W / 2, base, 32, 48, BOARD, SNOWW);
+  for (const [x, y] of [[36, 24], [124, 18], [58, 42], [112, 48], [80, 14], [30, 52]]) snowflake(d, x, y, SNOWW);
+}
+function styleFreeride(d) {
+  const base = H - 24; rect(d, 16, base, W - 32, 2, SNOW); mountain(d, W / 2 + 8, base, 36, 58, BOARD, SNOWW);
+  for (let i = 0; i < 16; i++) if (i % 2 === 0) { const x = W / 2 + 34 - i * 4, y = base - 54 + i * 3.2; line(d, x, y, x - 3, y + 2, 2, RAMP); } // descent line
+}
+function styleBackcountry(d) {
+  const base = H - 24; rect(d, 16, base, W - 32, 2, SNOW); mountain(d, W / 2, base, 30, 48, BOARD, SNOWW);
+  const pole = W / 2, peakY = base - 48; rect(d, pole, peakY - 18, 2, 18, STEEL);  // touring flag pole
+  for (let i = 0; i < 10; i++) { const w = Math.round(14 * (1 - i / 10)); for (let x = pole + 2; x <= pole + 2 + w; x++) px(d, x, peakY - 16 + i, RAMP); }
+}
+function styleBeginner(d) { disc(d, W / 2, H / 2 - 2, 24, GREEN); } // universal green-circle (easiest) trail symbol
+const styles = {
+  'style-all-mountain': styleAllMountain, 'style-park': stylePark, 'style-freestyle': styleFreestyle,
+  'style-powder': stylePowder, 'style-freeride': styleFreeride,
+  'style-backcountry': styleBackcountry, 'style-beginner': styleBeginner,
+};
+
+// ── flex icons (board bowing under a centered load) ──────────────────────────
+function flexBoard(d, bow, th) {
+  const x0 = 20, x1 = W - 20, midY = H / 2 - 8;
+  for (let x = x0; x <= x1; x++) { const t = (x - x0) / (x1 - x0); const y = Math.round(midY + bow * Math.sin(Math.PI * t)); for (let k = 0; k < th; k++) px(d, x, y + k, BOARD); }
+  rect(d, W / 2 - 9, Math.round(midY + bow) - 13, 18, 9, STEEL); // load
+}
+const flexes = { 'flex-soft': (d) => flexBoard(d, 26, 7), 'flex-medium': (d) => flexBoard(d, 12, 8), 'flex-stiff': (d) => flexBoard(d, 3, 10) };
+
+// ── budget icons (coin stacks; an infinity ring pair for No limit) ───────────
+function coinStack(d, n) { const cx = W / 2, base = H - 28, gap = 15; for (let i = 0; i < n; i++) coin(d, cx, base - i * gap); }
+function budgetAny(d) { const cy = H / 2 - 2; ring(d, W / 2 - 16, cy, 13, 3, ACCENT); ring(d, W / 2 + 16, cy, 13, 3, ACCENT); }
+const budgets = { 'budget-u300': (d) => coinStack(d, 1), 'budget-u500': (d) => coinStack(d, 2), 'budget-u700': (d) => coinStack(d, 3), 'budget-any': budgetAny };
+
 let count = 0;
 for (const [name, fn] of Object.entries(profiles)) {
   const d = canvas(); drawProfile(d, fn);
   writeFileSync(join(OUT_DIR, `${name}.png`), encodePNG(d)); count++;
 }
-for (const [name, fn] of Object.entries(categories)) {
-  const d = canvas(); fn(d);
-  writeFileSync(join(OUT_DIR, `${name}.png`), encodePNG(d)); count++;
+for (const group of [categories, styles, flexes, budgets]) {
+  for (const [name, fn] of Object.entries(group)) {
+    const d = canvas(); fn(d);
+    writeFileSync(join(OUT_DIR, `${name}.png`), encodePNG(d)); count++;
+  }
 }
 console.log(`Wrote ${count} wizard assets to ${OUT_DIR}`);
