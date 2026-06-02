@@ -12,8 +12,10 @@
  *     'unknown'. We parse the flex_rating string ("6/10", "Medium-Stiff") into a 1–10 number.
  */
 import type { NormalizedProduct } from '../../data/normalizer.js';
-import type { Board, Binding, Boot } from './types.js';
+import type { Board, Binding, Boot, RuleResult } from './types.js';
+import type { RiderProfile } from '../../types/profile.js';
 import { BINDING_SIZE_RANGES } from './sizing-tables.js';
+import { bootToBoardWaist, bootToBindingSize } from './rules.js';
 
 /**
  * Parses a free-text flex rating into a 1–10 number, or undefined when unknown.
@@ -82,4 +84,29 @@ export function toBinding(p: NormalizedProduct): Binding {
 /** Builds the Boot domain type from the rider's authoritative US boot size. */
 export function toBoot(bootSizeUS: number): Boot {
   return { sizeUS: bootSizeUS };
+}
+
+// Permissive placeholders so a single-product card can be checked against the rider
+// without a full setup. Each rule reads only the piece relevant to that gear type.
+const PLACEHOLDER_BINDING: Binding = { sizeRange: [0, 99], discPattern: '4x4' };
+const PLACEHOLDER_BOARD: Board = { waistWidthMm: 300, mountingPattern: '4x4' };
+
+/**
+ * The single most relevant compatibility verdict for one product, relative to the rider —
+ * the per-card "compatibility-verified" signal that was missing during shopping (A2/A3).
+ *
+ *  - board:   boot-to-board waist clearance for the rider's boot size
+ *  - binding: whether the rider's boot fits the binding's size range
+ *  - boot:    null (nothing to cross-check from a single boot)
+ */
+export function productFit(product: NormalizedProduct, rider: RiderProfile): RuleResult | null {
+  const boot = toBoot(rider.bootSize);
+  switch (product.gear_category) {
+    case 'board':
+      return bootToBoardWaist({ board: toBoard(product), binding: PLACEHOLDER_BINDING, boot });
+    case 'binding':
+      return bootToBindingSize({ board: PLACEHOLDER_BOARD, binding: toBinding(product), boot });
+    default:
+      return null;
+  }
 }

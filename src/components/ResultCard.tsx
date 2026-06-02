@@ -22,6 +22,9 @@ import { Box, Text, useStdout } from 'ink';
 import terminalImage from 'terminal-image';
 import { execa } from 'execa';
 import type { NormalizedProduct } from '../data/normalizer.js';
+import type { RiderProfile } from '../types/profile.js';
+import type { RuleResult } from '../domain/compatibility/types.js';
+import { productFit } from '../domain/compatibility/product-adapter.js';
 import { SaleDisplay } from './SaleDisplay.js';
 
 /** Max rows reserved for inline terminal image — matches terminal-image height option. */
@@ -84,9 +87,21 @@ export interface ResultCardProps {
   supportsImages: boolean;
   /** 1-based display index for "[N]" save-item prefix. Omit to hide the prefix. */
   index?: number;
+  /** Rider profile — when present, the card shows a per-product compatibility badge (A2/A3). */
+  rider?: RiderProfile;
 }
 
-export function ResultCard({ product, supportsImages, index }: ResultCardProps): React.JSX.Element {
+/** Maps a per-product fit verdict to a compact, colored card badge (A2/A3). */
+function fitBadge(result: RuleResult, bootSize: number): { symbol: string; color: string; label: string; dim: boolean } {
+  switch (result.verdict) {
+    case 'pass': return { symbol: '✓', color: 'green', label: `Fits your US ${bootSize} boots`, dim: false };
+    case 'warn': return { symbol: '⚠', color: 'yellow', label: `Borderline fit for US ${bootSize}`, dim: false };
+    case 'fail': return { symbol: '✗', color: 'red', label: `Won't fit your US ${bootSize} boots`, dim: false };
+    default: return { symbol: '·', color: 'gray', label: 'Compatibility unverified', dim: true };
+  }
+}
+
+export function ResultCard({ product, supportsImages, index, rider }: ResultCardProps): React.JSX.Element {
   const [imageAnsi, setImageAnsi] = useState<string | null>(null);
   const [chafaAvailable, setChafaAvailable] = useState(false);
   const [chafaAnsi, setChafaAnsi] = useState<string | null>(null);
@@ -186,6 +201,10 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
   // Metadata line construction
   const categoryLabel = product.gear_category ?? 'unknown';
 
+  // Per-product compatibility badge relative to the rider (A2/A3).
+  const fit = rider ? productFit(product, rider) : null;
+  const fitView = fit ? fitBadge(fit, rider!.bootSize) : null;
+
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1} marginBottom={1}>
       {/* terminal-image path — iTerm2/Kitty inline protocol */}
@@ -214,6 +233,13 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
 
       {/* Metadata row — gear_category · retailer in dimColor */}
       <Text dimColor>{categoryLabel} · {product.retailer}</Text>
+
+      {/* Compatibility badge — shows whether this product fits the rider (A2/A3) */}
+      {fitView && (
+        <Text color={fitView.color} bold={fit?.verdict === 'pass'} dimColor={fitView.dim}>
+          {fitView.symbol} {fitView.label}
+        </Text>
+      )}
 
       {/* Spec line — only for products with scraped PDP data (evo.com). Omit for Shopify products. */}
       {(product.waist_width_mm !== null || product.flex_rating !== null) && (

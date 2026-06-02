@@ -80,6 +80,24 @@ describe('ResultCard', () => {
     expect(frame).toMatch(/unavailable/i);
   });
 
+  it('shows a compatibility badge for the rider on a board card (A2/A3)', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const rider = { bootSize: 10, heightCm: 180, weightKg: 80, ridingStyle: 'all-mountain' };
+    const board = { ...baseProduct, gear_category: 'board' as const, waist_width_mm: 255 };
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: board, supportsImages: false, rider }),
+    );
+    expect(lastFrame()).toContain('Fits your US 10 boots');
+  });
+
+  it('omits the compatibility badge when no rider is provided', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+    );
+    expect(lastFrame() ?? '').not.toMatch(/Fits your|unverified|Won't fit/);
+  });
+
   it('renders retailer metadata (gear_category · retailer) in text-only mode', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
