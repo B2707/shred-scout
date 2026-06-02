@@ -62,6 +62,7 @@ export function makeSetupRepo(db: Database.Database) {
 
   const deleteStmt = db.prepare('DELETE FROM saved_setups WHERE id = ?');
   const setAlertStmt = db.prepare('UPDATE saved_setups SET alert_enabled = ? WHERE id = ?');
+  const setCompatStmt = db.prepare('UPDATE saved_setups SET compatibility = ? WHERE id = ?');
 
   // Most recent setup still missing at least one gear slot — the "in progress" setup.
   const selectIncompleteStmt = db.prepare<[], SetupRow>(
@@ -190,6 +191,15 @@ export function makeSetupRepo(db: Database.Database) {
      */
     setAlert(id: number, enabled: boolean): void {
       setAlertStmt.run(enabled ? 1 : 0, id);
+    },
+
+    /**
+     * Persists a compatibility snapshot (RuleResult[]) for a setup. Called when a setup
+     * becomes complete so the wishlist can render its CompatBadge — previously the column
+     * was always NULL because handleSave never passed it (B19).
+     */
+    setCompatibility(id: number, results: RuleResult[]): void {
+      setCompatStmt.run(JSON.stringify(results), id);
     },
   };
 }
