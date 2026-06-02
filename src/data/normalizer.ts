@@ -30,8 +30,8 @@ export interface MountPatternResult {
  * Created by normalizeProduct() from a raw Shopify products.json product object.
  */
 export interface NormalizedProduct {
-  shopify_id: string;           // String(product.id)
-  retailer: string;             // from RETAILERS constant
+  shopify_id: string; // String(product.id)
+  retailer: string; // from RETAILERS constant
   title: string;
   handle: string;
   vendor: string | null;
@@ -43,9 +43,9 @@ export interface NormalizedProduct {
   mount_pattern: MountPattern;
   mount_pattern_raw: string;
   image_url: string | null;
-  price_cents: number;          // cheapest variant, INTEGER cents
-  variants_json: string;        // JSON.stringify(variants)
-  fetched_at: number;           // Unix ms timestamp
+  price_cents: number; // cheapest variant, INTEGER cents
+  variants_json: string; // JSON.stringify(variants)
+  fetched_at: number; // Unix ms timestamp
 }
 
 // ---------------------------------------------------------------------------
@@ -89,18 +89,18 @@ export function parsePriceCents(price: string | null | undefined): number {
 export function detectGearCategory(
   productType: string,
   tags: string[],
-  title: string
+  title: string,
 ): GearCategory {
   const pt = productType.toLowerCase();
   const ti = title.toLowerCase();
-  const allTags = tags.map(t => t.toLowerCase());
+  const allTags = tags.map((t) => t.toLowerCase());
 
   // Layer 1: product_type — the most authoritative signal, so it gets the first say
   // with full boot > binding > board priority. "Snowboard Boots" contains "board" as a
   // substring but the dominant keyword is "boot"; boot runs first to prevent false board.
-  if (BOOT_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'boot';
-  if (BINDING_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'binding';
-  if (BOARD_TYPE_KEYWORDS.some(k => pt.includes(k))) return 'board';
+  if (BOOT_TYPE_KEYWORDS.some((k) => pt.includes(k))) return 'boot';
+  if (BINDING_TYPE_KEYWORDS.some((k) => pt.includes(k))) return 'binding';
+  if (BOARD_TYPE_KEYWORDS.some((k) => pt.includes(k))) return 'board';
 
   // Layers 2+3 (tags + title) — category-major priority ACROSS both layers (SC-02/B10).
   // A boot/binding keyword in EITHER tags or title must outrank a bare 'snowboard'/'board'
@@ -109,7 +109,8 @@ export function detectGearCategory(
   // category across both layers — instead of finishing the tags layer before the title
   // layer — is what fixes the bare-tag collision.
   const matchesIn = (keywords: string[]): boolean =>
-    allTags.some(t => keywords.some(k => t.includes(k))) || keywords.some(k => ti.includes(k));
+    allTags.some((t) => keywords.some((k) => t.includes(k))) ||
+    keywords.some((k) => ti.includes(k));
 
   if (matchesIn(BOOT_TYPE_KEYWORDS)) return 'boot';
   if (matchesIn(BINDING_TYPE_KEYWORDS)) return 'binding';
@@ -136,18 +137,21 @@ export function detectGearCategory(
 export function inferMountPattern(
   title: string,
   vendor: string,
-  tags: string[]
+  tags: string[],
 ): MountPatternResult {
   const ti = title.toLowerCase();
   const ve = (vendor ?? '').toLowerCase();
-  const allTags = tags.map(t => t.toLowerCase());
+  const allTags = tags.map((t) => t.toLowerCase());
   const allText = [ti, ...allTags].join(' ');
 
   // Burton Channel (EST/Re:Flex) — Burton-exclusive, check vendor first
   const isBurton = ve.includes('burton');
-  const hasBurtonChannelKeyword = BURTON_CHANNEL_KEYWORDS.some(k => allText.includes(k));
+  const hasBurtonChannelKeyword = BURTON_CHANNEL_KEYWORDS.some((k) =>
+    allText.includes(k),
+  );
   if (isBurton && hasBurtonChannelKeyword) {
-    const matched = BURTON_CHANNEL_KEYWORDS.find(k => allText.includes(k)) ?? 'channel';
+    const matched =
+      BURTON_CHANNEL_KEYWORDS.find((k) => allText.includes(k)) ?? 'channel';
     return { mountPattern: 'channel', mountPatternRaw: matched };
   }
 
@@ -194,25 +198,31 @@ export interface ShopifyProductInput {
  */
 export function normalizeProduct(
   raw: ShopifyProductInput,
-  retailer: string
+  retailer: string,
 ): NormalizedProduct {
   // Normalize tags to array
   const tags: string[] = Array.isArray(raw.tags)
     ? raw.tags
-    : raw.tags.split(',').map(t => t.trim()).filter(Boolean);
+    : raw.tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
 
   // Cheapest IN-STOCK variant price (positive prices only). A sold-out cheap variant must
   // not become the displayed price or win [Best Price] (B20). Fall back to all variants
   // only when every variant is sold out.
-  const inStock = raw.variants.filter(v => v.available !== false);
+  const inStock = raw.variants.filter((v) => v.available !== false);
   const pricePool = inStock.length > 0 ? inStock : raw.variants;
-  const positiveCents = pricePool.map(v => parsePriceCents(v.price)).filter(c => c > 0);
-  const priceCents = positiveCents.length > 0 ? Math.min(...positiveCents) : Infinity;
+  const positiveCents = pricePool
+    .map((v) => parsePriceCents(v.price))
+    .filter((c) => c > 0);
+  const priceCents =
+    positiveCents.length > 0 ? Math.min(...positiveCents) : Infinity;
 
   const { mountPattern, mountPatternRaw } = inferMountPattern(
     raw.title,
     raw.vendor ?? '',
-    tags
+    tags,
   );
 
   return {

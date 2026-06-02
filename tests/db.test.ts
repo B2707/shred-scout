@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -15,10 +15,14 @@ describe('openDatabase()', () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
     const tables = (
-      db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as {
+      db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+        )
+        .all() as {
         name: string;
       }[]
-    ).map(r => r.name);
+    ).map((r) => r.name);
     expect(tables).toContain('products');
     expect(tables).toContain('price_observations');
     expect(tables).toContain('saved_setups');
@@ -31,13 +35,31 @@ describe('openDatabase()', () => {
     const insert = db.prepare(
       `INSERT OR REPLACE INTO products
          (shopify_id, retailer, title, handle, price_cents, variants_json, fetched_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
-    insert.run('shop-1', 'evo', 'Test Board', 'test-board', 44995, '[]', Date.now());
+    insert.run(
+      'shop-1',
+      'evo',
+      'Test Board',
+      'test-board',
+      44995,
+      '[]',
+      Date.now(),
+    );
     expect(() =>
-      insert.run('shop-1', 'evo', 'Test Board Updated', 'test-board', 45995, '[]', Date.now())
+      insert.run(
+        'shop-1',
+        'evo',
+        'Test Board Updated',
+        'test-board',
+        45995,
+        '[]',
+        Date.now(),
+      ),
     ).not.toThrow();
-    const row = db.prepare("SELECT title FROM products WHERE shopify_id='shop-1'").get() as {
+    const row = db
+      .prepare("SELECT title FROM products WHERE shopify_id='shop-1'")
+      .get() as {
       title: string;
     };
     expect(row.title).toBe('Test Board Updated');
@@ -46,24 +68,26 @@ describe('openDatabase()', () => {
   it('records the migration in schema_versions after openDatabase()', async () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
-    const versions = db.prepare('SELECT name FROM schema_versions').all() as { name: string }[];
+    const versions = db.prepare('SELECT name FROM schema_versions').all() as {
+      name: string;
+    }[];
     expect(versions.length).toBeGreaterThanOrEqual(1);
-    expect(versions.map(v => v.name)).toContain('001_initial');
-    expect(versions.map(v => v.name)).toContain('003_alert_enabled');
+    expect(versions.map((v) => v.name)).toContain('001_initial');
+    expect(versions.map((v) => v.name)).toContain('003_alert_enabled');
   });
 
   it('saved_setups has alert_enabled column after migration 003', async () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
     const cols = db.pragma('table_info(saved_setups)') as { name: string }[];
-    expect(cols.map(c => c.name)).toContain('alert_enabled');
+    expect(cols.map((c) => c.name)).toContain('alert_enabled');
   });
 
   it('products table has flex_rating column after migration 004', async () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
     const cols = db.pragma('table_info(products)') as { name: string }[];
-    expect(cols.map(c => c.name)).toContain('flex_rating');
+    expect(cols.map((c) => c.name)).toContain('flex_rating');
     db.close();
   });
 

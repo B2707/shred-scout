@@ -37,7 +37,7 @@ export function makeRiderRepo(db: Database.Database) {
   `);
 
   const selectStmt = db.prepare(
-    'SELECT boot_size, height_cm, weight_kg, riding_style FROM rider_profile WHERE id = 1'
+    'SELECT boot_size, height_cm, weight_kg, riding_style FROM rider_profile WHERE id = 1',
   );
 
   return {

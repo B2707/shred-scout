@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -58,7 +58,9 @@ describe('detectGearCategory()', () => {
 
   it('detects board from title keyword fallback', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('', [], 'Burton Custom Board 157cm')).toBe('board');
+    expect(detectGearCategory('', [], 'Burton Custom Board 157cm')).toBe(
+      'board',
+    );
   });
 
   it('detects binding from product_type "Bindings"', async () => {
@@ -88,29 +90,43 @@ describe('detectGearCategory()', () => {
 
   it('layer 3 (title): "Snowboard Bindings" classifies as binding, not board (B10)', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('', [], 'Union Force Snowboard Bindings 2026')).toBe('binding');
+    expect(
+      detectGearCategory('', [], 'Union Force Snowboard Bindings 2026'),
+    ).toBe('binding');
   });
 
   it('layer 3 (title): "Snowboard Boots" classifies as boot, not board (B10)', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('', [], 'Burton Photon Snowboard Boots 2026')).toBe('boot');
+    expect(
+      detectGearCategory('', [], 'Burton Photon Snowboard Boots 2026'),
+    ).toBe('boot');
   });
 
   it('cross-layer: a boot with a bare "snowboard" tag classifies as boot, not board (SC-02/B10)', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     // The bare 'snowboard' tag matches the BOARD keyword at the tags layer, but the
     // title carries the dominant 'boot' keyword — boot must win across layers.
-    expect(detectGearCategory('', ['snowboard', 'mens', 'on-sale'], 'Burton Photon Boots')).toBe('boot');
+    expect(
+      detectGearCategory(
+        '',
+        ['snowboard', 'mens', 'on-sale'],
+        'Burton Photon Boots',
+      ),
+    ).toBe('boot');
   });
 
   it('cross-layer: a binding with a bare "snowboard" tag classifies as binding, not board (SC-02/B10)', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('', ['snowboard'], 'Union Force Bindings')).toBe('binding');
+    expect(detectGearCategory('', ['snowboard'], 'Union Force Bindings')).toBe(
+      'binding',
+    );
   });
 
   it('product_type stays authoritative: "Snowboards" type wins board even if title has a stray keyword', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('Snowboards', ['snowboard'], 'Custom Board')).toBe('board');
+    expect(
+      detectGearCategory('Snowboards', ['snowboard'], 'Custom Board'),
+    ).toBe('board');
   });
 });
 
@@ -121,7 +137,11 @@ describe('detectGearCategory()', () => {
 describe('inferMountPattern()', () => {
   it('returns "channel" for Burton Channel title with Burton vendor', async () => {
     const { inferMountPattern } = await import('../src/data/normalizer.js');
-    const result = inferMountPattern('Burton Custom Channel Board', 'Burton', []);
+    const result = inferMountPattern(
+      'Burton Custom Channel Board',
+      'Burton',
+      [],
+    );
     expect(result.mountPattern).toBe('channel');
   });
 
@@ -164,7 +184,11 @@ describe('inferMountPattern()', () => {
 
   it('non-Burton "channel" keyword maps to "4x4" — Burton-exclusive guard active', async () => {
     const { inferMountPattern } = await import('../src/data/normalizer.js');
-    const result = inferMountPattern('Sparks Track Channel Board', 'Sparks', []);
+    const result = inferMountPattern(
+      'Sparks Track Channel Board',
+      'Sparks',
+      [],
+    );
     expect(result.mountPattern).toBe('4x4');
   });
 });
@@ -182,9 +206,7 @@ describe('normalizeProduct()', () => {
     vendor: 'Burton',
     tags: ['snowboard', 'freeride'],
     images: [{ src: 'https://cdn.shopify.com/test.jpg', position: 1 }],
-    variants: [
-      { price: '449.95', compare_at_price: '549.95', option1: '154' },
-    ],
+    variants: [{ price: '449.95', compare_at_price: '549.95', option1: '154' }],
     ...overrides,
   });
 
@@ -205,8 +227,18 @@ describe('normalizeProduct()', () => {
     const { normalizeProduct } = await import('../src/data/normalizer.js');
     const raw = makeRawProduct({
       variants: [
-        { price: '199.95', compare_at_price: null, option1: 'S', available: false },
-        { price: '499.95', compare_at_price: null, option1: 'M', available: true },
+        {
+          price: '199.95',
+          compare_at_price: null,
+          option1: 'S',
+          available: false,
+        },
+        {
+          price: '499.95',
+          compare_at_price: null,
+          option1: 'M',
+          available: true,
+        },
       ],
     });
     const result = normalizeProduct(raw, 'evo');
@@ -217,8 +249,18 @@ describe('normalizeProduct()', () => {
     const { normalizeProduct } = await import('../src/data/normalizer.js');
     const raw = makeRawProduct({
       variants: [
-        { price: '199.95', compare_at_price: null, option1: 'S', available: false },
-        { price: '299.95', compare_at_price: null, option1: 'M', available: false },
+        {
+          price: '199.95',
+          compare_at_price: null,
+          option1: 'S',
+          available: false,
+        },
+        {
+          price: '299.95',
+          compare_at_price: null,
+          option1: 'M',
+          available: false,
+        },
       ],
     });
     const result = normalizeProduct(raw, 'evo');
@@ -285,7 +327,10 @@ describe('normalizeProduct()', () => {
 
   it('detects board gear_category from product_type "Snowboards"', async () => {
     const { normalizeProduct } = await import('../src/data/normalizer.js');
-    const result = normalizeProduct(makeRawProduct({ product_type: 'Snowboards' }), 'evo');
+    const result = normalizeProduct(
+      makeRawProduct({ product_type: 'Snowboards' }),
+      'evo',
+    );
     expect(result.gear_category).toBe('board');
   });
 

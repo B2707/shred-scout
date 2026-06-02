@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MockAgent, setGlobalDispatcher } from 'undici';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RequestPipeline } from '../src/data/pipeline.js';
 import { fetchAllProducts } from '../src/data/shopify.js';
 
@@ -27,8 +27,26 @@ describe('fetchAllProducts()', () => {
         200,
         JSON.stringify({
           products: [
-            { id: 1, title: 'Board A', handle: 'board-a', product_type: 'Snowboards', vendor: 'Burton', tags: [], images: [], variants: [] },
-            { id: 2, title: 'Binding B', handle: 'binding-b', product_type: 'Bindings', vendor: 'Union', tags: [], images: [], variants: [] },
+            {
+              id: 1,
+              title: 'Board A',
+              handle: 'board-a',
+              product_type: 'Snowboards',
+              vendor: 'Burton',
+              tags: [],
+              images: [],
+              variants: [],
+            },
+            {
+              id: 2,
+              title: 'Binding B',
+              handle: 'binding-b',
+              product_type: 'Bindings',
+              vendor: 'Union',
+              tags: [],
+              images: [],
+              variants: [],
+            },
           ],
         }),
         { headers: { 'content-type': 'application/json' } },
@@ -104,7 +122,10 @@ describe('fetchAllProducts()', () => {
         headers: { 'content-type': 'application/json' },
       });
 
-    const results = await fetchAllProducts('https://www.the-house.com', pipeline);
+    const results = await fetchAllProducts(
+      'https://www.the-house.com',
+      pipeline,
+    );
     expect(results).toHaveLength(0);
   });
 
@@ -155,7 +176,10 @@ describe('fetchAllProducts()', () => {
     const arrayTagsProduct = results[1]!;
 
     // String tags are preserved as-is (raw from Shopify)
-    expect(typeof stringTagsProduct.tags === 'string' || Array.isArray(stringTagsProduct.tags)).toBe(true);
+    expect(
+      typeof stringTagsProduct.tags === 'string' ||
+        Array.isArray(stringTagsProduct.tags),
+    ).toBe(true);
     // Array tags are preserved as-is
     expect(Array.isArray(arrayTagsProduct.tags)).toBe(true);
   });

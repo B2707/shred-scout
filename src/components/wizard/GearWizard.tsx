@@ -8,14 +8,23 @@
  * On completion it hands the collected answers up; App maps them to a search via
  * wizardToSearch().
  */
-import React, { useState, useEffect, useMemo } from 'react';
+
 import { Box, Text, useInput } from 'ink';
-import { ImageOption } from './ImageOption.js';
-import { TerminalImage } from '../TerminalImage.js';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { resolveAssetPath } from '../../lib/assets.js';
+import { TerminalImage } from '../TerminalImage.js';
+import { ImageOption } from './ImageOption.js';
 import {
-  CATEGORY_OPTIONS, PROFILE_OPTIONS, STYLE_OPTIONS, FLEX_OPTIONS, BUDGET_OPTIONS,
-  visibleSteps, type WizardAnswers, type WizardOption, type StepId,
+  BUDGET_OPTIONS,
+  CATEGORY_OPTIONS,
+  FLEX_OPTIONS,
+  PROFILE_OPTIONS,
+  STYLE_OPTIONS,
+  type StepId,
+  visibleSteps,
+  type WizardAnswers,
+  type WizardOption,
 } from './wizard-config.js';
 
 export interface GearWizardProps {
@@ -26,20 +35,53 @@ export interface GearWizardProps {
   onQuit: () => void;
 }
 
-const STEP_META: Record<StepId, { title: string; field?: keyof WizardAnswers; options: WizardOption[] }> = {
-  category: { title: 'What are you shopping for?', field: 'category', options: CATEGORY_OPTIONS },
-  profile: { title: 'Pick a board profile', field: 'profile', options: PROFILE_OPTIONS },
-  style: { title: 'How do you like to ride?', field: 'style', options: STYLE_OPTIONS },
-  flex: { title: 'How stiff do you want it?', field: 'flex', options: FLEX_OPTIONS },
-  budget: { title: "What's your budget?", field: 'budget', options: BUDGET_OPTIONS },
+const STEP_META: Record<
+  StepId,
+  { title: string; field?: keyof WizardAnswers; options: WizardOption[] }
+> = {
+  category: {
+    title: 'What are you shopping for?',
+    field: 'category',
+    options: CATEGORY_OPTIONS,
+  },
+  profile: {
+    title: 'Pick a board profile',
+    field: 'profile',
+    options: PROFILE_OPTIONS,
+  },
+  style: {
+    title: 'How do you like to ride?',
+    field: 'style',
+    options: STYLE_OPTIONS,
+  },
+  flex: {
+    title: 'How stiff do you want it?',
+    field: 'flex',
+    options: FLEX_OPTIONS,
+  },
+  budget: {
+    title: "What's your budget?",
+    field: 'budget',
+    options: BUDGET_OPTIONS,
+  },
   confirm: { title: 'Ready to search?', options: [] },
 };
 
 const LABELS: Record<string, string> = Object.fromEntries(
-  [...CATEGORY_OPTIONS, ...PROFILE_OPTIONS, ...STYLE_OPTIONS, ...FLEX_OPTIONS, ...BUDGET_OPTIONS].map(o => [o.value, o.label]),
+  [
+    ...CATEGORY_OPTIONS,
+    ...PROFILE_OPTIONS,
+    ...STYLE_OPTIONS,
+    ...FLEX_OPTIONS,
+    ...BUDGET_OPTIONS,
+  ].map((o) => [o.value, o.label]),
 );
 
-export function GearWizard({ supportsImages, onComplete, onQuit }: GearWizardProps): React.JSX.Element {
+export function GearWizard({
+  supportsImages,
+  onComplete,
+  onQuit,
+}: GearWizardProps): React.JSX.Element {
   const [answers, setAnswers] = useState<WizardAnswers>({});
   const [stepIndex, setStepIndex] = useState(0);
   const [cursor, setCursor] = useState(0);
@@ -52,35 +94,48 @@ export function GearWizard({ supportsImages, onComplete, onQuit }: GearWizardPro
 
   // Reset the highlight when the step changes — to the current answer if one exists.
   useEffect(() => {
-    if (!meta.field) { setCursor(0); return; }
+    if (!meta.field) {
+      setCursor(0);
+      return;
+    }
     const current = answers[meta.field];
-    const idx = options.findIndex(o => o.value === current);
+    const idx = options.findIndex((o) => o.value === current);
     setCursor(idx >= 0 ? idx : 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepId]);
 
   function goBack(): void {
-    if (safeIndex === 0) { onQuit(); return; }
+    if (safeIndex === 0) {
+      onQuit();
+      return;
+    }
     setStepIndex(safeIndex - 1);
   }
 
   function selectCurrent(): void {
     const opt = options[cursor];
     if (!opt || !meta.field) return;
-    setAnswers(prev => ({ ...prev, [meta.field!]: opt.value }));
+    setAnswers((prev) => ({ ...prev, [meta.field!]: opt.value }));
     setStepIndex(safeIndex + 1);
   }
 
   useInput((input, key) => {
-    if (input === 'q') { onQuit(); return; }
-    if (key.backspace || key.delete || key.leftArrow) { goBack(); return; }
+    if (input === 'q') {
+      onQuit();
+      return;
+    }
+    if (key.backspace || key.delete || key.leftArrow) {
+      goBack();
+      return;
+    }
 
     if (stepId === 'confirm') {
       if (key.return) onComplete(answers);
       return;
     }
-    if (key.upArrow) setCursor(c => (c - 1 + options.length) % options.length);
-    else if (key.downArrow) setCursor(c => (c + 1) % options.length);
+    if (key.upArrow)
+      setCursor((c) => (c - 1 + options.length) % options.length);
+    else if (key.downArrow) setCursor((c) => (c + 1) % options.length);
     else if (key.return) selectCurrent();
   });
 
@@ -89,12 +144,21 @@ export function GearWizard({ supportsImages, onComplete, onQuit }: GearWizardPro
       {/* Progress dots */}
       <Box marginBottom={1}>
         <Text>
-          {steps.map((_, i) => (i === safeIndex ? '● ' : i < safeIndex ? '● ' : '○ ')).join('')}
+          {steps
+            .map((_, i) =>
+              i === safeIndex ? '● ' : i < safeIndex ? '● ' : '○ ',
+            )
+            .join('')}
         </Text>
-        <Text dimColor>  step {safeIndex + 1} of {steps.length}</Text>
+        <Text dimColor>
+          {' '}
+          step {safeIndex + 1} of {steps.length}
+        </Text>
       </Box>
 
-      <Text bold color="cyan">{meta.title}</Text>
+      <Text bold color="cyan">
+        {meta.title}
+      </Text>
       <Box height={1} />
 
       {stepId === 'confirm' ? (
@@ -126,8 +190,16 @@ export function GearWizard({ supportsImages, onComplete, onQuit }: GearWizardPro
   );
 }
 
-function ConfirmCard({ answers, supportsImages }: { answers: WizardAnswers; supportsImages: boolean }): React.JSX.Element {
-  const categoryOpt = CATEGORY_OPTIONS.find(o => o.value === answers.category);
+function ConfirmCard({
+  answers,
+  supportsImages,
+}: {
+  answers: WizardAnswers;
+  supportsImages: boolean;
+}): React.JSX.Element {
+  const categoryOpt = CATEGORY_OPTIONS.find(
+    (o) => o.value === answers.category,
+  );
   const rows: Array<[string, string | undefined]> = [
     ['Looking for', answers.category ? LABELS[answers.category] : undefined],
     ['Board profile', answers.profile ? LABELS[answers.profile] : undefined],
@@ -139,17 +211,28 @@ function ConfirmCard({ answers, supportsImages }: { answers: WizardAnswers; supp
     <Box borderStyle="round" borderColor="green" paddingX={1}>
       {categoryOpt?.image && (
         <Box marginRight={1}>
-          <TerminalImage source={resolveAssetPath(categoryOpt.image)} supportsImages={supportsImages} width={16} height={7} />
+          <TerminalImage
+            source={resolveAssetPath(categoryOpt.image)}
+            supportsImages={supportsImages}
+            width={16}
+            height={7}
+          />
         </Box>
       )}
       <Box flexDirection="column">
-        {rows.filter(([, v]) => v).map(([k, v]) => (
-          <Box key={k}>
-            <Text dimColor>{k}: </Text>
-            <Text bold color="green">{v}</Text>
-          </Box>
-        ))}
-        <Box marginTop={1}><Text>Press ↵ to find your gear.</Text></Box>
+        {rows
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <Box key={k}>
+              <Text dimColor>{k}: </Text>
+              <Text bold color="green">
+                {v}
+              </Text>
+            </Box>
+          ))}
+        <Box marginTop={1}>
+          <Text>Press ↵ to find your gear.</Text>
+        </Box>
       </Box>
     </Box>
   );

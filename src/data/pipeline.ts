@@ -11,9 +11,10 @@
  *   - Throws AbortError (no retry) on 4xx non-429 (permanent failures)
  *   - 15s timeout per request via AbortController
  */
-import { fetch } from 'undici';
+
 import PQueue from 'p-queue';
 import pRetry, { AbortError } from 'p-retry';
+import { fetch } from 'undici';
 
 /** Options for constructing a RequestPipeline. */
 export interface RequestPipelineOptions {
@@ -41,7 +42,8 @@ export class RequestPipeline {
     this.concurrency = opts.concurrency ?? 2;
     this.timeout = opts.timeout ?? 15_000;
     this.userAgent =
-      opts.userAgent ?? 'shred-scout/1.0.0 (https://github.com/user/shred-scout)';
+      opts.userAgent ??
+      'shred-scout/1.0.0 (https://github.com/user/shred-scout)';
   }
 
   private getQueue(hostname: string): PQueue {

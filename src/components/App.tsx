@@ -5,29 +5,41 @@
  * Phase 8: api-key screen, AgentLoop construction, and apiKey state removed.
  * Screen flow: onboarding → search → wishlist → history.
  */
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
-import type { RiderProfile } from '../types/profile.js';
-import { readProfile } from '../lib/profile.js';
-import { WizardScreen } from './wizard/WizardScreen.js';
-import { GearWizard } from './wizard/GearWizard.js';
-import { wizardToSearch, type WizardAnswers } from './wizard/wizard-config.js';
-import { Header } from './Header.js';
-import { SearchView } from './SearchView.js';
-import { WishlistView } from './WishlistView.js';
-import { HistoryView } from './HistoryView.js';
-import { SetupSummaryView } from './SetupSummaryView.js';
+
+import { Box, Text, useApp, useInput } from 'ink';
+import type React from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { openDatabase } from '../data/db.js';
-import { evaluateCompatibility } from '../domain/compatibility/engine.js';
-import { toBoard, toBinding, toBoot } from '../domain/compatibility/product-adapter.js';
-import { makeSetupRepo } from '../data/repos/setupRepo.js';
+import type { NormalizedProduct } from '../data/normalizer.js';
+import type { PriceObservation } from '../data/repos/priceRepo.js';
 import { makePriceRepo } from '../data/repos/priceRepo.js';
 import { makeProductRepo } from '../data/repos/productRepo.js';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
-import type { PriceObservation } from '../data/repos/priceRepo.js';
-import type { NormalizedProduct } from '../data/normalizer.js';
+import { makeSetupRepo } from '../data/repos/setupRepo.js';
+import { evaluateCompatibility } from '../domain/compatibility/engine.js';
+import {
+  toBinding,
+  toBoard,
+  toBoot,
+} from '../domain/compatibility/product-adapter.js';
+import { readProfile } from '../lib/profile.js';
+import type { RiderProfile } from '../types/profile.js';
+import { Header } from './Header.js';
+import { HistoryView } from './HistoryView.js';
+import { SearchView } from './SearchView.js';
+import { SetupSummaryView } from './SetupSummaryView.js';
+import { WishlistView } from './WishlistView.js';
+import { GearWizard } from './wizard/GearWizard.js';
+import { WizardScreen } from './wizard/WizardScreen.js';
+import { type WizardAnswers, wizardToSearch } from './wizard/wizard-config.js';
 
-type Screen = 'onboarding' | 'wizard' | 'search' | 'wishlist' | 'history' | 'summary';
+type Screen =
+  | 'onboarding'
+  | 'wizard'
+  | 'search'
+  | 'wishlist'
+  | 'history'
+  | 'summary';
 
 /** Hardcoded demo rider profile — skips wizard and uses in-memory DB */
 const DEMO_PROFILE: RiderProfile = {
@@ -37,7 +49,11 @@ const DEMO_PROFILE: RiderProfile = {
   ridingStyle: 'all-mountain',
 };
 
-export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX.Element {
+export function App({
+  isDemoMode = false,
+}: {
+  isDemoMode?: boolean;
+}): React.JSX.Element {
   // Detect image protocol support once at mount — cached boolean passed down as prop.
   // iTerm2: TERM_PROGRAM === 'iTerm.app'; Kitty: KITTY_WINDOW_ID is set.
   // Evaluated once (constant, not state) — no re-render triggered. Locked decision: CONTEXT.md.
@@ -60,7 +76,10 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
 
   // Open DB once per app lifetime — repos share this connection.
   // Demo mode uses ':memory:' SQLite so no production data is touched.
-  const db = useMemo(() => openDatabase(isDemoMode ? ':memory:' : undefined), [isDemoMode]);
+  const db = useMemo(
+    () => openDatabase(isDemoMode ? ':memory:' : undefined),
+    [isDemoMode],
+  );
   const setupRepo = useMemo(() => makeSetupRepo(db), [db]);
   const priceRepo = useMemo(() => makePriceRepo(db), [db]);
   const productRepo = useMemo(() => makeProductRepo(db), [db]);
@@ -70,12 +89,20 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
   // Summary screen: snapshot of the complete setup that triggered the transition
   const [summarySetup, setSummarySetup] = useState<SavedSetup | null>(null);
   // The query + pre-applied filters produced by the guided wizard (drives the results screen).
-  const [wizardSearch, setWizardSearch] = useState<{ query: string; filters: string[] } | null>(null);
+  const [wizardSearch, setWizardSearch] = useState<{
+    query: string;
+    filters: string[];
+  } | null>(null);
   // Cached results + filters from the current search, preserved across wishlist/history
   // navigation so returning doesn't re-fetch or reset (B7). A ref so writes don't re-render.
-  const sessionRef = useRef<{ products: NormalizedProduct[]; filters: string[] } | null>(null);
+  const sessionRef = useRef<{
+    products: NormalizedProduct[];
+    filters: string[];
+  } | null>(null);
   // Track which product's history to show in HistoryView
-  const [historyObservations, setHistoryObservations] = useState<PriceObservation[]>([]);
+  const [historyObservations, setHistoryObservations] = useState<
+    PriceObservation[]
+  >([]);
   const [historyProductTitle, setHistoryProductTitle] = useState<string>('');
 
   const { exit } = useApp();
@@ -93,9 +120,19 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
     // onModalChange — so q/w/n never fire mid-typing (B6/B15/B16).
     if (screen === 'search') {
       if (blockQuitRef.current) return;
-      if (input === 'q') { exit(); return; }
-      if (input === 'w') { setSetups(setupRepo.list()); setScreen('wishlist'); return; }
-      if (input === 'n') { setScreen('wizard'); return; }
+      if (input === 'q') {
+        exit();
+        return;
+      }
+      if (input === 'w') {
+        setSetups(setupRepo.list());
+        setScreen('wishlist');
+        return;
+      }
+      if (input === 'n') {
+        setScreen('wizard');
+        return;
+      }
     }
     if (screen === 'wishlist') {
       // Gate 'q' while WishlistView's delete-confirm prompt owns input (UI-4) — same
@@ -131,12 +168,25 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
       // Compute + persist the compatibility snapshot once the setup is complete (B19)
       // so the wishlist CompatBadge renders. Skip if already stored.
       if (!complete.compatibility && profile) {
-        const board = complete.boardId !== null ? productRepo.findById(complete.boardId) : null;
-        const binding = complete.bindingId !== null ? productRepo.findById(complete.bindingId) : null;
-        const boot = complete.bootId !== null ? productRepo.findById(complete.bootId) : null;
+        const board =
+          complete.boardId !== null
+            ? productRepo.findById(complete.boardId)
+            : null;
+        const binding =
+          complete.bindingId !== null
+            ? productRepo.findById(complete.bindingId)
+            : null;
+        const boot =
+          complete.bootId !== null
+            ? productRepo.findById(complete.bootId)
+            : null;
         if (board && binding && boot) {
           const results = evaluateCompatibility(
-            { board: toBoard(board), binding: toBinding(binding), boot: toBoot(profile.bootSize) },
+            {
+              board: toBoard(board),
+              binding: toBinding(binding),
+              boot: toBoot(profile.bootSize),
+            },
             profile,
           );
           setupRepo.setCompatibility(complete.id, results);
@@ -150,7 +200,9 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
     // (badge shows on the summary → wishlist path without a manual refresh) — UI-1.
     setSetups(setupRepo.list());
   }, [setupRepo, productRepo, profile]);
-  const handleModalChange = useCallback((active: boolean) => { blockQuitRef.current = active; }, []);
+  const handleModalChange = useCallback((active: boolean) => {
+    blockQuitRef.current = active;
+  }, []);
 
   // Guided wizard finished — turn the answers into a search and show the results.
   // Clear any cached session so the new wizard query actually runs.
@@ -160,9 +212,12 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
     setScreen('search');
   }, []);
 
-  const handleSession = useCallback((products: NormalizedProduct[], filters: string[]) => {
-    sessionRef.current = { products, filters };
-  }, []);
+  const handleSession = useCallback(
+    (products: NormalizedProduct[], filters: string[]) => {
+      sessionRef.current = { products, filters };
+    },
+    [],
+  );
 
   const handleOpenHistory = (productId: number): void => {
     const observations = priceRepo.history(productId);
@@ -236,8 +291,14 @@ export function App({ isDemoMode = false }: { isDemoMode?: boolean }): React.JSX
           setup={summarySetup}
           productRepo={productRepo}
           rider={profile}
-          onWishlist={() => { setSummarySetup(null); setScreen('wishlist'); }}
-          onNewSearch={() => { setSummarySetup(null); setScreen('wizard'); }}
+          onWishlist={() => {
+            setSummarySetup(null);
+            setScreen('wishlist');
+          }}
+          onNewSearch={() => {
+            setSummarySetup(null);
+            setScreen('wizard');
+          }}
           onToggleAlert={handleToggleAlert}
         />
       </>

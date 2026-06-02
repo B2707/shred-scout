@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import React, { act } from 'react';
 import { render } from 'ink-testing-library';
+import React, { act } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SavedSetup } from '../src/data/repos/setupRepo.js';
 
 afterEach(() => {
@@ -32,7 +32,7 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('Your wishlist is empty');
   });
@@ -54,7 +54,7 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('Burton Custom');
   });
@@ -70,7 +70,7 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('[WATCHING]');
   });
@@ -86,7 +86,7 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('Wishlist');
     expect(lastFrame()).toContain('1 saved');
@@ -102,7 +102,7 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('d delete');
     expect(lastFrame()).toContain('h history');
@@ -120,9 +120,11 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onModalChange,
-      })
+      }),
     );
-    await act(async () => { stdin.write('d'); });
+    await act(async () => {
+      stdin.write('d');
+    });
     expect(lastFrame()).toContain('[y/n]');
     expect(onModalChange).toHaveBeenLastCalledWith(true);
   });
@@ -138,10 +140,14 @@ describe('WishlistView', () => {
         onToggleAlert: vi.fn(),
         onOpenHistory: vi.fn(),
         onModalChange,
-      })
+      }),
     );
-    await act(async () => { stdin.write('d'); });
-    await act(async () => { stdin.write('n'); });
+    await act(async () => {
+      stdin.write('d');
+    });
+    await act(async () => {
+      stdin.write('n');
+    });
     expect(onModalChange).toHaveBeenLastCalledWith(false);
   });
 });

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React, { act } from 'react';
 import { render } from 'ink-testing-library';
+import React, { act } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/lib/profile.js', () => ({
   readProfile: vi.fn().mockReturnValue(null),
@@ -8,9 +8,15 @@ vi.mock('../src/lib/profile.js', () => ({
   readApiKey: vi.fn().mockReturnValue(null),
   writeApiKey: vi.fn(),
   loadApiKeyToEnv: vi.fn(),
-  validateBootSize: vi.fn().mockImplementation((v: number) => !isNaN(v) && v >= 4.0 && v <= 18.0),
-  validateHeightCm: vi.fn().mockImplementation((cm: number) => !isNaN(cm) && cm >= 120 && cm <= 250),
-  validateWeightKg: vi.fn().mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
+  validateBootSize: vi
+    .fn()
+    .mockImplementation((v: number) => !isNaN(v) && v >= 4.0 && v <= 18.0),
+  validateHeightCm: vi
+    .fn()
+    .mockImplementation((cm: number) => !isNaN(cm) && cm >= 120 && cm <= 250),
+  validateWeightKg: vi
+    .fn()
+    .mockImplementation((kg: number) => !isNaN(kg) && kg >= 30 && kg <= 200),
 }));
 
 vi.mock('../src/data/index.js', async (importOriginal) => {
@@ -39,9 +45,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function submitText(stdin: { write: (s: string) => void }, value: string): Promise<void> {
-  await act(async () => { stdin.write(value); });
-  await act(async () => { stdin.write('\r'); });
+async function submitText(
+  stdin: { write: (s: string) => void },
+  value: string,
+): Promise<void> {
+  await act(async () => {
+    stdin.write(value);
+  });
+  await act(async () => {
+    stdin.write('\r');
+  });
 }
 
 describe('App — screen routing', () => {
@@ -53,7 +66,10 @@ describe('App — screen routing', () => {
 
   it('renders Header (not wizard) when profile exists', () => {
     (readProfile as ReturnType<typeof vi.fn>).mockReturnValue({
-      bootSize: 10.5, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain',
+      bootSize: 10.5,
+      heightCm: 178,
+      weightKg: 75,
+      ridingStyle: 'all-mountain',
     });
     const { lastFrame } = render(React.createElement(App));
     expect(lastFrame()).toContain('Boot: 10.5');
@@ -77,11 +93,16 @@ describe('App — screen routing', () => {
 });
 
 describe('App — summary screen routing', () => {
-  it("App renders without crashing when isDemoMode is true (smoke test for summary screen plumbing)", () => {
+  it('App renders without crashing when isDemoMode is true (smoke test for summary screen plumbing)', () => {
     (readProfile as ReturnType<typeof vi.fn>).mockReturnValue({
-      bootSize: 10, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain',
+      bootSize: 10,
+      heightCm: 178,
+      weightKg: 75,
+      ridingStyle: 'all-mountain',
     });
-    const { lastFrame } = render(React.createElement(App, { isDemoMode: true }));
+    const { lastFrame } = render(
+      React.createElement(App, { isDemoMode: true }),
+    );
     // Should render search screen in demo mode (no summary yet)
     expect(lastFrame()).not.toBeNull();
   });
@@ -91,7 +112,9 @@ describe('App — global quit handler', () => {
   it('exits via ink useApp().exit() when q is pressed — does not call process.exit directly', async () => {
     (readProfile as ReturnType<typeof vi.fn>).mockReturnValue(null);
     const { stdin } = render(React.createElement(App));
-    await act(async () => { stdin.write('q'); });
+    await act(async () => {
+      stdin.write('q');
+    });
     expect(process.exit).not.toHaveBeenCalled();
   });
 });

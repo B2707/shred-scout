@@ -2,8 +2,9 @@
  * html-scraper.test.ts — Unit tests for EvoHtmlScrapeSource (DATA-03, DATA-04).
  * Uses undici MockAgent to intercept HTTP — no real network required.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { MockAgent, setGlobalDispatcher } from 'undici';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RequestPipeline } from '../src/data/pipeline.js';
 
 let mockAgent: MockAgent;
@@ -24,22 +25,26 @@ describe('EvoHtmlScrapeSource', () => {
   it('fetches evo.com listing HTML and returns NormalizedProduct[]', async () => {
     const { EvoHtmlScrapeSource } = await import('../src/data/scrapers/evo.js');
     const pool = mockAgent.get('https://www.evo.com');
-    pool.intercept({ path: '/snowboards', method: 'GET' })
-      .reply(200,
-        `<html><body>
+    pool.intercept({ path: '/snowboards', method: 'GET' }).reply(
+      200,
+      `<html><body>
           <div class="product-thumb-details">
             <a href="/snowboards/yes-greats-2026">Yes Greats 2026</a>
           </div>
         </body></html>`,
-        { headers: { 'content-type': 'text/html' } });
+      { headers: { 'content-type': 'text/html' } },
+    );
     // Mock PDP
-    pool.intercept({ path: '/snowboards/yes-greats-2026', method: 'GET' })
-      .reply(200,
+    pool
+      .intercept({ path: '/snowboards/yes-greats-2026', method: 'GET' })
+      .reply(
+        200,
         `<html><body><h1>YES Greats Snowboard 2026</h1>
           <span class="pdp-spec-list-title"><strong>Waist Width</strong></span>
           <span class="pdp-spec-list-description">254mm</span>
         </body></html>`,
-        { headers: { 'content-type': 'text/html' } });
+        { headers: { 'content-type': 'text/html' } },
+      );
     const scraper = new EvoHtmlScrapeSource();
     const products = await scraper.fetchAll(pipeline);
     expect(products.length).toBe(1);
@@ -50,15 +55,19 @@ describe('EvoHtmlScrapeSource', () => {
   it('throws when listing returns a Cloudflare challenge page', async () => {
     const { EvoHtmlScrapeSource } = await import('../src/data/scrapers/evo.js');
     const pool = mockAgent.get('https://www.evo.com');
-    pool.intercept({ path: '/snowboards', method: 'GET' })
-      .reply(403,
+    pool
+      .intercept({ path: '/snowboards', method: 'GET' })
+      .reply(
+        403,
         '<html><body><h1>Attention Required | Cloudflare</h1></body></html>',
-        { headers: { 'content-type': 'text/html' } });
+        { headers: { 'content-type': 'text/html' } },
+      );
     // ALT URL also fails
-    pool.intercept({ path: '/shop/snowboard/snowboards', method: 'GET' })
-      .reply(200,
-        '<html><body>Cloudflare ray id: abc</body></html>',
-        { headers: { 'content-type': 'text/html' } });
+    pool
+      .intercept({ path: '/shop/snowboard/snowboards', method: 'GET' })
+      .reply(200, '<html><body>Cloudflare ray id: abc</body></html>', {
+        headers: { 'content-type': 'text/html' },
+      });
     const scraper = new EvoHtmlScrapeSource();
     await expect(scraper.fetchAll(pipeline)).rejects.toThrow(/Cloudflare/);
   });
@@ -88,19 +97,24 @@ describe('EvoHtmlScrapeSource', () => {
   it('skips individual PDP failures without aborting the whole fetch', async () => {
     const { EvoHtmlScrapeSource } = await import('../src/data/scrapers/evo.js');
     const pool = mockAgent.get('https://www.evo.com');
-    pool.intercept({ path: '/snowboards', method: 'GET' })
-      .reply(200,
-        `<html><body>
+    pool.intercept({ path: '/snowboards', method: 'GET' }).reply(
+      200,
+      `<html><body>
           <div class="product-thumb-details"><a href="/snowboards/good-board">Good Board</a></div>
           <div class="product-thumb-details"><a href="/snowboards/bad-board">Bad Board</a></div>
         </body></html>`,
-        { headers: { 'content-type': 'text/html' } });
-    pool.intercept({ path: '/snowboards/good-board', method: 'GET' })
-      .reply(200, '<html><body><h1>Good Board 2026</h1></body></html>',
-        { headers: { 'content-type': 'text/html' } });
-    pool.intercept({ path: '/snowboards/bad-board', method: 'GET' })
-      .reply(500, 'Internal Server Error',
-        { headers: { 'content-type': 'text/plain' } });
+      { headers: { 'content-type': 'text/html' } },
+    );
+    pool
+      .intercept({ path: '/snowboards/good-board', method: 'GET' })
+      .reply(200, '<html><body><h1>Good Board 2026</h1></body></html>', {
+        headers: { 'content-type': 'text/html' },
+      });
+    pool
+      .intercept({ path: '/snowboards/bad-board', method: 'GET' })
+      .reply(500, 'Internal Server Error', {
+        headers: { 'content-type': 'text/plain' },
+      });
     const scraper = new EvoHtmlScrapeSource();
     const products = await scraper.fetchAll(pipeline);
     // Only 1 product (bad-board PDP fails → null → filtered out)

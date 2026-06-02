@@ -10,8 +10,9 @@
  *
  * Caller is responsible for wrapping badges in <Box gap={1}> for horizontal spacing.
  */
-import React from 'react';
+
 import { Text } from 'ink';
+import type React from 'react';
 import type { RuleResult } from '../domain/compatibility/types.js';
 
 const BADGE_COLOR: Record<string, string> = {

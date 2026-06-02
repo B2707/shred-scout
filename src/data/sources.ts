@@ -8,8 +8,9 @@
  * ShopifySource wraps the existing fetchAllProducts() + normalizeProduct()
  * pipeline from shopify.ts.
  */
-import type { RequestPipeline } from './pipeline.js';
+
 import type { NormalizedProduct } from './normalizer.js';
+import type { RequestPipeline } from './pipeline.js';
 
 /** Common interface implemented by all product sources (Shopify, HTML scrapers). */
 export interface ProductSource {
@@ -30,6 +31,6 @@ export class ShopifySource implements ProductSource {
     const { fetchAllProducts } = await import('./shopify.js');
     const { normalizeProduct } = await import('./normalizer.js');
     const raws = await fetchAllProducts(this.baseUrl, pipeline);
-    return raws.map(raw => normalizeProduct(raw, this.name));
+    return raws.map((raw) => normalizeProduct(raw, this.name));
   }
 }

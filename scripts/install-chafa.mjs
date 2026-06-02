@@ -30,11 +30,17 @@ try {
   } else if (process.platform === 'linux') {
     execSync('apt-get install -y chafa', { stdio: 'inherit', timeout: 30000 });
   } else {
-    console.log('[shred-scout] chafa not available for this platform — image fallback will use text cards.');
-    console.log('[shred-scout] Install manually if supported: https://hpjansson.org/chafa/');
+    console.log(
+      '[shred-scout] chafa not available for this platform — image fallback will use text cards.',
+    );
+    console.log(
+      '[shred-scout] Install manually if supported: https://hpjansson.org/chafa/',
+    );
   }
 } catch {
-  console.log('[shred-scout] chafa auto-install failed — image fallback will use text cards. Install manually: brew install chafa (macOS) or apt-get install chafa (Linux)');
+  console.log(
+    '[shred-scout] chafa auto-install failed — image fallback will use text cards. Install manually: brew install chafa (macOS) or apt-get install chafa (Linux)',
+  );
 }
 
 process.exit(0);

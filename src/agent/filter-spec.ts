@@ -34,11 +34,15 @@ export function applyFilterSpec(
   spec: FilterSpec,
 ): NormalizedProduct[] {
   return products.filter((p) => {
-    if (spec.priceMax !== undefined && p.price_cents > spec.priceMax * 100) return false;
-    if (spec.gearType !== undefined && p.gear_category !== spec.gearType) return false;
-    if (spec.retailer !== undefined && p.retailer !== spec.retailer) return false;
+    if (spec.priceMax !== undefined && p.price_cents > spec.priceMax * 100)
+      return false;
+    if (spec.gearType !== undefined && p.gear_category !== spec.gearType)
+      return false;
+    if (spec.retailer !== undefined && p.retailer !== spec.retailer)
+      return false;
     if (spec.color !== undefined) {
-      if (!p.title.toLowerCase().includes(spec.color.toLowerCase())) return false;
+      if (!p.title.toLowerCase().includes(spec.color.toLowerCase()))
+        return false;
     }
     if (spec.flex !== undefined) {
       // Phase 4 best-effort: title keyword match. Phase 7 PDP scraping will use real flex data.

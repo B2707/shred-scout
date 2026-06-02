@@ -5,14 +5,20 @@
  * Phase 9: final screen in the save flow. Triggered by handleSetupSaved in App.tsx
  * when setupRepo.findCompleteSetup() returns a non-null row.
  */
-import React, { useState } from 'react';
+
 import { Box, Text, useInput } from 'ink';
-import type { SavedSetup } from '../data/repos/setupRepo.js';
-import type { makeProductRepo } from '../data/repos/productRepo.js';
-import type { RiderProfile } from '../types/profile.js';
+import type React from 'react';
+import { useState } from 'react';
 import type { NormalizedProduct } from '../data/normalizer.js';
+import type { makeProductRepo } from '../data/repos/productRepo.js';
+import type { SavedSetup } from '../data/repos/setupRepo.js';
 import { evaluateCompatibility } from '../domain/compatibility/engine.js';
-import { toBoard, toBinding, toBoot } from '../domain/compatibility/product-adapter.js';
+import {
+  toBinding,
+  toBoard,
+  toBoot,
+} from '../domain/compatibility/product-adapter.js';
+import type { RiderProfile } from '../types/profile.js';
 
 export interface SetupSummaryViewProps {
   /** The complete setup to display. boardId/bindingId/bootId are guaranteed non-null by caller. */
@@ -64,10 +70,10 @@ export function SetupSummaryView({
         binding: toBinding(binding),
         boot: toBoot(rider.bootSize),
       },
-      rider
+      rider,
     );
-    const hasFail = results.some(r => r.verdict === 'fail');
-    const hasWarn = results.some(r => r.verdict === 'warn');
+    const hasFail = results.some((r) => r.verdict === 'fail');
+    const hasWarn = results.some((r) => r.verdict === 'warn');
     if (hasFail) {
       verdictLabel = 'FAIL';
       verdictColor = 'red';
@@ -78,7 +84,7 @@ export function SetupSummaryView({
       verdictLabel = 'PASS';
       verdictColor = 'green';
     }
-    reasons = results.map(r => r.reason);
+    reasons = results.map((r) => r.reason);
   }
 
   useInput((input) => {
@@ -91,7 +97,10 @@ export function SetupSummaryView({
     }
   });
 
-  function renderSlot(label: string, product: NormalizedProduct | null): React.JSX.Element {
+  function renderSlot(
+    label: string,
+    product: NormalizedProduct | null,
+  ): React.JSX.Element {
     if (!product) {
       return (
         <Box key={label}>
@@ -104,15 +113,19 @@ export function SetupSummaryView({
       <Box key={label}>
         <Text dimColor>{label}: </Text>
         <Text>{product.title}</Text>
-        <Text>  </Text>
-        <Text bold color="green">{formatPrice(product.price_cents)}</Text>
+        <Text> </Text>
+        <Text bold color="green">
+          {formatPrice(product.price_cents)}
+        </Text>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text bold color="cyan">Setup Complete</Text>
+      <Text bold color="cyan">
+        Setup Complete
+      </Text>
 
       <Box marginTop={1} flexDirection="column">
         {renderSlot('board', board)}
@@ -122,7 +135,9 @@ export function SetupSummaryView({
 
       <Box marginTop={1}>
         {missing ? (
-          <Text color="yellow">Cannot compute compatibility — missing product data</Text>
+          <Text color="yellow">
+            Cannot compute compatibility — missing product data
+          </Text>
         ) : (
           <Text color={verdictColor} bold>
             {verdictLabel}: {reasons.join('; ')}
@@ -132,14 +147,21 @@ export function SetupSummaryView({
 
       <Box marginTop={1}>
         {alertEnabled ? (
-          <Text color="green">🔔 Price alert on — watching this setup for price drops</Text>
+          <Text color="green">
+            🔔 Price alert on — watching this setup for price drops
+          </Text>
         ) : (
-          <Text dimColor>Price alert off — press [a] to watch this setup for price drops</Text>
+          <Text dimColor>
+            Price alert off — press [a] to watch this setup for price drops
+          </Text>
         )}
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor>[a] {alertEnabled ? 'disable' : 'enable'} price alert · [q] back to wishlist · [n] new search</Text>
+        <Text dimColor>
+          [a] {alertEnabled ? 'disable' : 'enable'} price alert · [q] back to
+          wishlist · [n] new search
+        </Text>
       </Box>
     </Box>
   );

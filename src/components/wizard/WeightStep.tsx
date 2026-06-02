@@ -1,9 +1,10 @@
 /**
  * WeightStep — TextInput step for weight entry (lbs).
  */
-import React from 'react';
-import { Box, Text } from 'ink';
+
 import { TextInput } from '@inkjs/ui';
+import { Box, Text } from 'ink';
+import type React from 'react';
 
 interface WeightStepProps {
   onSubmit: (raw: string) => void;

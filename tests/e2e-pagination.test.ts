@@ -8,15 +8,15 @@
  * REQUIRES LIVE NETWORK — skipped in CI via process.env.CI guard.
  * Run manually: `vitest run tests/e2e-pagination.test.ts`
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Guard: only run when E2E=1 is explicitly set — never runs in CI or standard npm test
 const RUN_E2E = process.env['E2E'] === '1';
 
-describe.skipIf(!RUN_E2E)('e2e: fetchAllProducts() pagination (DATA-02)', () => {
-  it(
-    'returns more than 250 products from evo.com (full pagination loop verified)',
-    async () => {
+describe.skipIf(!RUN_E2E)(
+  'e2e: fetchAllProducts() pagination (DATA-02)',
+  () => {
+    it('returns more than 250 products from evo.com (full pagination loop verified)', async () => {
       const { RequestPipeline } = await import('../src/data/pipeline.js');
       const { fetchAllProducts } = await import('../src/data/shopify.js');
 
@@ -29,13 +29,9 @@ describe.skipIf(!RUN_E2E)('e2e: fetchAllProducts() pagination (DATA-02)', () => 
 
       // DATA-02: must return more than 250 to prove pagination is working
       expect(products.length).toBeGreaterThan(250);
-    },
-    60_000 // 60s timeout — live network, large paginated response
-  );
+    }, 60_000); // 60s timeout — live network, large paginated response
 
-  it(
-    'each product has required fields (shopify_id, title, variants)',
-    async () => {
+    it('each product has required fields (shopify_id, title, variants)', async () => {
       const { RequestPipeline } = await import('../src/data/pipeline.js');
       const { fetchAllProducts } = await import('../src/data/shopify.js');
 
@@ -48,8 +44,7 @@ describe.skipIf(!RUN_E2E)('e2e: fetchAllProducts() pagination (DATA-02)', () => 
       expect(typeof first?.id).toBe('number');
       expect(typeof first?.title).toBe('string');
       expect(Array.isArray(first?.variants)).toBe(true);
-      expect((first?.variants.length ?? 0)).toBeGreaterThan(0);
-    },
-    60_000
-  );
-});
+      expect(first?.variants.length ?? 0).toBeGreaterThan(0);
+    }, 60_000);
+  },
+);

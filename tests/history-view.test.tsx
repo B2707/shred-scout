@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import React from 'react';
 import { render } from 'ink-testing-library';
+import React from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PriceObservation } from '../src/data/repos/priceRepo.js';
 
 afterEach(() => {
@@ -20,7 +20,7 @@ describe('HistoryView', () => {
         observations: [],
         productTitle: 'Burton Custom',
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('No price history yet');
   });
@@ -32,7 +32,7 @@ describe('HistoryView', () => {
         observations: [makeObs(54999, 1), makeObs(59999, 2)],
         productTitle: 'Burton Custom Flying V',
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('Price History');
     expect(lastFrame()).toContain('Burton Custom Flying V');
@@ -45,7 +45,7 @@ describe('HistoryView', () => {
         observations: [makeObs(54999, 1), makeObs(59999, 2)],
         productTitle: 'Board',
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('$549.99');
   });
@@ -57,7 +57,7 @@ describe('HistoryView', () => {
         observations: [makeObs(50000, 1)],
         productTitle: 'Board',
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('When');
     expect(lastFrame()).toContain('Price');
@@ -71,7 +71,7 @@ describe('HistoryView', () => {
         observations: [makeObs(50000, 1)],
         productTitle: 'Board',
         onBack: vi.fn(),
-      })
+      }),
     );
     expect(lastFrame()).toContain('q back');
   });

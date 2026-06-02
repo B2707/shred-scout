@@ -12,9 +12,9 @@
  * and the error surfaces in runSearch()'s errors[] — Shopify sources continue unaffected.
  */
 import * as cheerio from 'cheerio';
-import type { RequestPipeline } from '../pipeline.js';
-import type { NormalizedProduct, GearCategory } from '../normalizer.js';
 import type { MountPattern } from '../../domain/compatibility/types.js';
+import type { GearCategory, NormalizedProduct } from '../normalizer.js';
+import type { RequestPipeline } from '../pipeline.js';
 import type { ProductSource } from '../sources.js';
 
 // --- CSS Selectors (verify on each release against live evo.com) ---
@@ -40,7 +40,11 @@ export interface EvoSpecs {
  */
 export function extractSpecs(html: string): EvoSpecs {
   const $ = cheerio.load(html);
-  const specs: EvoSpecs = { waist_width_mm: null, flex_rating: null, mount_pattern_raw: null };
+  const specs: EvoSpecs = {
+    waist_width_mm: null,
+    flex_rating: null,
+    mount_pattern_raw: null,
+  };
 
   // Try spec list (parallel title/desc arrays)
   const titles = $(SPEC_TITLE_SELECTOR).toArray();
@@ -150,7 +154,8 @@ export class EvoHtmlScrapeSource implements ProductSource {
     // Cloudflare block detection
     if (productPaths.length === 0) {
       const isCloudflare =
-        listingHtml.includes('Cloudflare') || listingHtml.includes('Attention Required');
+        listingHtml.includes('Cloudflare') ||
+        listingHtml.includes('Attention Required');
       throw new Error(
         isCloudflare
           ? 'evo.com listing returned no products — possible Cloudflare block'
@@ -159,12 +164,15 @@ export class EvoHtmlScrapeSource implements ProductSource {
     }
 
     const results = await Promise.all(
-      productPaths.map(path => this.#fetchPdp(pipeline, path)),
+      productPaths.map((path) => this.#fetchPdp(pipeline, path)),
     );
     return results.filter((p): p is NormalizedProduct => p !== null);
   }
 
-  async #fetchPdp(pipeline: RequestPipeline, path: string): Promise<NormalizedProduct | null> {
+  async #fetchPdp(
+    pipeline: RequestPipeline,
+    path: string,
+  ): Promise<NormalizedProduct | null> {
     try {
       const url = `https://www.evo.com${path}`;
       const res = await pipeline.fetch(url);

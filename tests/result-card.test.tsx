@@ -2,9 +2,10 @@
  * ResultCard component tests — covers PRES-01.
  * terminal-image is mocked to return a fixed ANSI string — no real terminal required.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React, { act } from 'react';
+
 import { render } from 'ink-testing-library';
+import React, { act } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Must be hoisted: terminal-image uses async buffer() API — mock before ResultCard import
 vi.mock('terminal-image', () => ({
@@ -21,7 +22,10 @@ vi.mock('execa', () => ({
 // A successful image response — ResultCard validates res.ok + content-type before rendering.
 const okImageResponse = () => ({
   ok: true,
-  headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/jpeg' : null) },
+  headers: {
+    get: (h: string) =>
+      h.toLowerCase() === 'content-type' ? 'image/jpeg' : null,
+  },
   arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
 });
 
@@ -55,7 +59,9 @@ const baseProduct = {
   mount_pattern_raw: '4x4',
   image_url: 'https://cdn.shopify.com/test.jpg',
   price_cents: 64999,
-  variants_json: JSON.stringify([{ price: '649.99', compare_at_price: null, option1: 'L' }]),
+  variants_json: JSON.stringify([
+    { price: '649.99', compare_at_price: null, option1: 'L' },
+  ]),
   fetched_at: Date.now(),
 };
 
@@ -63,7 +69,10 @@ describe('ResultCard', () => {
   it('renders product title and price in text-only mode (supportsImages=false)', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: false,
+      }),
     );
     expect(lastFrame()).toContain('Never Summer Proto Synthesis');
     expect(lastFrame()).toContain('649.99');
@@ -73,7 +82,10 @@ describe('ResultCard', () => {
   it('shows "Price unavailable" instead of $0.00 for an unpriced product (B9)', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: { ...baseProduct, price_cents: 0 }, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: { ...baseProduct, price_cents: 0 },
+        supportsImages: false,
+      }),
     );
     const frame = lastFrame() ?? '';
     expect(frame).not.toContain('$0.00');
@@ -82,25 +94,50 @@ describe('ResultCard', () => {
 
   it('shows a compatibility badge for the rider on a board card (A2/A3)', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
-    const rider = { bootSize: 10, heightCm: 180, weightKg: 80, ridingStyle: 'all-mountain' };
-    const board = { ...baseProduct, gear_category: 'board' as const, waist_width_mm: 255 };
+    const rider = {
+      bootSize: 10,
+      heightCm: 180,
+      weightKg: 80,
+      ridingStyle: 'all-mountain',
+    };
+    const board = {
+      ...baseProduct,
+      gear_category: 'board' as const,
+      waist_width_mm: 255,
+    };
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: board, supportsImages: false, rider }),
+      React.createElement(ResultCard, {
+        product: board,
+        supportsImages: false,
+        rider,
+      }),
     );
     expect(lastFrame()).toContain('Fits your US 10 boots');
   });
 
   it('shows a size-availability badge on a boot card (SC-05)', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
-    const rider = { bootSize: 10, heightCm: 180, weightKg: 80, ridingStyle: 'all-mountain' };
+    const rider = {
+      bootSize: 10,
+      heightCm: 180,
+      weightKg: 80,
+      ridingStyle: 'all-mountain',
+    };
     const boot = {
       ...baseProduct,
       gear_category: 'boot' as const,
       title: 'Thirtytwo Lashed Boot',
-      variants_json: JSON.stringify([{ price: '299.99', compare_at_price: null, option1: '9' }, { price: '299.99', compare_at_price: null, option1: '10' }]),
+      variants_json: JSON.stringify([
+        { price: '299.99', compare_at_price: null, option1: '9' },
+        { price: '299.99', compare_at_price: null, option1: '10' },
+      ]),
     };
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: boot, supportsImages: false, rider }),
+      React.createElement(ResultCard, {
+        product: boot,
+        supportsImages: false,
+        rider,
+      }),
     );
     expect(lastFrame()).toMatch(/US 10/);
   });
@@ -108,7 +145,10 @@ describe('ResultCard', () => {
   it('omits the compatibility badge when no rider is provided', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: false,
+      }),
     );
     expect(lastFrame() ?? '').not.toMatch(/Fits your|unverified|Won't fit/);
   });
@@ -116,7 +156,10 @@ describe('ResultCard', () => {
   it('renders retailer metadata (gear_category · retailer) in text-only mode', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: false,
+      }),
     );
     expect(lastFrame()).toContain('board');
     expect(lastFrame()).toContain('evo');
@@ -125,7 +168,10 @@ describe('ResultCard', () => {
   it('does NOT render image section when supportsImages=false', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: false,
+      }),
     );
     expect(lastFrame()).not.toContain('[mock-image]');
   });
@@ -133,7 +179,10 @@ describe('ResultCard', () => {
   it('sets imageAnsi state when supportsImages=true and image_url is set', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: true }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: true,
+      }),
     );
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
@@ -145,12 +194,18 @@ describe('ResultCard', () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 404,
-      headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'text/html' : null) },
+      headers: {
+        get: (h: string) =>
+          h.toLowerCase() === 'content-type' ? 'text/html' : null,
+      },
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(16)),
     });
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: true }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: true,
+      }),
     );
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
@@ -163,7 +218,10 @@ describe('ResultCard', () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const nullImageProduct = { ...baseProduct, image_url: null };
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: nullImageProduct, supportsImages: true }),
+      React.createElement(ResultCard, {
+        product: nullImageProduct,
+        supportsImages: true,
+      }),
     );
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
@@ -182,7 +240,10 @@ describe('ResultCard', () => {
       ]),
     };
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: saleProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: saleProduct,
+        supportsImages: false,
+      }),
     );
     expect(lastFrame()).toContain('% OFF');
   });
@@ -195,7 +256,10 @@ describe('ResultCard', () => {
       waist_width_mm: 254,
     };
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: specProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: specProduct,
+        supportsImages: false,
+      }),
     );
     expect(lastFrame()).toContain('254mm');
     expect(lastFrame()).toContain('6/10 flex');
@@ -204,7 +268,10 @@ describe('ResultCard', () => {
   it('omits spec line when all spec fields are null (Shopify products unchanged)', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: false,
+      }),
     );
     // Spec line absent — no ⬙ diamond character
     expect(lastFrame()).not.toContain('⬙');
@@ -215,7 +282,10 @@ describe('ResultCard', () => {
   it('renders round-border top-left corner character ╭ (borderStyle="round")', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: false }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: false,
+      }),
     );
     // Ink's borderStyle="round" uses ╭ (U+256D) as the top-left corner character
     expect(lastFrame()).toContain('╭');
@@ -224,27 +294,36 @@ describe('ResultCard', () => {
   it('aborts image fetch when component unmounts mid-fetch', async () => {
     const abortSpy = vi.fn();
     // Replace global fetch with a fetch that never resolves so the effect stays active
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    );
 
     // Capture the AbortController instance created by the component
     let capturedCtrl: { abort: () => void } | undefined;
     const OrigAbortController = globalThis.AbortController;
-    vi.stubGlobal('AbortController', class MockAbortController extends OrigAbortController {
-      constructor() {
-        super();
-        capturedCtrl = this;
-        // Override abort to spy on it
-        const origAbort = this.abort.bind(this);
-        this.abort = () => {
-          abortSpy();
-          origAbort();
-        };
-      }
-    });
+    vi.stubGlobal(
+      'AbortController',
+      class MockAbortController extends OrigAbortController {
+        constructor() {
+          super();
+          capturedCtrl = this;
+          // Override abort to spy on it
+          const origAbort = this.abort.bind(this);
+          this.abort = () => {
+            abortSpy();
+            origAbort();
+          };
+        }
+      },
+    );
 
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { unmount } = render(
-      React.createElement(ResultCard, { product: baseProduct, supportsImages: true }),
+      React.createElement(ResultCard, {
+        product: baseProduct,
+        supportsImages: true,
+      }),
     );
 
     // Allow the useEffect to kick off

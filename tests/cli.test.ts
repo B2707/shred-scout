@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { execaNode } from 'execa';
 import { resolve } from 'node:path';
+import { execaNode } from 'execa';
+import { describe, expect, it } from 'vitest';
 
 const CLI = resolve(import.meta.dirname, '../dist/cli.js');
 

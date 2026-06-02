@@ -15,19 +15,19 @@
  * No LLM involvement. No EventEmitter. No AbortController.
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type Database from 'better-sqlite3';
-import type { RiderProfile } from '../types/profile.js';
+import { makeProductRepo, openDatabase } from '../data/index.js';
 import type { NormalizedProduct } from '../data/normalizer.js';
 import type { RequestPipeline } from '../data/pipeline.js';
-import { openDatabase, makeProductRepo } from '../data/index.js';
 import { makeRetailerRepo } from '../data/repos/retailerRepo.js';
-import { loadStores } from '../data/stores.js';
-import { SmartShopifySource } from '../data/smart-source.js';
 import { EvoHtmlScrapeSource } from '../data/scrapers/evo.js';
+import { SmartShopifySource } from '../data/smart-source.js';
 import type { ProductSource } from '../data/sources.js';
+import { loadStores } from '../data/stores.js';
 import { resolveAssetPath } from '../lib/assets.js';
+import type { RiderProfile } from '../types/profile.js';
 
 /** Bundled category icon used as the offline demo thumbnail for each gear type (SC-03). */
 const DEMO_CATEGORY_ASSET: Record<string, string> = {
@@ -42,8 +42,9 @@ const DEMO_CATEGORY_ASSET: Record<string, string> = {
  * always render an image instead of an empty reserved box (SC-03).
  */
 function withDemoImages(products: NormalizedProduct[]): NormalizedProduct[] {
-  return products.map(p => {
-    const asset = DEMO_CATEGORY_ASSET[String(p.gear_category)] ?? 'cat-setup.png';
+  return products.map((p) => {
+    const asset =
+      DEMO_CATEGORY_ASSET[String(p.gear_category)] ?? 'cat-setup.png';
     return { ...p, image_url: resolveAssetPath(asset) };
   });
 }
@@ -91,12 +92,21 @@ export async function runSearch(
       resolve(__dirname, '../../src/fixtures/demo-products.json'),
       resolve(__dirname, '../fixtures/demo-products.json'),
     ];
-    const fixturePath = candidates.find(p => {
-      try { readFileSync(p); return true; } catch { return false; }
-    }) ?? candidates[0];
+    const fixturePath =
+      candidates.find((p) => {
+        try {
+          readFileSync(p);
+          return true;
+        } catch {
+          return false;
+        }
+      }) ?? candidates[0];
     const fixtureJson = readFileSync(fixturePath, 'utf-8');
     const products = JSON.parse(fixtureJson) as NormalizedProduct[];
-    return { products: withDemoImages(filterByQuery(products, query)), errors: [] };
+    return {
+      products: withDemoImages(filterByQuery(products, query)),
+      errors: [],
+    };
   }
 
   // Use caller-provided connection when available — avoids double-open and SQLite
@@ -114,9 +124,13 @@ export async function runSearch(
   // One source per configured store, picking the scraper by host: evo.com uses the HTML
   // scraper, everything else the Shopify source. Previously evo was ALSO appended
   // unconditionally, so it was queried twice — once as Shopify against evo, once as HTML (B21).
-  const sources: ProductSource[] = configs.map(c => {
+  const sources: ProductSource[] = configs.map((c) => {
     let host = '';
-    try { host = new URL(c.storeUrl).hostname.replace(/^www\./, ''); } catch { /* keep '' */ }
+    try {
+      host = new URL(c.storeUrl).hostname.replace(/^www\./, '');
+    } catch {
+      /* keep '' */
+    }
     return host.includes('evo.com')
       ? new EvoHtmlScrapeSource()
       : new SmartShopifySource(c.name, c.storeUrl, c.storefrontToken);
@@ -137,7 +151,9 @@ export async function runSearch(
         // evo is a best-effort HTML scraper behind Cloudflare; its failure must not spam a
         // yellow error banner on every live search — skip it silently (B21).
         if (source instanceof EvoHtmlScrapeSource) continue;
-        errors.push(`${source.name}: ${err instanceof Error ? err.message : String(err)}`);
+        errors.push(
+          `${source.name}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 
@@ -153,9 +169,15 @@ export async function runSearch(
  * say "Snowboard" (compound) rather than the bare plural.
  */
 const CATEGORY_SYNONYMS: Record<string, 'board' | 'binding' | 'boot'> = {
-  board: 'board', boards: 'board', snowboard: 'board', snowboards: 'board', deck: 'board',
-  binding: 'binding', bindings: 'binding',
-  boot: 'boot', boots: 'boot',
+  board: 'board',
+  boards: 'board',
+  snowboard: 'board',
+  snowboards: 'board',
+  deck: 'board',
+  binding: 'binding',
+  bindings: 'binding',
+  boot: 'boot',
+  boots: 'boot',
 };
 
 /**
@@ -166,7 +188,10 @@ const CATEGORY_SYNONYMS: Record<string, 'board' | 'binding' | 'boot'> = {
  * product's title or vendor. An empty/whitespace query returns the list unchanged.
  * Pure function — no I/O.
  */
-export function filterByQuery(products: NormalizedProduct[], query: string): NormalizedProduct[] {
+export function filterByQuery(
+  products: NormalizedProduct[],
+  query: string,
+): NormalizedProduct[] {
   const terms = query.toLowerCase().match(/[a-z0-9]+/g) ?? [];
   if (terms.length === 0) return products;
 
@@ -178,11 +203,12 @@ export function filterByQuery(products: NormalizedProduct[], query: string): Nor
     else keywords.push(term);
   }
 
-  return products.filter(product => {
-    if (categories.size > 0 && !categories.has(String(product.gear_category))) return false;
+  return products.filter((product) => {
+    if (categories.size > 0 && !categories.has(String(product.gear_category)))
+      return false;
     if (keywords.length > 0) {
       const haystack = `${product.title} ${product.vendor ?? ''}`.toLowerCase();
-      if (!keywords.every(k => haystack.includes(k))) return false;
+      if (!keywords.every((k) => haystack.includes(k))) return false;
     }
     return true;
   });

@@ -13,12 +13,16 @@
  *
  * This means any Shopify store URL works — no manual configuration required.
  */
-import type { RequestPipeline } from './pipeline.js';
+
 import type { NormalizedProduct } from './normalizer.js';
-import type { ProductSource } from './sources.js';
-import { fetchAllProductsGraphQL, extractStorefrontToken } from './storefront-api.js';
-import { fetchAllProducts } from './shopify.js';
 import { normalizeProduct } from './normalizer.js';
+import type { RequestPipeline } from './pipeline.js';
+import { fetchAllProducts } from './shopify.js';
+import type { ProductSource } from './sources.js';
+import {
+  extractStorefrontToken,
+  fetchAllProductsGraphQL,
+} from './storefront-api.js';
 
 export class SmartShopifySource implements ProductSource {
   private resolvedToken: string | null | undefined = undefined; // undefined = not yet resolved
@@ -39,13 +43,17 @@ export class SmartShopifySource implements ProductSource {
 
     if (token) {
       // Storefront GraphQL API — official, cursor-paginated, typed
-      const raws = await fetchAllProductsGraphQL(this.storeUrl, token, pipeline);
-      return raws.map(raw => normalizeProduct(raw, this.name));
+      const raws = await fetchAllProductsGraphQL(
+        this.storeUrl,
+        token,
+        pipeline,
+      );
+      return raws.map((raw) => normalizeProduct(raw, this.name));
     }
 
     // Fallback: public /products.json REST endpoint
     const raws = await fetchAllProducts(this.storeUrl, pipeline);
-    return raws.map(raw => normalizeProduct(raw, this.name));
+    return raws.map((raw) => normalizeProduct(raw, this.name));
   }
 
   /**
@@ -56,7 +64,9 @@ export class SmartShopifySource implements ProductSource {
    *
    * Result is cached after first call to avoid repeated HTTP requests.
    */
-  private async resolveToken(pipeline: RequestPipeline): Promise<string | null> {
+  private async resolveToken(
+    pipeline: RequestPipeline,
+  ): Promise<string | null> {
     // Already resolved in a prior call
     if (this.resolvedToken !== undefined) return this.resolvedToken;
 

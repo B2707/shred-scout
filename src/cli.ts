@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { assertTTY, isTTY } from './lib/tty.js';
 
@@ -23,24 +23,36 @@ const program = new Command();
 
 program
   .name('shred-scout')
-  .description('Agentic terminal UI for finding compatible snowboard gear deals')
-  .version(`shred-scout ${pkgVersion}`, '-v, --version', 'Print version and exit')
+  .description(
+    'Agentic terminal UI for finding compatible snowboard gear deals',
+  )
+  .version(
+    `shred-scout ${pkgVersion}`,
+    '-v, --version',
+    'Print version and exit',
+  )
   .helpOption('-h, --help', 'Show help');
 
-program.addHelpText('after', [
-  '',
-  'Getting started:',
-  '  npm run setup     One-time install — enables `shred-scout` globally',
-  '  shred-scout       Run after setup',
-  '',
-  'Without installing:',
-  '  npm start         Run directly (no global install needed)',
-].join('\n'));
+program.addHelpText(
+  'after',
+  [
+    '',
+    'Getting started:',
+    '  npm run setup     One-time install — enables `shred-scout` globally',
+    '  shred-scout       Run after setup',
+    '',
+    'Without installing:',
+    '  npm start         Run directly (no global install needed)',
+  ].join('\n'),
+);
 
 program
   .command('search', { isDefault: true })
   .description('Search for compatible snowboard gear (interactive)')
-  .option('--demo', 'Run with cached fixture data — no network or API keys required')
+  .option(
+    '--demo',
+    'Run with cached fixture data — no network or API keys required',
+  )
   .action(async (options: { demo?: boolean }) => {
     assertTTY(); // Gate: only enforce TTY for interactive commands
     const { render } = await import('ink');
@@ -82,7 +94,7 @@ program
 
     // Build retailer name → store URL lookup for price fetching
     const storeUrlByRetailer = new Map<string, string>(
-      retailerRepo.all().map(r => [r.name, r.storeUrl]),
+      retailerRepo.all().map((r) => [r.name, r.storeUrl]),
     );
 
     process.on('SIGINT', () => {
@@ -92,17 +104,25 @@ program
     });
 
     function timestamp(): string {
-      return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return new Date().toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
     }
 
     async function pollOnce(): Promise<void> {
       const allSetups = setupRepo.list();
-      const watched = allSetups.filter(s => s.alertEnabled);
-      console.log(`[${timestamp()}] Checking ${watched.length} watched items...`);
+      const watched = allSetups.filter((s) => s.alertEnabled);
+      console.log(
+        `[${timestamp()}] Checking ${watched.length} watched items...`,
+      );
 
       for (const setup of watched) {
-        const productIds = ([setup.boardId, setup.bindingId, setup.bootId] as (number | null)[])
-          .filter((id): id is number => id !== null);
+        const productIds = (
+          [setup.boardId, setup.bindingId, setup.bootId] as (number | null)[]
+        ).filter((id): id is number => id !== null);
 
         for (const productId of productIds) {
           try {
@@ -119,11 +139,15 @@ program
                     { headers: { 'User-Agent': 'shred-scout/1.0.0' } },
                   );
                   if (res.ok) {
-                    const json = (await res.json()) as { product?: { variants?: Array<{ price: string }> } };
+                    const json = (await res.json()) as {
+                      product?: { variants?: Array<{ price: string }> };
+                    };
                     const variants = json.product?.variants ?? [];
                     if (variants.length > 0) {
                       const currentCents = Math.min(
-                        ...variants.map(v => parsePriceCents(v.price)).filter(c => c > 0),
+                        ...variants
+                          .map((v) => parsePriceCents(v.price))
+                          .filter((c) => c > 0),
                       );
                       if (Number.isFinite(currentCents) && currentCents > 0) {
                         priceRepo.record(productId, currentCents);
@@ -143,20 +167,33 @@ program
               const title = product?.title ?? 'Unknown product';
               const oldDollars = (alert.previousMinCents / 100).toFixed(2);
               const newDollars = (alert.newPriceCents / 100).toFixed(2);
-              const pct = Math.round((alert.dropCents / alert.previousMinCents) * 100);
-              console.log(`[${timestamp()}] PRICE DROP  ${title}  $${oldDollars} -> $${newDollars}  (-${pct}%)`);
+              const pct = Math.round(
+                (alert.dropCents / alert.previousMinCents) * 100,
+              );
+              console.log(
+                `[${timestamp()}] PRICE DROP  ${title}  $${oldDollars} -> $${newDollars}  (-${pct}%)`,
+              );
 
               const message = `${title}: $${oldDollars} → $${newDollars} (-${pct}%)`;
               if (process.platform === 'darwin') {
                 // Pass message as an argv item so it is never interpolated into AppleScript
                 // source code. This eliminates the command-injection surface entirely —
                 // osascript receives the message as a process argument, not as script text.
-                execFile('osascript', [
-                  '-e', 'on run argv',
-                  '-e', 'display notification (item 2 of argv) with title (item 1 of argv)',
-                  '-e', 'end run',
-                  '--', 'Shred Scout', message,
-                ], () => {});
+                execFile(
+                  'osascript',
+                  [
+                    '-e',
+                    'on run argv',
+                    '-e',
+                    'display notification (item 2 of argv) with title (item 1 of argv)',
+                    '-e',
+                    'end run',
+                    '--',
+                    'Shred Scout',
+                    message,
+                  ],
+                  () => {},
+                );
               } else if (process.platform === 'linux') {
                 execFile('notify-send', ['Shred Scout', message], () => {});
               } else {
@@ -170,12 +207,14 @@ program
       }
     }
 
-    const initialWatched = setupRepo.list().filter(s => s.alertEnabled);
-    console.log(`Shred Scout Watch — polling ${initialWatched.length} watched items every ${intervalMins} min. Ctrl+C to stop.`);
+    const initialWatched = setupRepo.list().filter((s) => s.alertEnabled);
+    console.log(
+      `Shred Scout Watch — polling ${initialWatched.length} watched items every ${intervalMins} min. Ctrl+C to stop.`,
+    );
 
     void pollOnce().catch(console.error);
     setInterval(() => {
-      void pollOnce().catch(err => console.error('Poll error:', err));
+      void pollOnce().catch((err) => console.error('Poll error:', err));
     }, intervalMs);
 
     // Block forever — SIGINT handler calls process.exit(0) to exit
@@ -184,7 +223,9 @@ program
 
 program
   .command('add-store <url>')
-  .description('Add a new store URL to the search list (persists to SQLite and stores.json)')
+  .description(
+    'Add a new store URL to the search list (persists to SQLite and stores.json)',
+  )
   .action(async (url: string) => {
     // Validate the URL — exits early with code 1 on invalid input (ASVS input validation)
     let parsedUrl: URL;
@@ -197,7 +238,9 @@ program
 
     const host = parsedUrl.hostname.replace(/^www\./, '');
     const name = host.split('.')[0] || host;
-    const type: 'shopify' | 'html' = host.includes('evo.com') ? 'html' : 'shopify';
+    const type: 'shopify' | 'html' = host.includes('evo.com')
+      ? 'html'
+      : 'shopify';
 
     const { openDatabase } = await import('./data/db.js');
     const { makeRetailerRepo } = await import('./data/repos/retailerRepo.js');

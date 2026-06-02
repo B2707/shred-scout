@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { flexAdvisory } from '../src/domain/compatibility/flex-advisory.js';
 import type { GearSetup } from '../src/domain/compatibility/types.js';
 import type { RiderProfile } from '../src/types/profile.js';
@@ -11,7 +11,9 @@ function makeSetup(flexRating?: number): GearSetup {
   };
 }
 
-function makeRider(ridingStyle: 'beginner' | 'all-mountain' | 'freeride'): RiderProfile {
+function makeRider(
+  ridingStyle: 'beginner' | 'all-mountain' | 'freeride',
+): RiderProfile {
   return {
     bootSize: 10,
     heightCm: 175,
@@ -64,9 +66,15 @@ describe('flexAdvisory', () => {
   });
 
   it('Test 8: ruleId is always flex-pairing', () => {
-    expect(flexAdvisory(makeSetup(2), makeRider('beginner')).ruleId).toBe('flex-pairing');
-    expect(flexAdvisory(makeSetup(7), makeRider('beginner')).ruleId).toBe('flex-pairing');
-    expect(flexAdvisory(makeSetup(undefined), makeRider('freeride')).ruleId).toBe('flex-pairing');
+    expect(flexAdvisory(makeSetup(2), makeRider('beginner')).ruleId).toBe(
+      'flex-pairing',
+    );
+    expect(flexAdvisory(makeSetup(7), makeRider('beginner')).ruleId).toBe(
+      'flex-pairing',
+    );
+    expect(
+      flexAdvisory(makeSetup(undefined), makeRider('freeride')).ruleId,
+    ).toBe('flex-pairing');
   });
 });
 
@@ -75,20 +83,36 @@ describe('flexAdvisory', () => {
 // ---------------------------------------------------------------------------
 
 describe('flexAdvisory — canonical riding styles (B22)', () => {
-  const rider = (ridingStyle: string): RiderProfile => ({ bootSize: 10, heightCm: 180, weightKg: 80, ridingStyle });
+  const rider = (ridingStyle: string): RiderProfile => ({
+    bootSize: 10,
+    heightCm: 180,
+    weightKg: 80,
+    ridingStyle,
+  });
 
-  it.each(['beginner', 'park', 'freestyle', 'all-mountain', 'powder', 'freeride', 'backcountry'])(
-    'returns a real verdict (never unknown) for known style "%s"',
-    (style) => {
-      const result = flexAdvisory(makeSetup(5), rider(style));
-      expect(result.verdict).not.toBe('unknown');
-    },
-  );
+  it.each([
+    'beginner',
+    'park',
+    'freestyle',
+    'all-mountain',
+    'powder',
+    'freeride',
+    'backcountry',
+  ])('returns a real verdict (never unknown) for known style "%s"', (style) => {
+    const result = flexAdvisory(makeSetup(5), rider(style));
+    expect(result.verdict).not.toBe('unknown');
+  });
 
   it('normalizes display-cased and spaced styles', () => {
-    expect(flexAdvisory(makeSetup(5), rider('All-Mountain')).verdict).not.toBe('unknown');
-    expect(flexAdvisory(makeSetup(5), rider('all mountain')).verdict).not.toBe('unknown');
-    expect(flexAdvisory(makeSetup(5), rider('FREESTYLE')).verdict).not.toBe('unknown');
+    expect(flexAdvisory(makeSetup(5), rider('All-Mountain')).verdict).not.toBe(
+      'unknown',
+    );
+    expect(flexAdvisory(makeSetup(5), rider('all mountain')).verdict).not.toBe(
+      'unknown',
+    );
+    expect(flexAdvisory(makeSetup(5), rider('FREESTYLE')).verdict).not.toBe(
+      'unknown',
+    );
   });
 
   it('park favors softer flex (soft passes, stiff warns)', () => {

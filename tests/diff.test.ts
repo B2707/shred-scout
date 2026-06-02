@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { priceDropAlert } from '../src/domain/alerts/diff.js';
+import { describe, expect, it } from 'vitest';
 import type { PriceObservation } from '../src/data/repos/priceRepo.js';
+import { priceDropAlert } from '../src/domain/alerts/diff.js';
 
 const makeObs = (priceCents: number, id: number): PriceObservation => ({
   id,
@@ -43,7 +43,12 @@ describe('priceDropAlert()', () => {
 
   it('uses minimum of all prior observations, not just the immediately previous', () => {
     // latest=38000, prior=[50000, 42000, 39000] — min=39000, 38000 < 39000 — drop!
-    const history = [makeObs(38000, 4), makeObs(50000, 3), makeObs(42000, 2), makeObs(39000, 1)];
+    const history = [
+      makeObs(38000, 4),
+      makeObs(50000, 3),
+      makeObs(42000, 2),
+      makeObs(39000, 1),
+    ];
     const result = priceDropAlert(history);
     expect(result).not.toBeNull();
     expect(result?.previousMinCents).toBe(39000);

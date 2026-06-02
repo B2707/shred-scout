@@ -5,8 +5,10 @@
  * Screen switching (q → search) is handled in App.tsx to avoid duplicate useInput handlers.
  * This component owns only intra-screen navigation.
  */
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+
 import { Box, Text, useInput } from 'ink';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
 import { CompatBadge } from './CompatBadge.js';
 
@@ -64,7 +66,12 @@ export function WishlistView({
   }, []);
 
   // Clear the status timer on unmount so it can't set state after unmount (B24).
-  useEffect(() => () => { if (statusTimerRef.current) clearTimeout(statusTimerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    },
+    [],
+  );
 
   useInput((input, key) => {
     // Delete confirmation mode
@@ -72,15 +79,16 @@ export function WishlistView({
       if (input === 'y') {
         onDelete(confirmDelete);
         setConfirmDelete(null);
-        setSelectedIndex(i => Math.max(0, i - 1));
+        setSelectedIndex((i) => Math.max(0, i - 1));
       } else if (input === 'n' || key.escape) {
         setConfirmDelete(null);
       }
       return;
     }
 
-    if (key.upArrow)   setSelectedIndex(i => Math.max(0, i - 1));
-    if (key.downArrow) setSelectedIndex(i => Math.min(Math.max(0, setups.length - 1), i + 1));
+    if (key.upArrow) setSelectedIndex((i) => Math.max(0, i - 1));
+    if (key.downArrow)
+      setSelectedIndex((i) => Math.min(Math.max(0, setups.length - 1), i + 1));
 
     const selected = setups[selectedIndex];
 
@@ -90,7 +98,8 @@ export function WishlistView({
 
     if (input === 'h' && selected) {
       // Open history for the first non-null product in the setup
-      const productId = selected.boardId ?? selected.bindingId ?? selected.bootId;
+      const productId =
+        selected.boardId ?? selected.bindingId ?? selected.bootId;
       if (productId !== null) onOpenHistory(productId);
     }
 
@@ -100,21 +109,25 @@ export function WishlistView({
       // Use first non-null product ID for title resolution (mirrors 'h' handler pattern)
       const titleId = selected.boardId ?? selected.bindingId ?? selected.bootId;
       const title = resolveTitle(titleId);
-      showStatus(next
-        ? `✓ Price alert enabled for ${title}`
-        : `✓ Price alert removed for ${title}`
+      showStatus(
+        next
+          ? `✓ Price alert enabled for ${title}`
+          : `✓ Price alert removed for ${title}`,
       );
     }
-
   });
 
   if (setups.length === 0) {
     return (
       <Box flexDirection="column" paddingX={1}>
-        <Text color="cyanBright" bold>Wishlist  (0 saved)</Text>
+        <Text color="cyanBright" bold>
+          Wishlist (0 saved)
+        </Text>
         <Box marginTop={1} flexDirection="column">
           <Text bold>Your wishlist is empty.</Text>
-          <Text dimColor>Search for gear and type "Save item #:" to add items.</Text>
+          <Text dimColor>
+            Search for gear and type "Save item #:" to add items.
+          </Text>
         </Box>
         <Box marginTop={1}>
           <Text dimColor>q back</Text>
@@ -125,15 +138,18 @@ export function WishlistView({
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text color="cyanBright" bold>Wishlist  ({setups.length} saved)</Text>
+      <Text color="cyanBright" bold>
+        Wishlist ({setups.length} saved)
+      </Text>
 
       {setups.map((setup, i) => {
         const boardTitle = resolveTitle(setup.boardId);
         const bindingTitle = resolveTitle(setup.bindingId);
         const bootTitle = resolveTitle(setup.bootId);
-        const titleLine = [boardTitle, bindingTitle, bootTitle]
-          .filter(t => t !== 'Unknown product')
-          .join(' · ') || 'Unknown product';
+        const titleLine =
+          [boardTitle, bindingTitle, bootTitle]
+            .filter((t) => t !== 'Unknown product')
+            .join(' · ') || 'Unknown product';
         const isSelected = i === selectedIndex;
         const isConfirmingDelete = confirmDelete === setup.id;
 
@@ -146,22 +162,27 @@ export function WishlistView({
               <Text color={isSelected ? 'green' : undefined} bold={isSelected}>
                 {titleLine}
               </Text>
-              <Text dimColor>  —  saved {relativeTime(setup.savedAt)}  </Text>
-              {setup.alertEnabled
-                ? <Text color="green" bold>[WATCHING]</Text>
-                : <Text dimColor>–</Text>
-              }
+              <Text dimColor> — saved {relativeTime(setup.savedAt)} </Text>
+              {setup.alertEnabled ? (
+                <Text color="green" bold>
+                  [WATCHING]
+                </Text>
+              ) : (
+                <Text dimColor>–</Text>
+              )}
             </Box>
             {setup.compatibility && setup.compatibility.length > 0 && (
               <Box marginLeft={2} gap={1} flexWrap="wrap">
-                {setup.compatibility.map(r => (
+                {setup.compatibility.map((r) => (
                   <CompatBadge key={r.ruleId} result={r} />
                 ))}
               </Box>
             )}
             {isConfirmingDelete && (
               <Box marginLeft={2}>
-                <Text color="red" bold>Delete {titleLine}? [y/n]</Text>
+                <Text color="red" bold>
+                  Delete {titleLine}? [y/n]
+                </Text>
               </Box>
             )}
           </Box>
@@ -175,7 +196,7 @@ export function WishlistView({
       )}
 
       <Box marginTop={1}>
-        <Text dimColor>↑↓ select   d delete   h history   a toggle alert   q back</Text>
+        <Text dimColor>↑↓ select d delete h history a toggle alert q back</Text>
       </Box>
     </Box>
   );

@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type Database from 'better-sqlite3';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from '../src/data/db.js';
 import { makePriceRepo } from '../src/data/repos/priceRepo.js';
+import { makeProductRepo } from '../src/data/repos/productRepo.js';
 import { makeRiderRepo } from '../src/data/repos/riderRepo.js';
 import { makeSetupRepo } from '../src/data/repos/setupRepo.js';
-import { makeProductRepo } from '../src/data/repos/productRepo.js';
-import type Database from 'better-sqlite3';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -19,10 +19,17 @@ function insertTestProduct(db: Database.Database): number {
   return db
     .prepare(
       `INSERT INTO products (shopify_id, retailer, title, handle, price_cents, variants_json, fetched_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run('test-id-1', 'evo', 'Test Board', 'test-board', 44995, '[]', Date.now())
-    .lastInsertRowid as number;
+    .run(
+      'test-id-1',
+      'evo',
+      'Test Board',
+      'test-board',
+      44995,
+      '[]',
+      Date.now(),
+    ).lastInsertRowid as number;
 }
 
 // ---------------------------------------------------------------------------
@@ -101,10 +108,22 @@ describe('riderRepo', () => {
   it('second upsert() updates the row (no duplicate rows)', () => {
     const db = openDatabase(':memory:');
     const repo = makeRiderRepo(db);
-    repo.upsert({ bootSize: 10.5, heightCm: 178, weightKg: 75, ridingStyle: 'all-mountain' });
-    repo.upsert({ bootSize: 11, heightCm: 180, weightKg: 80, ridingStyle: 'freeride' });
+    repo.upsert({
+      bootSize: 10.5,
+      heightCm: 178,
+      weightKg: 75,
+      ridingStyle: 'all-mountain',
+    });
+    repo.upsert({
+      bootSize: 11,
+      heightCm: 180,
+      weightKg: 80,
+      ridingStyle: 'freeride',
+    });
     // Only one row should exist
-    const count = db.prepare('SELECT COUNT(*) as cnt FROM rider_profile').get() as { cnt: number };
+    const count = db
+      .prepare('SELECT COUNT(*) as cnt FROM rider_profile')
+      .get() as { cnt: number };
     expect(count.cnt).toBe(1);
     const result = repo.get();
     expect(result?.bootSize).toBe(11);
@@ -126,7 +145,11 @@ describe('setupRepo', () => {
   it('save() then list() returns the saved setup', () => {
     const db = openDatabase(':memory:');
     const repo = makeSetupRepo(db);
-    const id = repo.save({ boardId: undefined, bindingId: undefined, bootId: undefined });
+    const id = repo.save({
+      boardId: undefined,
+      bindingId: undefined,
+      bootId: undefined,
+    });
     const setups = repo.list();
     expect(setups).toHaveLength(1);
     expect(setups[0]?.id).toBe(id);
@@ -136,8 +159,16 @@ describe('setupRepo', () => {
     const db = openDatabase(':memory:');
     const repo = makeSetupRepo(db);
     const compatibility = [
-      { ruleId: 'boot-to-binding-size', verdict: 'pass' as const, reason: 'Fits' },
-      { ruleId: 'binding-disc-to-mount', verdict: 'fail' as const, reason: 'Mismatch' },
+      {
+        ruleId: 'boot-to-binding-size',
+        verdict: 'pass' as const,
+        reason: 'Fits',
+      },
+      {
+        ruleId: 'binding-disc-to-mount',
+        verdict: 'fail' as const,
+        reason: 'Mismatch',
+      },
     ];
     repo.save({ compatibility });
     const setups = repo.list();
@@ -201,11 +232,35 @@ describe('setupRepo — Phase 6 extensions', () => {
 function insertThreeProducts(db: Database.Database): [number, number, number] {
   const insert = db.prepare(
     `INSERT INTO products (shopify_id, retailer, title, handle, price_cents, variants_json, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
-  const p1 = insert.run('board-1', 'evo', 'Test Board', 'test-board', 44995, '[]', Date.now()).lastInsertRowid as number;
-  const p2 = insert.run('binding-1', 'evo', 'Test Binding', 'test-binding', 19995, '[]', Date.now()).lastInsertRowid as number;
-  const p3 = insert.run('boot-1', 'evo', 'Test Boot', 'test-boot', 22995, '[]', Date.now()).lastInsertRowid as number;
+  const p1 = insert.run(
+    'board-1',
+    'evo',
+    'Test Board',
+    'test-board',
+    44995,
+    '[]',
+    Date.now(),
+  ).lastInsertRowid as number;
+  const p2 = insert.run(
+    'binding-1',
+    'evo',
+    'Test Binding',
+    'test-binding',
+    19995,
+    '[]',
+    Date.now(),
+  ).lastInsertRowid as number;
+  const p3 = insert.run(
+    'boot-1',
+    'evo',
+    'Test Boot',
+    'test-boot',
+    22995,
+    '[]',
+    Date.now(),
+  ).lastInsertRowid as number;
   return [p1, p2, p3];
 }
 
@@ -299,7 +354,9 @@ describe('setupRepo — saveSlot (B3)', () => {
     repo.saveSlot({ boardId: p1 });
     repo.saveSlot({ bindingId: p2 });
     const id = repo.saveSlot({ bootId: p3 });
-    const results = [{ ruleId: 'boot-to-board-waist', verdict: 'pass' as const, reason: 'ok' }];
+    const results = [
+      { ruleId: 'boot-to-board-waist', verdict: 'pass' as const, reason: 'ok' },
+    ];
     repo.setCompatibility(id, results);
     expect(repo.findCompleteSetup()?.compatibility).toEqual(results);
   });
@@ -358,7 +415,9 @@ describe('productRepo — upsert id correctness (B1)', () => {
     const idA = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A' }));
     const idB = repo.upsert(makeNP({ shopify_id: 'B', title: 'Binding B' }));
     // Re-upsert A (ON CONFLICT UPDATE path) — must return A's id, not B's.
-    const idA2 = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A (updated)' }));
+    const idA2 = repo.upsert(
+      makeNP({ shopify_id: 'A', title: 'Board A (updated)' }),
+    );
     expect(idA2).toBe(idA);
     expect(idA2).not.toBe(idB);
     const row = repo.findById(idA2);
@@ -370,9 +429,13 @@ describe('productRepo — upsert id correctness (B1)', () => {
     const db = openDatabase(':memory:');
     const repo = makeProductRepo(db);
     const idEvo = repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }));
-    const idTactics = repo.upsert(makeNP({ shopify_id: 'X', retailer: 'tactics' }));
+    const idTactics = repo.upsert(
+      makeNP({ shopify_id: 'X', retailer: 'tactics' }),
+    );
     expect(idEvo).not.toBe(idTactics);
     // Re-upsert the evo one — should resolve back to idEvo.
-    expect(repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }))).toBe(idEvo);
+    expect(repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }))).toBe(
+      idEvo,
+    );
   });
 });

@@ -7,17 +7,22 @@
  * compact left thumbnail in a row layout — instead of a full-width image under a 20-row
  * blank spacer — keeps cards dense and scannable (C2).
  */
-import React from 'react';
+
 import { Box, Text, useStdout } from 'ink';
+import type React from 'react';
 import type { NormalizedProduct } from '../data/normalizer.js';
-import type { RiderProfile } from '../types/profile.js';
-import type { RuleResult } from '../domain/compatibility/types.js';
 import { productFit } from '../domain/compatibility/product-adapter.js';
-import { TerminalImage } from './TerminalImage.js';
+import type { RuleResult } from '../domain/compatibility/types.js';
+import type { RiderProfile } from '../types/profile.js';
 import { SaleDisplay } from './SaleDisplay.js';
+import { TerminalImage } from './TerminalImage.js';
 
 /** Per-category accent color for the metadata line (C6). */
-const CATEGORY_COLOR: Record<string, string> = { board: 'cyan', binding: 'magenta', boot: 'yellow' };
+const CATEGORY_COLOR: Record<string, string> = {
+  board: 'cyan',
+  binding: 'magenta',
+  boot: 'yellow',
+};
 
 /** Variant shape parsed from variants_json for sale detection. */
 interface VariantForSale {
@@ -65,32 +70,85 @@ export interface ResultCardProps {
 }
 
 /** Maps a per-product fit verdict to a compact, colored card badge (A2/A3, SC-05). */
-function fitBadge(result: RuleResult, bootSize: number): { symbol: string; color: string; label: string; dim: boolean } {
+function fitBadge(
+  result: RuleResult,
+  bootSize: number,
+): { symbol: string; color: string; label: string; dim: boolean } {
   // Boot cards answer "is it made in my size?" rather than a cross-fit verdict (SC-05);
   // the rule's own reason string already carries the size-specific wording.
   if (result.ruleId === 'boot-size-fit') {
     switch (result.verdict) {
-      case 'pass': return { symbol: '✓', color: 'green', label: `Comes in your US ${bootSize}`, dim: false };
-      case 'warn': return { symbol: '⚠', color: 'yellow', label: result.reason, dim: false };
-      default: return { symbol: '·', color: 'cyan', label: `Your boot size: US ${bootSize}`, dim: true };
+      case 'pass':
+        return {
+          symbol: '✓',
+          color: 'green',
+          label: `Comes in your US ${bootSize}`,
+          dim: false,
+        };
+      case 'warn':
+        return {
+          symbol: '⚠',
+          color: 'yellow',
+          label: result.reason,
+          dim: false,
+        };
+      default:
+        return {
+          symbol: '·',
+          color: 'cyan',
+          label: `Your boot size: US ${bootSize}`,
+          dim: true,
+        };
     }
   }
   switch (result.verdict) {
-    case 'pass': return { symbol: '✓', color: 'green', label: `Fits your US ${bootSize} boots`, dim: false };
-    case 'warn': return { symbol: '⚠', color: 'yellow', label: `Borderline fit for US ${bootSize}`, dim: false };
-    case 'fail': return { symbol: '✗', color: 'red', label: `Won't fit your US ${bootSize} boots`, dim: false };
-    default: return { symbol: '·', color: 'gray', label: 'Compatibility unverified', dim: true };
+    case 'pass':
+      return {
+        symbol: '✓',
+        color: 'green',
+        label: `Fits your US ${bootSize} boots`,
+        dim: false,
+      };
+    case 'warn':
+      return {
+        symbol: '⚠',
+        color: 'yellow',
+        label: `Borderline fit for US ${bootSize}`,
+        dim: false,
+      };
+    case 'fail':
+      return {
+        symbol: '✗',
+        color: 'red',
+        label: `Won't fit your US ${bootSize} boots`,
+        dim: false,
+      };
+    default:
+      return {
+        symbol: '·',
+        color: 'gray',
+        label: 'Compatibility unverified',
+        dim: true,
+      };
   }
 }
 
-export function ResultCard({ product, supportsImages, index, rider }: ResultCardProps): React.JSX.Element {
+export function ResultCard({
+  product,
+  supportsImages,
+  index,
+  rider,
+}: ResultCardProps): React.JSX.Element {
   const { stdout } = useStdout();
   const columns = stdout.columns ?? 80;
 
   // Title truncation — leave room for the [N] prefix, border, and the left thumbnail.
   const indexPrefix = index !== undefined ? `[${index}] ` : '';
   const imgCols = product.image_url ? 15 : 0;
-  const maxTitleWidth = Math.max(10, columns - 24 - indexPrefix.length - imgCols);
+  const maxTitleWidth = Math.max(
+    10,
+    columns - 24 - indexPrefix.length - imgCols,
+  );
   const displayTitle =
     product.title.length > maxTitleWidth
       ? product.title.slice(0, maxTitleWidth - 1) + '…'
@@ -98,9 +156,14 @@ export function ResultCard({ product, supportsImages, index, rider }: ResultCard
 
   // Price — non-positive means "not scraped" (e.g. evo PDP); show "Price unavailable" (B9).
   const hasPrice = product.price_cents > 0;
-  const priceLabel = hasPrice ? `$${(product.price_cents / 100).toFixed(2)}` : 'Price unavailable';
+  const priceLabel = hasPrice
+    ? `$${(product.price_cents / 100).toFixed(2)}`
+    : 'Price unavailable';
 
-  const { isSale, compareAtCents } = detectSale(product.variants_json, product.price_cents);
+  const { isSale, compareAtCents } = detectSale(
+    product.variants_json,
+    product.price_cents,
+  );
   const categoryLabel = product.gear_category ?? 'unknown';
 
   // Per-product compatibility badge relative to the rider (A2/A3).
@@ -108,10 +171,21 @@ export function ResultCard({ product, supportsImages, index, rider }: ResultCard
   const fitView = fit ? fitBadge(fit, rider!.bootSize) : null;
 
   return (
-    <Box flexDirection="row" borderStyle="round" borderColor="gray" paddingX={1} marginBottom={1}>
+    <Box
+      flexDirection="row"
+      borderStyle="round"
+      borderColor="gray"
+      paddingX={1}
+      marginBottom={1}
+    >
       {product.image_url && (
         <Box marginRight={1} flexShrink={0}>
-          <TerminalImage source={product.image_url} supportsImages={supportsImages} width={13} height={6} />
+          <TerminalImage
+            source={product.image_url}
+            supportsImages={supportsImages}
+            width={13}
+            height={6}
+          />
         </Box>
       )}
 
@@ -122,18 +196,26 @@ export function ResultCard({ product, supportsImages, index, rider }: ResultCard
             {index !== undefined && <Text dimColor>[{index}] </Text>}
             <Text>{displayTitle}</Text>
           </Box>
-          <Text bold color={hasPrice ? 'green' : 'gray'} dimColor={!hasPrice}>{priceLabel}</Text>
+          <Text bold color={hasPrice ? 'green' : 'gray'} dimColor={!hasPrice}>
+            {priceLabel}
+          </Text>
         </Box>
 
         {/* Metadata row — color-coded gear category · retailer (C6) */}
         <Text>
-          <Text color={CATEGORY_COLOR[categoryLabel] ?? 'white'}>{categoryLabel}</Text>
+          <Text color={CATEGORY_COLOR[categoryLabel] ?? 'white'}>
+            {categoryLabel}
+          </Text>
           <Text dimColor> · {product.retailer}</Text>
         </Text>
 
         {/* Compatibility badge — whether this product fits the rider (A2/A3) */}
         {fitView && (
-          <Text color={fitView.color} bold={fit?.verdict === 'pass'} dimColor={fitView.dim}>
+          <Text
+            color={fitView.color}
+            bold={fit?.verdict === 'pass'}
+            dimColor={fitView.dim}
+          >
             {fitView.symbol} {fitView.label}
           </Text>
         )}
@@ -142,8 +224,12 @@ export function ResultCard({ product, supportsImages, index, rider }: ResultCard
         {(product.waist_width_mm !== null || product.flex_rating !== null) && (
           <Text color="gray">
             {[
-              product.waist_width_mm !== null ? `⬙ ${product.waist_width_mm}mm` : null,
-              product.flex_rating !== null ? `${product.flex_rating} flex` : null,
+              product.waist_width_mm !== null
+                ? `⬙ ${product.waist_width_mm}mm`
+                : null,
+              product.flex_rating !== null
+                ? `${product.flex_rating} flex`
+                : null,
               product.mount_pattern || null,
             ]
               .filter(Boolean)
@@ -153,7 +239,10 @@ export function ResultCard({ product, supportsImages, index, rider }: ResultCard
 
         {/* Sale display — only when the cheapest variant is on sale */}
         {isSale && (
-          <SaleDisplay priceCents={product.price_cents} compareAtCents={compareAtCents} />
+          <SaleDisplay
+            priceCents={product.price_cents}
+            compareAtCents={compareAtCents}
+          />
         )}
       </Box>
     </Box>
