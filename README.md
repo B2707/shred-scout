@@ -2,8 +2,6 @@
 
 Terminal UI for finding compatible snowboard gear deals across multiple retailers.
 
-![Shred Scout demo](docs/demo.gif)
-
 ## Install
 
 ```bash
@@ -36,7 +34,7 @@ npm run demo
 
 Skips onboarding and drops straight into the guided gear wizard, then runs the full wizard → search → compatibility → results flow against cached fixture data. No API keys, no live network connection, and no prior setup required. Fixture products include boards, bindings, and boots across simulated retailers, with sale items and cross-retailer comparison pairs pre-populated.
 
-> The recorded GIF is captured with [`scripts/record-demo.sh`](scripts/record-demo.sh). `asciinema` + `agg` render text only — to capture the inline product images, screen-record an [iTerm2](https://iterm2.com/) or Kitty window instead (see the script header).
+> To record a demo GIF, run [`scripts/record-demo.sh`](scripts/record-demo.sh) in a real terminal. `asciinema` + `agg` render text only — to capture the inline product images, screen-record an [iTerm2](https://iterm2.com/) or Kitty window instead (see the script header).
 
 ## How It Works
 
