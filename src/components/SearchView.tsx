@@ -74,11 +74,15 @@ export interface SearchViewProps {
   initialQuery?: string;
   /** Chip filters to pre-apply, from the wizard answers (category/flex/price keys). */
   initialFilters?: string[];
+  /** Cached results from a prior visit — when present, skip re-fetching on remount (B7). */
+  initialProducts?: NormalizedProduct[];
+  /** Reports the current results + active filters up so App can preserve the session (B7). */
+  onSession?: (products: NormalizedProduct[], filters: string[]) => void;
 }
 
-export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange, initialQuery, initialFilters }: SearchViewProps): React.JSX.Element {
+export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, productRepo, isDemoMode = false, onSetupSaved, onModalChange, initialQuery, initialFilters, initialProducts, onSession }: SearchViewProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
-  const [products, setProducts] = useState<NormalizedProduct[]>([]);
+  const [products, setProducts] = useState<NormalizedProduct[]>(() => initialProducts ?? []);
   const [searchErrors, setSearchErrors] = useState<string[]>([]);
   const pipelineRef = useRef<RequestPipeline>(new RequestPipeline());
 
@@ -165,14 +169,20 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     })();
   }, [isLoading, profile, isDemoMode, db]);
 
-  // Auto-run the wizard-driven search once on mount.
+  // Auto-run the wizard-driven search once on mount — but not when results were restored
+  // from a cached session (returning from the wishlist), which would needlessly re-fetch (B7).
   const didInitRef = useRef(false);
   useEffect(() => {
-    if (initialQuery !== undefined && !didInitRef.current) {
+    if (initialQuery !== undefined && initialProducts === undefined && !didInitRef.current) {
       didInitRef.current = true;
       runQuery(initialQuery);
     }
-  }, [initialQuery, runQuery]);
+  }, [initialQuery, initialProducts, runQuery]);
+
+  // Report results + active filters up so App can restore them after navigating away (B7).
+  useEffect(() => {
+    onSession?.(products, Array.from(activeFilters));
+  }, [products, activeFilters, onSession]);
 
   const handleSave = useCallback((input: string) => {
     const n = parseInt(input.trim(), 10);
@@ -338,13 +348,17 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
     </Box>
   );
 
+  // Number of products actually shown (after filters) — used in the footer so the count
+  // never claims "7 results" while filters hide them all.
+  const shownCount = filteredGroups.reduce((n, g) => n + (g.type === 'single' ? 1 : g.products.length), 0);
+
   // Discoverable, mode-aware footer hint (C3).
   const footerHint =
     isLoading ? 'Searching…'
     : mode === 'filter' ? 'Filter panel — press a chip letter to toggle · [/ or Esc] done'
     : mode === 'save' ? 'Type the item number, then Enter · [Esc] cancel'
     : alertOptIn ? 'Respond to the price-alert prompt above · [y/n]'
-    : `${products.length} result${products.length === 1 ? '' : 's'}   [/] filters   [s] save   [n] new setup   [w] wishlist   [q] quit`;
+    : `${shownCount} result${shownCount === 1 ? '' : 's'}${shownCount < products.length ? ` of ${products.length}` : ''}   [/] filters   [s] save   [n] new setup   [w] wishlist   [q] quit`;
 
   // Results UI: shown after the opener completes (the wizard skips the opener entirely).
   const resultsUI = (
@@ -386,10 +400,19 @@ export function SearchView({ profile, supportsImages, db, setupRepo, priceRepo, 
         )}
       </Box>
 
-      {products.length === 0 && !isLoading && (
+      {shownCount === 0 && !isLoading && (
         <Box flexDirection="column" paddingX={1} marginTop={1}>
-          <Text bold>No compatible gear found</Text>
-          <Text dimColor>Press [n] to start a new guided setup, or [/] to widen your filters.</Text>
+          {products.length > 0 ? (
+            <>
+              <Text bold>All {products.length} results are hidden by your filters</Text>
+              <Text dimColor>Press [/] to adjust filters, or [n] to start a new guided setup.</Text>
+            </>
+          ) : (
+            <>
+              <Text bold>No compatible gear found</Text>
+              <Text dimColor>Press [n] to start a new guided setup, or [/] to widen your filters.</Text>
+            </>
+          )}
         </Box>
       )}
 
