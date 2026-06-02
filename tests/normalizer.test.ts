@@ -85,6 +85,16 @@ describe('detectGearCategory()', () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     expect(detectGearCategory('Accessories', [], 'Helmet Cover')).toBeNull();
   });
+
+  it('layer 3 (title): "Snowboard Bindings" classifies as binding, not board (B10)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(detectGearCategory('', [], 'Union Force Snowboard Bindings 2026')).toBe('binding');
+  });
+
+  it('layer 3 (title): "Snowboard Boots" classifies as boot, not board (B10)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(detectGearCategory('', [], 'Burton Photon Snowboard Boots 2026')).toBe('boot');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -172,6 +182,30 @@ describe('normalizeProduct()', () => {
     });
     const result = normalizeProduct(raw, 'evo');
     expect(result.price_cents).toBe(44995);
+  });
+
+  it('prefers the cheapest IN-STOCK variant price (B20)', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    const raw = makeRawProduct({
+      variants: [
+        { price: '199.95', compare_at_price: null, option1: 'S', available: false },
+        { price: '499.95', compare_at_price: null, option1: 'M', available: true },
+      ],
+    });
+    const result = normalizeProduct(raw, 'evo');
+    expect(result.price_cents).toBe(49995);
+  });
+
+  it('falls back to the global min price when every variant is sold out (B20)', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    const raw = makeRawProduct({
+      variants: [
+        { price: '199.95', compare_at_price: null, option1: 'S', available: false },
+        { price: '299.95', compare_at_price: null, option1: 'M', available: false },
+      ],
+    });
+    const result = normalizeProduct(raw, 'evo');
+    expect(result.price_cents).toBe(19995);
   });
 
   it('uses images[0].src as image_url', async () => {
