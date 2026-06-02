@@ -63,6 +63,21 @@ export function makeSetupRepo(db: Database.Database) {
   const deleteStmt = db.prepare('DELETE FROM saved_setups WHERE id = ?');
   const setAlertStmt = db.prepare('UPDATE saved_setups SET alert_enabled = ? WHERE id = ?');
 
+  // Most recent setup still missing at least one gear slot — the "in progress" setup.
+  const selectIncompleteStmt = db.prepare<[], SetupRow>(
+    'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NULL OR binding_id IS NULL OR boot_id IS NULL ORDER BY saved_at DESC, id DESC LIMIT 1'
+  );
+
+  // Merge provided slots into a row; COALESCE preserves slots not being set this call.
+  const updateSlotsStmt = db.prepare(`
+    UPDATE saved_setups
+       SET board_id   = COALESCE(@boardId, board_id),
+           binding_id = COALESCE(@bindingId, binding_id),
+           boot_id    = COALESCE(@bootId, boot_id),
+           saved_at   = @savedAt
+     WHERE id = @id
+  `);
+
   return {
     /**
      * Saves a gear setup to the wishlist.
@@ -78,6 +93,38 @@ export function makeSetupRepo(db: Database.Database) {
         savedAt: Date.now(),
       });
       return result.lastInsertRowid as number;
+    },
+
+    /**
+     * Adds/updates a single gear slot on the in-progress (incomplete) setup so that
+     * board+binding+boot accumulate into ONE row that findCompleteSetup() can match.
+     * Creates a fresh setup when none is in progress. Provided slots overwrite; omitted
+     * slots are preserved (COALESCE). Returns the setup's row id.
+     *
+     * Without this, each save created a separate single-slot row and the "Setup
+     * Complete" summary was unreachable forever (B3).
+     */
+    saveSlot(input: SaveSetupInput): number {
+      const current = selectIncompleteStmt.get();
+      const savedAt = Date.now();
+      if (!current) {
+        const result = insertStmt.run({
+          boardId: input.boardId ?? null,
+          bindingId: input.bindingId ?? null,
+          bootId: input.bootId ?? null,
+          compatibility: input.compatibility ? JSON.stringify(input.compatibility) : null,
+          savedAt,
+        });
+        return result.lastInsertRowid as number;
+      }
+      updateSlotsStmt.run({
+        id: current.id,
+        boardId: input.boardId ?? null,
+        bindingId: input.bindingId ?? null,
+        bootId: input.bootId ?? null,
+        savedAt,
+      });
+      return current.id;
     },
 
     /**
