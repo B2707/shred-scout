@@ -5,6 +5,7 @@ import {
   toBoard,
   toBinding,
   productFit,
+  bootFit,
 } from '../src/domain/compatibility/product-adapter.js';
 import type { NormalizedProduct } from '../src/data/normalizer.js';
 import type { RiderProfile } from '../src/types/profile.js';
@@ -117,5 +118,42 @@ describe('productFit — per-card compatibility for the rider (A2/A3)', () => {
     );
     expect(r?.ruleId).toBe('boot-to-binding-size');
     expect(r?.verdict).toBe('fail');
+  });
+
+  it('returns a boot-size-fit signal for a boot, not null (SC-05)', () => {
+    const r = productFit(
+      baseNP({ gear_category: 'boot', variants_json: JSON.stringify([{ option1: '10' }]) }),
+      rider(10),
+    );
+    expect(r?.ruleId).toBe('boot-size-fit');
+    expect(r?.verdict).toBe('pass');
+  });
+});
+
+describe('bootFit — boot cards show a size-availability signal (SC-05)', () => {
+  const bootNP = (variants: Array<{ option1: string }>): NormalizedProduct =>
+    baseNP({ gear_category: 'boot', variants_json: JSON.stringify(variants) });
+
+  it('passes when the boot is offered in the rider US size', () => {
+    const r = bootFit(bootNP([{ option1: '9' }, { option1: '10' }, { option1: '11' }]), 10);
+    expect(r.ruleId).toBe('boot-size-fit');
+    expect(r.verdict).toBe('pass');
+  });
+
+  it('warns when the boot is not offered in the rider size', () => {
+    const r = bootFit(bootNP([{ option1: '7' }, { option1: '8' }]), 11);
+    expect(r.verdict).toBe('warn');
+    expect(r.reason).toMatch(/11/);
+  });
+
+  it('parses a size embedded in option text like "US 10.5"', () => {
+    const r = bootFit(bootNP([{ option1: 'US 10.5' }]), 10.5);
+    expect(r.verdict).toBe('pass');
+  });
+
+  it('gives an informational (unknown) advisory when no sizes are parseable', () => {
+    const r = bootFit(baseNP({ gear_category: 'boot', variants_json: '[]' }), 10);
+    expect(r.verdict).toBe('unknown');
+    expect(r.advisory).toBe(true);
   });
 });
