@@ -165,6 +165,23 @@ describe('runSearch', () => {
     expect(products).toHaveLength(1);
     expect(products[0]!.vendor).toBe('Union');
   });
+
+  it('queries evo only once (HTML scraper) and skips its errors silently (B21)', async () => {
+    const { makeRetailerRepo } = await import('../src/data/repos/retailerRepo.js');
+    (makeRetailerRepo as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      all: () => [{ id: 1, name: 'evo', storeUrl: 'https://www.evo.com', storefrontToken: null, addedAt: 0 }],
+      seedIfEmpty: vi.fn(),
+    });
+    mockShopifyFetchAll.mockReset();
+    mockEvoFetchAll.mockReset();
+    mockEvoFetchAll.mockRejectedValue(new Error('evo.com listing returned no products — possible Cloudflare block'));
+
+    const { errors } = await runSearch('boards', makeProfile(), mockPipeline);
+
+    expect(mockEvoFetchAll).toHaveBeenCalledTimes(1);      // not double-queried
+    expect(mockShopifyFetchAll).not.toHaveBeenCalled();    // evo not also hit as Shopify
+    expect(errors).toEqual([]);                             // failure is silent, no banner
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -91,12 +91,16 @@ export async function runSearch(
 
   const configs = retailerRepo.all();
 
-  const sources: ProductSource[] = [
-    // Dynamic Shopify sources — GraphQL Storefront API preferred, /products.json fallback
-    ...configs.map(c => new SmartShopifySource(c.name, c.storeUrl, c.storefrontToken)),
-    // Non-Shopify HTML scraper (evo.com — Phase 7)
-    new EvoHtmlScrapeSource(),
-  ];
+  // One source per configured store, picking the scraper by host: evo.com uses the HTML
+  // scraper, everything else the Shopify source. Previously evo was ALSO appended
+  // unconditionally, so it was queried twice — once as Shopify against evo, once as HTML (B21).
+  const sources: ProductSource[] = configs.map(c => {
+    let host = '';
+    try { host = new URL(c.storeUrl).hostname.replace(/^www\./, ''); } catch { /* keep '' */ }
+    return host.includes('evo.com')
+      ? new EvoHtmlScrapeSource()
+      : new SmartShopifySource(c.name, c.storeUrl, c.storefrontToken);
+  });
 
   const all: NormalizedProduct[] = [];
   const errors: string[] = [];
@@ -110,6 +114,9 @@ export async function runSearch(
           all.push(product);
         }
       } catch (err) {
+        // evo is a best-effort HTML scraper behind Cloudflare; its failure must not spam a
+        // yellow error banner on every live search — skip it silently (B21).
+        if (source instanceof EvoHtmlScrapeSource) continue;
         errors.push(`${source.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
