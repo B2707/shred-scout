@@ -5,11 +5,8 @@
  * Consumers should import from this barrel rather than individual files.
  */
 
-// Retailer configuration
-export type { Retailer } from './retailers.js';
-export { DEFAULT_RETAILERS } from './retailers.js';
-
-// Retailer repository (dynamic store management)
+// Retailer repository (dynamic store management) — stores live in retailer_configs +
+// stores.json (see loadStores); the old hardcoded retailers.ts seed list is gone.
 export type { RetailerConfig, RetailerConfigInput, RetailerRepo } from './repos/retailerRepo.js';
 export { makeRetailerRepo } from './repos/retailerRepo.js';
 
