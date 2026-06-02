@@ -214,87 +214,85 @@ describe('bootToBindingSize()', () => {
 });
 
 // ─── bootToBoardWaist() ──────────────────────────────────────────────────────
-// US10 boot: bootLengthMm = 10*8.1+209 = 290, warn threshold = 275, fail threshold = 265
-// US9 boot:  bootLengthMm = 9*8.1+209 = 281.9, warn threshold ≈ 266.9, fail threshold ≈ 256.9
-// US7 boot:  bootLengthMm = 7*8.1+209 = 265.7, warn threshold ≈ 250.7, fail threshold ≈ 240.7
+// Overhang-per-side model (B17): bootSoleMm = sizeUS*8.1+209; overhang = (bootSole - waist)/2.
+//   pass: overhang <= 20mm    warn: 20 < overhang <= 35mm    fail: overhang > 35mm
+// Some overhang is normal and desirable for leverage; binding angles reduce real drag.
+// Missing / non-positive waist => 'unknown' advisory, NOT fail (B18).
+//   US10 bootSole=290: pass>=250, warn 220..249, fail <220.
+//   US9  bootSole=281.9: pass>=~242.   US7 bootSole=265.7: pass>=~226.
 
 describe('bootToBoardWaist()', () => {
   // ── US10 boot tests ──────────────────────────────────────────────────────
 
-  it('US10: waist=300 returns pass (well above threshold)', async () => {
+  it('US10: waist=300 returns pass (board wider than the boot sole)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 300, sizeUS: 10 }));
-    expect(result.verdict).toBe('pass');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 300, sizeUS: 10 })).verdict).toBe('pass');
   });
 
-  it('US10: waist=276 returns pass (1mm above warn threshold of 275)', async () => {
+  it('US10: waist=258 returns pass (standard all-mountain board fits a size-10 rider — B17)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 276, sizeUS: 10 }));
-    expect(result.verdict).toBe('pass');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 258, sizeUS: 10 })).verdict).toBe('pass');
   });
 
-  it('US10: waist=275 returns pass (exactly at bootLengthMm-15 boundary — strict <, PASS)', async () => {
+  it('US10: waist=254 returns pass (standard board must NOT false-fail — B17)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 275, sizeUS: 10 }));
-    expect(result.verdict).toBe('pass');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 254, sizeUS: 10 })).verdict).toBe('pass');
   });
 
-  it('US10: waist=274 returns warn (1mm below warn threshold)', async () => {
+  it('US10: waist=250 returns pass (exactly 20mm overhang per side — boundary)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 274, sizeUS: 10 }));
-    expect(result.verdict).toBe('warn');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 250, sizeUS: 10 })).verdict).toBe('pass');
   });
 
-  it('US10: waist=266 returns warn (mid-warn zone)', async () => {
+  it('US10: waist=249 returns warn (just over 20mm overhang)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 266, sizeUS: 10 }));
-    expect(result.verdict).toBe('warn');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 249, sizeUS: 10 })).verdict).toBe('warn');
   });
 
-  it('US10: waist=265 returns warn (exactly at bootLengthMm-25 boundary — strict <, WARN)', async () => {
+  it('US10: waist=240 returns warn (narrow-ish — a wider board would help)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 265, sizeUS: 10 }));
-    expect(result.verdict).toBe('warn');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 240, sizeUS: 10 })).verdict).toBe('warn');
   });
 
-  it('US10: waist=264 returns fail (1mm below fail threshold)', async () => {
+  it('US10: waist=220 returns warn (exactly 35mm overhang per side — boundary)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 264, sizeUS: 10 }));
-    expect(result.verdict).toBe('fail');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 220, sizeUS: 10 })).verdict).toBe('warn');
   });
 
-  it('US10: waist=250 returns fail (typical narrow board)', async () => {
+  it('US10: waist=210 returns fail (40mm overhang per side — real toe/heel drag)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 250, sizeUS: 10 }));
-    expect(result.verdict).toBe('fail');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 210, sizeUS: 10 })).verdict).toBe('fail');
+  });
+
+  it('US10: waist=0 returns unknown advisory (missing data, NOT a fail — B18)', async () => {
+    const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
+    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 0, sizeUS: 10 }));
+    expect(result.verdict).toBe('unknown');
+    expect(result.advisory).toBe(true);
   });
 
   // ── US9 boot tests ───────────────────────────────────────────────────────
 
+  it('US9: waist=255 returns pass (size-9 rider on a standard board — B17)', async () => {
+    const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 255, sizeUS: 9 })).verdict).toBe('pass');
+  });
+
   it('US9: waist=295 returns pass (wide board)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 295, sizeUS: 9 }));
-    expect(result.verdict).toBe('pass');
-  });
-
-  it('US9: waist=263 returns warn (in warn zone, bootLengthMm=281.9, warn threshold=266.9, fail threshold=256.9)', async () => {
-    const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 263, sizeUS: 9 }));
-    expect(result.verdict).toBe('warn');
-  });
-
-  it('US9: waist=255 returns fail (narrow board)', async () => {
-    const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 255, sizeUS: 9 }));
-    expect(result.verdict).toBe('fail');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 295, sizeUS: 9 })).verdict).toBe('pass');
   });
 
   // ── US7 boot tests ───────────────────────────────────────────────────────
 
+  it('US7: waist=250 returns pass (small boot, standard board)', async () => {
+    const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 250, sizeUS: 7 })).verdict).toBe('pass');
+  });
+
   it('US7: waist=280 returns pass (wide board passes for small boot)', async () => {
     const { bootToBoardWaist } = await import('../src/domain/compatibility/rules.js');
-    const result = bootToBoardWaist(makeSetup({ waistWidthMm: 280, sizeUS: 7 }));
-    expect(result.verdict).toBe('pass');
+    expect(bootToBoardWaist(makeSetup({ waistWidthMm: 280, sizeUS: 7 })).verdict).toBe('pass');
   });
 });
 
@@ -394,8 +392,8 @@ describe('runRules()', () => {
 
   it('mixed verdict setup returns expected verdicts', async () => {
     const { runRules } = await import('../src/domain/compatibility/engine.js');
-    // sizeUS=8.5 on [7,10] = pass; waist=250 with US8.5 (bootLengthMm=277.85, fail<252.85) = fail; channel+4x4 = fail
-    const results = runRules(makeSetup({ sizeUS: 8.5, sizeRange: [7, 10], waistWidthMm: 250, mountingPattern: 'channel', discPattern: '4x4' }), BASE_RIDER);
+    // sizeUS=8.5 on [7,10] = pass; waist=200 with US8.5 (bootSole=277.85, overhang≈38.9mm>35) = fail; channel+4x4 = fail
+    const results = runRules(makeSetup({ sizeUS: 8.5, sizeRange: [7, 10], waistWidthMm: 200, mountingPattern: 'channel', discPattern: '4x4' }), BASE_RIDER);
     expect(results[0]?.verdict).toBe('pass');
     expect(results[1]?.verdict).toBe('fail');
     expect(results[2]?.verdict).toBe('fail');
