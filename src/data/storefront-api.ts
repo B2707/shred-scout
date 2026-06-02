@@ -111,7 +111,7 @@ const PRODUCTS_QUERY = `
 // Adapter: StorefrontProductNode → ShopifyProductInput
 // ---------------------------------------------------------------------------
 
-function adaptStorefrontProduct(node: StorefrontProductNode): ShopifyProductInput {
+export function adaptStorefrontProduct(node: StorefrontProductNode): ShopifyProductInput {
   // GID format: "gid://shopify/Product/12345678" → numeric ID
   const numericId = parseInt(node.id.split('/').pop() ?? '0', 10);
 
@@ -127,6 +127,9 @@ function adaptStorefrontProduct(node: StorefrontProductNode): ShopifyProductInpu
       price: e.node.price.amount,
       compare_at_price: e.node.compareAtPrice?.amount ?? null,
       option1: e.node.selectedOptions[0]?.value ?? null,
+      // Carry availability through so the in-stock price filter (B20) also works on the
+      // preferred GraphQL path — not just /products.json (DD-1).
+      available: e.node.availableForSale,
     })),
   };
 }

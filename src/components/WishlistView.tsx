@@ -5,7 +5,7 @@
  * Screen switching (q → search) is handled in App.tsx to avoid duplicate useInput handlers.
  * This component owns only intra-screen navigation.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { SavedSetup } from '../data/repos/setupRepo.js';
 import { CompatBadge } from './CompatBadge.js';
@@ -41,11 +41,16 @@ export function WishlistView({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showStatus = useCallback((msg: string) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     setStatusMsg(msg);
-    setTimeout(() => setStatusMsg(null), 2000);
+    statusTimerRef.current = setTimeout(() => setStatusMsg(null), 2000);
   }, []);
+
+  // Clear the status timer on unmount so it can't set state after unmount (B24).
+  useEffect(() => () => { if (statusTimerRef.current) clearTimeout(statusTimerRef.current); }, []);
 
   useInput((input, key) => {
     // Delete confirmation mode

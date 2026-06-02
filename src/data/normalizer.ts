@@ -109,10 +109,12 @@ export function detectGearCategory(
   if (allTags.some(t => BINDING_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'binding';
   if (allTags.some(t => BOARD_TYPE_KEYWORDS.some(k => t.includes(k)))) return 'board';
 
-  // Layer 3: title keywords
-  if (BOARD_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'board';
-  if (BINDING_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'binding';
+  // Layer 3: title keywords — boot > binding > board priority (same as layers 1–2).
+  // "Snowboard Bindings"/"Snowboard Boots" titles contain the BOARD keyword 'snowboard',
+  // so boot and binding must be checked first to avoid mislabeling them as boards (B10).
   if (BOOT_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'boot';
+  if (BINDING_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'binding';
+  if (BOARD_TYPE_KEYWORDS.some(k => ti.includes(k))) return 'board';
 
   return null;
 }
@@ -177,6 +179,8 @@ export interface ShopifyProductInput {
     price: string;
     compare_at_price: string | null;
     option1: string | null;
+    /** Shopify variant in-stock flag. Absent (undefined) is treated as in-stock. */
+    available?: boolean;
   }>;
 }
 
@@ -198,11 +202,13 @@ export function normalizeProduct(
     ? raw.tags
     : raw.tags.split(',').map(t => t.trim()).filter(Boolean);
 
-  // Cheapest variant price
-  const priceCents = raw.variants.reduce((min, v) => {
-    const cents = parsePriceCents(v.price);
-    return cents < min ? cents : min;
-  }, Infinity);
+  // Cheapest IN-STOCK variant price (positive prices only). A sold-out cheap variant must
+  // not become the displayed price or win [Best Price] (B20). Fall back to all variants
+  // only when every variant is sold out.
+  const inStock = raw.variants.filter(v => v.available !== false);
+  const pricePool = inStock.length > 0 ? inStock : raw.variants;
+  const positiveCents = pricePool.map(v => parsePriceCents(v.price)).filter(c => c > 0);
+  const priceCents = positiveCents.length > 0 ? Math.min(...positiveCents) : Infinity;
 
   const { mountPattern, mountPatternRaw } = inferMountPattern(
     raw.title,
