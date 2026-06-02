@@ -65,6 +65,16 @@ describe('ResultCard', () => {
     expect(lastFrame()).toContain('evo');
   });
 
+  it('shows "Price unavailable" instead of $0.00 for an unpriced product (B9)', async () => {
+    const { ResultCard } = await import('../src/components/ResultCard.js');
+    const { lastFrame } = render(
+      React.createElement(ResultCard, { product: { ...baseProduct, price_cents: 0 }, supportsImages: false }),
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('$0.00');
+    expect(frame).toMatch(/unavailable/i);
+  });
+
   it('renders retailer metadata (gear_category · retailer) in text-only mode', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(

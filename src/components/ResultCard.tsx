@@ -162,8 +162,10 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
       ? product.title.slice(0, maxTitleWidth - 1) + '…'
       : product.title;
 
-  // Price formatting
-  const priceDollars = (product.price_cents / 100).toFixed(2);
+  // Price formatting — a non-positive price means "not scraped" (e.g. evo PDP); show
+  // "Price unavailable" rather than a misleading $0.00 (B9).
+  const hasPrice = product.price_cents > 0;
+  const priceLabel = hasPrice ? `$${(product.price_cents / 100).toFixed(2)}` : 'Price unavailable';
 
   // Sale detection — pure, no I/O
   const { isSale, compareAtCents } = detectSale(product.variants_json, product.price_cents);
@@ -194,7 +196,7 @@ export function ResultCard({ product, supportsImages, index }: ResultCardProps):
         {index !== undefined && <Text dimColor>[{index}] </Text>}
         <Text>{displayTitle}</Text>
         <Text>{'  '}</Text>
-        <Text bold color="green">${priceDollars}</Text>
+        <Text bold color={hasPrice ? 'green' : 'gray'} dimColor={!hasPrice}>{priceLabel}</Text>
       </Box>
 
       {/* Metadata row — gear_category · retailer in dimColor */}

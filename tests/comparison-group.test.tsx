@@ -69,4 +69,18 @@ describe('ComparisonGroup', () => {
     expect(evoLine).toBeDefined();
     expect(evoLine).not.toContain('[Best Price]');
   });
+
+  it('excludes a $0 (unpriced) variant from Best Price and labels it unavailable (B9)', async () => {
+    const { ComparisonGroup } = await import('../src/components/ComparisonGroup.js');
+    const products = [makeProduct('evo', 0, '1'), makeProduct('tactics', 62999, '2')];
+    const { lastFrame } = render(
+      React.createElement(ComparisonGroup, { normalizedTitle: 'never summer proto synthesis', products }),
+    );
+    const frame = lastFrame() ?? '';
+    const evoLine = frame.split('\n').find((l) => l.includes('evo'));
+    const tacticsLine = frame.split('\n').find((l) => l.includes('tactics'));
+    expect(evoLine).not.toContain('[Best Price]');
+    expect(evoLine).toMatch(/unavailable/i);
+    expect(tacticsLine).toContain('[Best Price]');
+  });
 });
