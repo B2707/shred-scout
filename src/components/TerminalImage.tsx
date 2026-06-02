@@ -11,7 +11,6 @@ import { execa } from 'execa';
 import { Box, Text } from 'ink';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import terminalImage from 'terminal-image';
 
 export interface TerminalImageProps {
   /** Local file path or http(s) URL. */
@@ -62,12 +61,15 @@ export function TerminalImage({
       if (!buf || cancelled) return;
       try {
         if (supportsImages) {
-          const out = await terminalImage.buffer(buf, {
-            width,
-            height,
-            preserveAspectRatio: true,
-          });
-          if (!cancelled) setAnsi(out);
+          // Emit the iTerm2 inline-image (IIP) escape directly. We deliberately avoid
+          // terminal-image@4's buffer(): in iTerm2 it auto-selects the Kitty protocol,
+          // writes raw escapes straight to stdout (bypassing Ink) and returns an empty
+          // string — so the picture never appears in the reserved box. The IIP escape is
+          // a plain string Ink can carry through its renderer, and iTerm2 draws it inline
+          // at width×height cells.
+          const b64 = buf.toString('base64');
+          const osc = `]1337;File=inline=1;width=${width};height=${height};preserveAspectRatio=1;size=${buf.length}:${b64}`;
+          if (!cancelled) setAnsi(osc);
         } else {
           const res = await execa(
             'chafa',
