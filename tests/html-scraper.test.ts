@@ -1,6 +1,6 @@
 /**
- * html-scraper.test.ts — Unit tests for EvoHtmlScrapeSource (DATA-03, DATA-04).
- * Uses undici MockAgent to intercept HTTP — no real network required.
+ * html-scraper.test.ts - Unit tests for EvoHtmlScrapeSource (DATA-03, DATA-04).
+ * Uses undici MockAgent to intercept HTTP - no real network required.
  */
 
 import { MockAgent, setGlobalDispatcher } from 'undici';

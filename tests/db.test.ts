@@ -29,7 +29,7 @@ describe('openDatabase()', () => {
     expect(tables).toContain('schema_versions');
   });
 
-  it('products table has UNIQUE(shopify_id, retailer) — INSERT OR REPLACE upsert works', async () => {
+  it('products table has UNIQUE(shopify_id, retailer) - INSERT OR REPLACE upsert works', async () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
     const insert = db.prepare(
@@ -95,7 +95,7 @@ describe('openDatabase()', () => {
     const { openDatabase } = await import('../src/data/db.js');
     const db = openDatabase(':memory:');
     const result = db.pragma('journal_mode') as { journal_mode: string }[];
-    // ':memory:' databases always report 'memory' journal mode — WAL pragma is accepted
+    // ':memory:' databases always report 'memory' journal mode - WAL pragma is accepted
     // but in-memory DBs cannot use WAL; verify pragma doesn't throw and returns a value
     expect(result).toBeDefined();
   });
@@ -107,7 +107,7 @@ describe('openDatabase()', () => {
     expect(result[0]?.foreign_keys).toBe(1);
   });
 
-  it('is idempotent — second openDatabase call on different :memory: instance does not throw', async () => {
+  it('is idempotent - second openDatabase call on different :memory: instance does not throw', async () => {
     const { openDatabase } = await import('../src/data/db.js');
     expect(() => {
       openDatabase(':memory:');

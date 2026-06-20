@@ -30,10 +30,10 @@ describe('flexAdvisory', () => {
     expect(result.advisory).toBe(true);
   });
 
-  it('Test 2: beginner + flexRating 7 → verdict warn (outside 1–4)', () => {
+  it('Test 2: beginner + flexRating 7 → verdict warn (outside 1-4)', () => {
     const result = flexAdvisory(makeSetup(7), makeRider('beginner'));
     expect(result.verdict).toBe('warn');
-    expect(result.reason).toContain('outside recommended range 1–4');
+    expect(result.reason).toContain('outside recommended range 1-4');
     expect(result.advisory).toBe(true);
   });
 
@@ -42,10 +42,10 @@ describe('flexAdvisory', () => {
     expect(result.verdict).toBe('pass');
   });
 
-  it('Test 4: all-mountain + flexRating 3 → verdict warn (below range 4–7)', () => {
+  it('Test 4: all-mountain + flexRating 3 → verdict warn (below range 4-7)', () => {
     const result = flexAdvisory(makeSetup(3), makeRider('all-mountain'));
     expect(result.verdict).toBe('warn');
-    expect(result.reason).toContain('outside recommended range 4–7');
+    expect(result.reason).toContain('outside recommended range 4-7');
   });
 
   it('Test 5: freeride + flexRating 8 → verdict pass', () => {
@@ -79,10 +79,10 @@ describe('flexAdvisory', () => {
 });
 
 // ---------------------------------------------------------------------------
-// flexAdvisory — canonical styles + alias normalization
+// flexAdvisory - canonical styles + alias normalization
 // ---------------------------------------------------------------------------
 
-describe('flexAdvisory — canonical riding styles', () => {
+describe('flexAdvisory - canonical riding styles', () => {
   const rider = (ridingStyle: string): RiderProfile => ({
     bootSize: 10,
     heightCm: 180,

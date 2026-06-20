@@ -19,19 +19,19 @@ describe('priceDropAlert()', () => {
   });
 
   it('returns null when latest price is equal to prior minimum', () => {
-    // latest=40000, prior min=40000 — not strictly less than
+    // latest=40000, prior min=40000 - not strictly less than
     const history = [makeObs(40000, 2), makeObs(40000, 1)];
     expect(priceDropAlert(history)).toBeNull();
   });
 
   it('returns null when latest price is above prior minimum', () => {
-    // latest=45000, prior=[50000, 40000] — min=40000, 45000 > 40000, no drop
+    // latest=45000, prior=[50000, 40000] - min=40000, 45000 > 40000, no drop
     const history = [makeObs(45000, 3), makeObs(50000, 2), makeObs(40000, 1)];
     expect(priceDropAlert(history)).toBeNull();
   });
 
   it('returns PriceDropAlert when latest < min(all prior)', () => {
-    // latest=35000, prior=[50000, 40000] — min=40000, 35000 < 40000 — drop!
+    // latest=35000, prior=[50000, 40000] - min=40000, 35000 < 40000 - drop!
     const history = [makeObs(35000, 3), makeObs(50000, 2), makeObs(40000, 1)];
     const result = priceDropAlert(history);
     expect(result).not.toBeNull();
@@ -42,7 +42,7 @@ describe('priceDropAlert()', () => {
   });
 
   it('uses minimum of all prior observations, not just the immediately previous', () => {
-    // latest=38000, prior=[50000, 42000, 39000] — min=39000, 38000 < 39000 — drop!
+    // latest=38000, prior=[50000, 42000, 39000] - min=39000, 38000 < 39000 - drop!
     const history = [
       makeObs(38000, 4),
       makeObs(50000, 3),

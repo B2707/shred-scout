@@ -51,14 +51,16 @@ describe('detectGearCategory()', () => {
     expect(detectGearCategory('Snowboards', [], '')).toBe('board');
   });
 
-  it('detects board from tags when product_type is empty', async () => {
+  it('a lone shop-wide "snowboard" tag (no product_type/title signal) is NOT board', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('', ['snowboard'], '')).toBe('board');
+    // Regression for finding Q: the bare 'snowboard' tag is on EVERY listing at a
+    // snowboard retailer, so it alone must not win 'board'.
+    expect(detectGearCategory('', ['snowboard'], '')).toBeNull();
   });
 
-  it('detects board from title keyword fallback', async () => {
+  it('detects board from "Snowboard" title keyword fallback', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
-    expect(detectGearCategory('', [], 'Burton Custom Board 157cm')).toBe(
+    expect(detectGearCategory('', [], 'Burton Custom Snowboard 157cm')).toBe(
       'board',
     );
   });
@@ -105,7 +107,7 @@ describe('detectGearCategory()', () => {
   it('cross-layer: a boot with a bare "snowboard" tag classifies as boot, not board', async () => {
     const { detectGearCategory } = await import('../src/data/normalizer.js');
     // The bare 'snowboard' tag matches the BOARD keyword at the tags layer, but the
-    // title carries the dominant 'boot' keyword — boot must win across layers.
+    // title carries the dominant 'boot' keyword - boot must win across layers.
     expect(
       detectGearCategory(
         '',
@@ -127,6 +129,116 @@ describe('detectGearCategory()', () => {
     expect(
       detectGearCategory('Snowboards', ['snowboard'], 'Custom Board'),
     ).toBe('board');
+  });
+
+  // -------------------------------------------------------------------------
+  // Non-board accessories/apparel must NOT classify as 'board' (finding Q)
+  // -------------------------------------------------------------------------
+
+  it('a jacket with a shop-wide "snowboard" tag is NOT classified as board', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory(
+        'Jackets',
+        ['snowboard', 'mens', 'outerwear'],
+        "Burton Men's Jacket",
+      ),
+    ).toBeNull();
+  });
+
+  it('snowboard wax is NOT classified as board', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(detectGearCategory('Wax', [], 'One Ball Snowboard Wax')).toBeNull();
+  });
+
+  it('boardshorts are NOT classified as board (bare "board" substring)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory('Boardshorts', [], 'Volcom Boardshorts'),
+    ).toBeNull();
+  });
+
+  it('gloves with a shop-wide "snowboard" tag are NOT classified as board', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory('Gloves', ['snowboard'], 'Burton Gore-Tex Gloves'),
+    ).toBeNull();
+  });
+
+  it('a beanie with a shop-wide "snowboard" tag is NOT classified as board', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory('Beanies', ['snowboard'], 'Coal The Frena Beanie'),
+    ).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // Positive regressions: real gear still classifies correctly
+  // -------------------------------------------------------------------------
+
+  it('a real board "Burton Custom Flying V 158" (Snowboards) classifies as board', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory(
+        'Snowboards',
+        ['snowboard'],
+        'Burton Custom Flying V 158',
+      ),
+    ).toBe('board');
+  });
+
+  it('a real binding "Union Force" (Bindings) classifies as binding', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory(
+        'Bindings',
+        ['snowboard'],
+        'Union Force Bindings 2026',
+      ),
+    ).toBe('binding');
+  });
+
+  it('a real boot "Burton Photon" (Snowboard Boots) classifies as boot', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory(
+        'Snowboard Boots',
+        ['snowboard'],
+        'Burton Photon Boots',
+      ),
+    ).toBe('boot');
+  });
+
+  // -------------------------------------------------------------------------
+  // Coincidental-substring overmatch (finding: non-board-keyword-substring-overmatch)
+  // A real board whose name merely *contains* an accessory keyword as a substring
+  // (e.g. "Pantera" contains "pant") must NOT be nulled by the accessory short-circuit.
+  // -------------------------------------------------------------------------
+
+  it('"Nitro Pantera Snowboard" (Snowboards) is a board - "pant" substring must not null it', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory(
+        'Snowboards',
+        ['snowboard'],
+        'Nitro Pantera Snowboard',
+      ),
+    ).toBe('board');
+  });
+
+  it('a "GNU ...hat..." board is not nulled by the "hat" keyword (word-boundary match)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    // "Whatever" contains "hat" but only as a substring, not a standalone token.
+    expect(
+      detectGearCategory('Snowboards', ['snowboard'], 'GNU Whatever Snowboard'),
+    ).toBe('board');
+  });
+
+  it('a real accessory "Burton Snowboard Pants" still classifies as null (genuine "pant" token)', async () => {
+    const { detectGearCategory } = await import('../src/data/normalizer.js');
+    expect(
+      detectGearCategory('Pants', [], 'Burton Snowboard Pants'),
+    ).toBeNull();
   });
 });
 
@@ -182,7 +294,7 @@ describe('inferMountPattern()', () => {
     expect(result.mountPatternRaw).toBeTruthy();
   });
 
-  it('non-Burton "channel" keyword maps to "4x4" — Burton-exclusive guard active', async () => {
+  it('non-Burton "channel" keyword maps to "4x4" - Burton-exclusive guard active', async () => {
     const { inferMountPattern } = await import('../src/data/normalizer.js');
     const result = inferMountPattern(
       'Sparks Track Channel Board',
@@ -339,5 +451,77 @@ describe('normalizeProduct()', () => {
     const raw = makeRawProduct({ variants: [] });
     const result = normalizeProduct(raw, 'evo');
     expect(result.price_cents).toBe(0);
+  });
+
+  // -------------------------------------------------------------------------
+  // Malformed-product defensiveness (finding: normalizer-throws-on-malformed-product)
+  // The documented contract is "never throw; unparseable -> null / safe fields".
+  // -------------------------------------------------------------------------
+
+  it('does not throw when variants is missing entirely', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    // biome-ignore lint/suspicious/noExplicitAny: deliberately malformed input
+    const raw = makeRawProduct({ variants: undefined }) as any;
+    expect(() => normalizeProduct(raw, 'evo')).not.toThrow();
+    const result = normalizeProduct(raw, 'evo');
+    expect(result.price_cents).toBe(0);
+    expect(result.variants_json).toBe('[]');
+  });
+
+  it('does not throw when images is missing entirely (array, not just element)', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    // biome-ignore lint/suspicious/noExplicitAny: deliberately malformed input
+    const raw = makeRawProduct({ images: undefined }) as any;
+    expect(() => normalizeProduct(raw, 'evo')).not.toThrow();
+    expect(normalizeProduct(raw, 'evo').image_url).toBeNull();
+  });
+
+  it('does not throw when tags is missing/null', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    // biome-ignore lint/suspicious/noExplicitAny: deliberately malformed input
+    const raw = makeRawProduct({ tags: null }) as any;
+    expect(() => normalizeProduct(raw, 'evo')).not.toThrow();
+    // No tags signal - relies on product_type/title only.
+    expect(normalizeProduct(raw, 'evo').gear_category).toBe('board');
+  });
+
+  it('defaults title/handle to empty string when missing (does not throw)', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    const raw = makeRawProduct({
+      title: undefined,
+      handle: undefined,
+      // biome-ignore lint/suspicious/noExplicitAny: deliberately malformed input
+    }) as any;
+    expect(() => normalizeProduct(raw, 'evo')).not.toThrow();
+    const result = normalizeProduct(raw, 'evo');
+    expect(result.title).toBe('');
+    expect(result.handle).toBe('');
+  });
+
+  it('a fully malformed product (missing variants/images/tags/title) yields safe fields without throwing', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    // Only the id is present - everything else is missing.
+    // biome-ignore lint/suspicious/noExplicitAny: deliberately malformed input
+    const raw = { id: 42 } as any;
+    expect(() => normalizeProduct(raw, 'evo')).not.toThrow();
+    const result = normalizeProduct(raw, 'evo');
+    expect(result.shopify_id).toBe('42');
+    expect(result.title).toBe('');
+    expect(result.handle).toBe('');
+    expect(result.image_url).toBeNull();
+    expect(result.price_cents).toBe(0);
+    expect(result.variants_json).toBe('[]');
+    expect(result.gear_category).toBeNull();
+  });
+
+  it('a coincidental-substring board ("Nitro Pantera Snowboard") normalizes as a board', async () => {
+    const { normalizeProduct } = await import('../src/data/normalizer.js');
+    const raw = makeRawProduct({
+      title: 'Nitro Pantera Snowboard',
+      product_type: 'Snowboards',
+      vendor: 'Nitro',
+      tags: ['snowboard'],
+    });
+    expect(normalizeProduct(raw, 'evo').gear_category).toBe('board');
   });
 });

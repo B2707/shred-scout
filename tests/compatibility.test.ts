@@ -39,6 +39,39 @@ const BASE_RIDER: RiderProfile = {
   ridingStyle: 'all-mountain',
 };
 
+/**
+ * Minimal NormalizedProduct fixture for exercising the product adapters. Only the fields the
+ * adapters read matter (mount_pattern for toBoard/toBinding, vendor + variants_json for the
+ * binding size range); the rest are filled with inert defaults. Cast through `as` so a
+ * deliberately-invalid mount_pattern can model an unknown/missing pattern from ingestion.
+ */
+function makeProduct(
+  overrides: Partial<{
+    mount_pattern: string;
+    vendor: string | null;
+    variants_json: string;
+  }> = {},
+) {
+  return {
+    shopify_id: '1',
+    retailer: 'evo',
+    title: 'Fixture',
+    handle: 'fixture',
+    vendor: overrides.vendor ?? 'Burton',
+    product_type: 'Snowboard',
+    gear_category: 'board',
+    flex_rating: null,
+    waist_width_mm: null,
+    mount_pattern: overrides.mount_pattern ?? '4x4',
+    mount_pattern_raw: overrides.mount_pattern ?? '4x4',
+    image_url: null,
+    price_cents: 50000,
+    variants_json:
+      overrides.variants_json ?? JSON.stringify([{ option1: '157' }]),
+    fetched_at: 0,
+  } as unknown as import('../src/data/normalizer.js').NormalizedProduct;
+}
+
 // ─── bootToBindingSize() ─────────────────────────────────────────────────────
 
 describe('bootToBindingSize()', () => {
@@ -260,7 +293,7 @@ describe('bootToBindingSize()', () => {
 
   // ── Boundary edge cases (6 tests) ────────────────────────────────────────
 
-  it('returns pass for sizeUS=7.25 on [7,10] — exactly 0.25 from min (strict <, not <=)', async () => {
+  it('returns pass for sizeUS=7.25 on [7,10] - exactly 0.25 from min (strict <, not <=)', async () => {
     const { bootToBindingSize } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -270,7 +303,7 @@ describe('bootToBindingSize()', () => {
     expect(result.verdict).toBe('pass');
   });
 
-  it('returns warn for sizeUS=7.24 on [7,10] — inside 0.25 of min edge', async () => {
+  it('returns warn for sizeUS=7.24 on [7,10] - inside 0.25 of min edge', async () => {
     const { bootToBindingSize } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -280,7 +313,7 @@ describe('bootToBindingSize()', () => {
     expect(result.verdict).toBe('warn');
   });
 
-  it('returns pass for sizeUS=9.75 on [7,10] — exactly 0.25 from max (strict <, not <=)', async () => {
+  it('returns pass for sizeUS=9.75 on [7,10] - exactly 0.25 from max (strict <, not <=)', async () => {
     const { bootToBindingSize } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -290,7 +323,7 @@ describe('bootToBindingSize()', () => {
     expect(result.verdict).toBe('pass');
   });
 
-  it('returns warn for sizeUS=9.76 on [7,10] — inside 0.25 of max edge', async () => {
+  it('returns warn for sizeUS=9.76 on [7,10] - inside 0.25 of max edge', async () => {
     const { bootToBindingSize } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -300,7 +333,7 @@ describe('bootToBindingSize()', () => {
     expect(result.verdict).toBe('warn');
   });
 
-  it('returns pass for sizeUS=8.25 on [8,11] — exactly 0.25 from min', async () => {
+  it('returns pass for sizeUS=8.25 on [8,11] - exactly 0.25 from min', async () => {
     const { bootToBindingSize } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -310,7 +343,7 @@ describe('bootToBindingSize()', () => {
     expect(result.verdict).toBe('pass');
   });
 
-  it('returns pass for sizeUS=10.75 on [8,11] — exactly 0.25 from max (strict <)', async () => {
+  it('returns pass for sizeUS=10.75 on [8,11] - exactly 0.25 from max (strict <)', async () => {
     const { bootToBindingSize } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -359,7 +392,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('pass');
   });
 
-  it('US10: waist=250 returns pass (exactly 20mm overhang per side — boundary)', async () => {
+  it('US10: waist=250 returns pass (exactly 20mm overhang per side - boundary)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -377,7 +410,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('warn');
   });
 
-  it('US10: waist=240 returns warn (narrow-ish — a wider board would help)', async () => {
+  it('US10: waist=240 returns warn (narrow-ish - a wider board would help)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -386,7 +419,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('warn');
   });
 
-  it('US10: waist=220 returns warn (exactly 35mm overhang per side — boundary)', async () => {
+  it('US10: waist=220 returns warn (exactly 35mm overhang per side - boundary)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -395,7 +428,7 @@ describe('bootToBoardWaist()', () => {
     ).toBe('warn');
   });
 
-  it('US10: waist=210 returns fail (40mm overhang per side — real toe/heel drag)', async () => {
+  it('US10: waist=210 returns fail (40mm overhang per side - real toe/heel drag)', async () => {
     const { bootToBoardWaist } = await import(
       '../src/domain/compatibility/rules.js'
     );
@@ -628,7 +661,7 @@ describe('runRules()', () => {
   });
 });
 
-// ─── evaluateCompatibility() — hard rules + flex advisory ──────────────────────
+// ─── evaluateCompatibility() - hard rules + flex advisory ──────────────────────
 
 describe('evaluateCompatibility()', () => {
   it('returns the 3 hard rules PLUS the flex advisory', async () => {
@@ -648,7 +681,7 @@ describe('evaluateCompatibility()', () => {
     const { evaluateCompatibility } = await import(
       '../src/domain/compatibility/engine.js'
     );
-    // freeride wants stiff (7–10); a soft (flex 3) board should warn on the advisory.
+    // freeride wants stiff (7-10); a soft (flex 3) board should warn on the advisory.
     const results = evaluateCompatibility(makeSetup({ flexRating: 3 }), {
       ...BASE_RIDER,
       ridingStyle: 'freeride',
@@ -656,5 +689,67 @@ describe('evaluateCompatibility()', () => {
     const flex = results.find((r) => r.ruleId === 'flex-pairing');
     expect(flex?.advisory).toBe(true);
     expect(flex?.verdict).toBe('warn');
+  });
+});
+
+// ─── discToMount() THROUGH the product adapters ───────────────────────────────
+// discToMount is unit-tested above against hand-built GearSetups. These cases instead drive
+// it through toBoard()/toBinding() so the real product -> mount_pattern -> mountingPattern/
+// discPattern wiring is covered, including the unrecognized-pattern fail path.
+
+describe('discToMount() via toBoard/toBinding adapters', () => {
+  it('passes for a 4x4 board product and a 4x4 binding product', async () => {
+    const { discToMount } = await import(
+      '../src/domain/compatibility/rules.js'
+    );
+    const { toBoard, toBinding } = await import(
+      '../src/domain/compatibility/product-adapter.js'
+    );
+    const board = toBoard(makeProduct({ mount_pattern: '4x4' }));
+    const binding = toBinding(makeProduct({ mount_pattern: '4x4' }));
+    const result = discToMount({
+      board,
+      binding,
+      boot: { sizeUS: 10 },
+    });
+    expect(result.verdict).toBe('pass');
+  });
+
+  it('fails when exactly one adapted product is channel (channel board + 4x4 binding)', async () => {
+    const { discToMount } = await import(
+      '../src/domain/compatibility/rules.js'
+    );
+    const { toBoard, toBinding } = await import(
+      '../src/domain/compatibility/product-adapter.js'
+    );
+    // XOR: board resolves to channel, binding resolves to 4x4 -> incompatible.
+    const board = toBoard(makeProduct({ mount_pattern: 'channel' }));
+    const binding = toBinding(makeProduct({ mount_pattern: '4x4' }));
+    const result = discToMount({
+      board,
+      binding,
+      boot: { sizeUS: 10 },
+    });
+    expect(result.verdict).toBe('fail');
+  });
+
+  it('fails for an adapted product whose mount pattern is unknown/missing', async () => {
+    const { discToMount } = await import(
+      '../src/domain/compatibility/rules.js'
+    );
+    const { toBoard, toBinding } = await import(
+      '../src/domain/compatibility/product-adapter.js'
+    );
+    // An empty/unrecognized mount_pattern (e.g. ingestion never resolved one) flows through the
+    // adapter and lands on discToMount's unrecognized-pattern guard -> hard fail.
+    const board = toBoard(makeProduct({ mount_pattern: '' }));
+    const binding = toBinding(makeProduct({ mount_pattern: '4x4' }));
+    const result = discToMount({
+      board,
+      binding,
+      boot: { sizeUS: 10 },
+    });
+    expect(result.verdict).toBe('fail');
+    expect(result.reason).toMatch(/unrecognized mounting pattern/i);
   });
 });

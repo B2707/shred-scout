@@ -1,5 +1,5 @@
 /**
- * SearchView tests — uses a mocked runSearch().
+ * SearchView tests - uses a mocked runSearch().
  * Verifies product rendering, ComparisonGroup grouping, and empty state.
  * The wizard always supplies initialQuery, so the results view renders
  * immediately on mount.
@@ -43,6 +43,7 @@ const makeProduct = (
   priceCents: number,
   id: string,
   title = 'Never Summer Proto Synthesis',
+  extra: Record<string, unknown> = {},
 ) => ({
   shopify_id: id,
   retailer,
@@ -52,6 +53,7 @@ const makeProduct = (
   product_type: 'Snowboard',
   gear_category: 'board' as const,
   waist_width_mm: null,
+  flex_rating: null,
   mount_pattern: '4x4' as const,
   mount_pattern_raw: '4x4',
   image_url: null,
@@ -64,7 +66,16 @@ const makeProduct = (
     },
   ]),
   fetched_at: Date.now(),
+  ...extra,
 });
+
+/** A board offered in a single length (cm) - used to exercise length-based ranking. */
+const boardOfLength = (id: string, title: string, lengthCm: number) =>
+  makeProduct('evo', 50000, id, title, {
+    variants_json: JSON.stringify([
+      { price: '500.00', compare_at_price: null, option1: String(lengthCm) },
+    ]),
+  });
 
 /** Wait for an async effect (e.g. the wizard auto-run search) to settle. */
 async function settle(ms = 100): Promise<void> {
@@ -76,6 +87,9 @@ async function settle(ms = 100): Promise<void> {
 const mockRepo = () => ({
   list: vi.fn().mockReturnValue([]),
   save: vi.fn().mockReturnValue(1),
+  saveSlot: vi.fn().mockReturnValue(7),
+  findCompleteSetup: vi.fn().mockReturnValue(null),
+  setCompatibility: vi.fn(),
   delete: vi.fn(),
   setAlert: vi.fn(),
   upsert: vi.fn().mockReturnValue(1),
@@ -148,6 +162,159 @@ describe('SearchView', () => {
     expect(lastFrame()).toContain('[/] filters');
   });
 
+  it('opens the full-screen product view on a card number, and any key returns', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products: [makeProduct('evo', 49999, '1', 'Capita DOA 2026')],
+      errors: [],
+    });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame, stdin } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved: () => {},
+        onModalChange: () => {},
+      }),
+    );
+    await settle(80);
+    expect(lastFrame()).toContain('Capita DOA 2026'); // list view
+
+    await act(async () => {
+      stdin.write('1'); // open card #1's full-screen photo view
+    });
+    await settle(40);
+    expect(lastFrame()).toContain('press any key to go back');
+
+    await act(async () => {
+      stdin.write('x'); // any key returns to the list
+    });
+    await settle(40);
+    expect(lastFrame()).not.toContain('press any key to go back');
+    expect(lastFrame()).toContain('[/] filters'); // back on the results footer
+  });
+
+  it('numbers cards per page so items beyond page 1 are reachable with one digit', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    const products = Array.from({ length: 10 }, (_, i) =>
+      makeProduct('evo', 50000 + i, String(i + 1), `Snowboard Model ${i + 1}`),
+    );
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products,
+      errors: [],
+    });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame, stdin } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved: () => {},
+        onModalChange: () => {},
+      }),
+    );
+    await settle(120);
+    expect(lastFrame()).toContain('[1] Snowboard Model 1');
+
+    // Advance to page 2 (models 5-8). With page-relative numbering they are [1]-[4], not
+    // [5]-[8] - the global scheme is what left items past index 9 unreachable by one digit.
+    await act(async () => {
+      stdin.write('[C');
+    });
+    await settle(80);
+    const page2 = lastFrame() ?? '';
+    expect(page2).toContain('Page 2 of 3');
+    expect(page2).toContain('[1] Snowboard Model 5');
+    expect(page2).toContain('[4] Snowboard Model 8');
+  });
+
+  it('makes a Best-Price comparison group addressable - it carries an [N] and # opens it', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products: [
+        makeProduct('evo', 64999, '1'),
+        makeProduct('tactics', 62999, '2'),
+      ],
+      errors: [],
+    });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame, stdin } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved: () => {},
+        onModalChange: () => {},
+      }),
+    );
+    await settle(120);
+    expect(lastFrame()).toContain('[Best Price]');
+    expect(lastFrame()).toContain('[1]'); // comparison group is now selectable
+
+    await act(async () => {
+      stdin.write('1'); // open the best-price product's photo view
+    });
+    await settle(40);
+    expect(lastFrame()).toContain('press any key to go back');
+  });
+
+  it('passes the just-saved setup id up so a second setup is not hijacked', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products: [makeProduct('evo', 49999, '1', 'Capita DOA 2026')],
+      errors: [],
+    });
+    const setupRepo = mockRepo();
+    const onSetupSaved = vi.fn();
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { stdin } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        setupRepo: setupRepo as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved,
+        onModalChange: () => {},
+      }),
+    );
+    await settle(80);
+    await act(async () => {
+      stdin.write('s'); // enter save mode
+    });
+    await settle(40);
+    await act(async () => {
+      stdin.write('1'); // item #1
+    });
+    await settle(20);
+    await act(async () => {
+      stdin.write('\r'); // submit
+    });
+    await settle(40);
+    // saveSlot returns 7; that id must be handed up so App can tell THIS save apart from any
+    // pre-existing complete setup (otherwise every save hijacks back to the old summary).
+    expect(onSetupSaved).toHaveBeenCalledWith(7);
+  });
+
   it('renders ComparisonGroup when 2 products share the same normalized title', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -202,6 +369,93 @@ describe('SearchView', () => {
     expect(lastFrame()).not.toContain('[Best Price]');
   });
 
+  it('ranks results so a board near the recommended length comes first', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    // rider weight 75 → recommended length ≈ 157, so the 157 board must outrank the 144.
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products: [
+        boardOfLength('1', 'FarBoard', 144),
+        boardOfLength('2', 'NearBoard', 157),
+      ],
+      errors: [],
+    });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved: () => {},
+        onModalChange: () => {},
+      }),
+    );
+    await settle(120);
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('[1] NearBoard');
+    expect(frame.indexOf('NearBoard')).toBeLessThan(frame.indexOf('FarBoard'));
+  });
+
+  it('shows a board-length recommendation derived from the rider profile', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products: [boardOfLength('1', 'SomeBoard', 157)],
+      errors: [],
+    });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved: () => {},
+        onModalChange: () => {},
+      }),
+    );
+    await settle(120);
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Recommended board length');
+    expect(frame).toContain('cm');
+  });
+
+  it('keeps a numeric-flex board visible under a matching flex-band chip', async () => {
+    const { runSearch } = await import('../src/agent/search-pipeline.js');
+    // "6/10" is a MEDIUM flex board; the medium chip must keep it, not hide it on a substring miss.
+    (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      products: [
+        makeProduct('evo', 50000, '1', 'MidFlexBoard', { flex_rating: '6/10' }),
+      ],
+      errors: [],
+    });
+    const { SearchView } = await import('../src/components/SearchView.js');
+    const { lastFrame } = render(
+      React.createElement(SearchView, {
+        profile,
+        supportsImages: false,
+        initialQuery: 'boards',
+        initialFilters: ['medium'],
+        setupRepo: mockRepo() as unknown as ReturnType<typeof makeSetupRepo>,
+        priceRepo: mockRepo() as unknown as ReturnType<typeof makePriceRepo>,
+        productRepo: mockRepo() as unknown as ReturnType<
+          typeof makeProductRepo
+        >,
+        onSetupSaved: () => {},
+        onModalChange: () => {},
+      }),
+    );
+    await settle(120);
+    expect(lastFrame()).toContain('MidFlexBoard');
+  });
+
   it('renders empty-state copy when a wizard-driven search returns nothing', async () => {
     const { runSearch } = await import('../src/agent/search-pipeline.js');
     (runSearch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -253,18 +507,18 @@ describe('SearchView', () => {
     );
     await settle(120);
     const page1 = lastFrame() ?? '';
-    // 7 results, 5 per page -> page 1 shows exactly 5 cards (one rounded border each).
+    // 7 results, 4 per page -> page 1 shows exactly 4 cards (one rounded border each).
     expect(page1).toContain('Page 1 of 2');
-    expect((page1.match(/╭/g) ?? []).length).toBe(5);
+    expect((page1.match(/╭/g) ?? []).length).toBe(4);
 
-    // Right arrow advances to page 2, which holds the remaining 2 cards.
+    // Right arrow advances to page 2, which holds the remaining 3 cards.
     await act(async () => {
       stdin.write('[C');
     });
     await settle(40);
     const page2 = lastFrame() ?? '';
     expect(page2).toContain('Page 2 of 2');
-    expect((page2.match(/╭/g) ?? []).length).toBe(2);
+    expect((page2.match(/╭/g) ?? []).length).toBe(3);
 
     // Left arrow goes back to page 1.
     await act(async () => {
