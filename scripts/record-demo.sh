@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# record-demo.sh — helpers for producing docs/demo.gif.
+# record-demo.sh - helpers for producing docs/demo.gif.
 #
 # The wizard/result PRODUCT IMAGES use the iTerm2 / Kitty inline-image protocol,
 # which only renders in those terminals and CANNOT be captured by terminal
-# recorders — asciinema, agg and vhs all fall back to chafa block-art. So the demo
+# recorders - asciinema, agg and vhs all fall back to chafa block-art. So the demo
 # GIF must be made by SCREEN-RECORDING a real iTerm2 or Kitty window.
 #
 # Usage:
@@ -30,7 +30,7 @@ STEPS
   exit 0
 fi
 
-command -v ffmpeg >/dev/null || { echo "ffmpeg not found — install it (brew install ffmpeg)"; exit 1; }
+command -v ffmpeg >/dev/null || { echo "ffmpeg not found - install it (brew install ffmpeg)"; exit 1; }
 IN="$1"
 [ -f "$IN" ] || { echo "no such file: $IN"; exit 1; }
 PALETTE="$(mktemp -t demo-palette).png"

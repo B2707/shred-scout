@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide covers everything needed to work on Shred Scout locally — from initial setup through the build pipeline, code style rules, and extending the scraping and compatibility systems.
+This guide covers everything needed to work on Shred Scout locally - from initial setup through the build pipeline, code style rules, and extending the scraping and compatibility systems.
 
 ## Local Setup
 
@@ -26,15 +26,17 @@ npm run setup   # runs npm run build && npm link
 
 | Command | Description |
 |---|---|
-| `npm run build` | Compile TypeScript with tsup — outputs ESM bundle to `dist/` |
-| `npm run dev` | Run `src/cli.ts` directly via tsx (no build step, faster iteration) |
+| `npm run build` | Compile TypeScript with tsup (`tsup`) - outputs ESM bundle to `dist/` |
+| `npm run dev` | Run `src/cli.ts` directly via tsx (`tsx src/cli.ts`) - no build step, faster iteration |
 | `npm start` | Run the built CLI via the `bin/shred-scout` shim (`node bin/shred-scout search`) |
-| `npm run setup` | One-time build + `npm link` to install the `shred-scout` command globally |
-| `npm test` | Build first, then run Vitest in single-pass mode |
-| `npm run test:watch` | Run Vitest in watch mode (no build step — uses tsx transforms) |
-| `npm run lint` | Run Biome linter across the entire project |
-| `npm run format` | Auto-format all files with Biome |
-| `npm run prepublishOnly` | Build before publish (lifecycle hook — not for manual use) |
+| `npm run demo` | Build, then run the offline-fixtures demo (`node dist/cli.js --demo`) |
+| `npm run setup` | Build, rebuild the `better-sqlite3` native binding, then `npm link` to install `shred-scout` globally |
+| `npm test` | Build first, then run Vitest in single-pass mode (`npm run build && vitest run`) |
+| `npm run test:watch` | Run Vitest in watch mode (`vitest`) - no build step, uses tsx transforms |
+| `npm run lint` | Run Biome across the whole project (`biome check .`) |
+| `npm run format` | Auto-format all files with Biome (`biome format --write .`) |
+| `npm run postinstall` | Install the bundled `chafa` binary (`node scripts/install-chafa.mjs`) - runs automatically after `npm install` |
+| `npm run prepublishOnly` | Build before publish (`npm run build`) - lifecycle hook, not for manual use |
 
 ### Build output structure
 
@@ -49,7 +51,7 @@ dist/
   index.d.ts      # Type declarations (generated from src/index.ts only)
 ```
 
-The `bin/shred-scout` shim does a dynamic `import('../dist/cli.js')` and exits with a clear error message if the build is missing. The shim itself is plain Node.js with a `#!/usr/bin/env node` shebang — no compilation required.
+The `bin/shred-scout` shim does a dynamic `import('../dist/cli.js')` and exits with a clear error message if the build is missing. The shim itself is plain Node.js with a `#!/usr/bin/env node` shebang - no compilation required.
 
 ## Code Style
 
@@ -74,7 +76,7 @@ Auto-fix formatting:
 npm run format
 ```
 
-Biome is not currently enforced in CI — but all PRs should pass `npm run lint` locally before submission.
+Biome is not currently enforced in CI - but all PRs should pass `npm run lint` locally before submission.
 
 ## ESM Import Requirements
 
@@ -88,7 +90,7 @@ The project is pure ESM (`"type": "module"` in `package.json`) and uses `"module
 import { runRules } from './compatibility/engine.js';
 import type { GearSetup } from './types.js';
 
-// Wrong — will fail at runtime
+// Wrong - will fail at runtime
 import { runRules } from './compatibility/engine';
 ```
 
@@ -103,7 +105,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 ## Adding a New Retailer
 
-All scraped retailers are declared in `src/data/retailers.ts`. The `RETAILERS` constant is the single source of truth — the scraper, normalizer, and SQLite persistence all iterate over it.
+All scraped retailers are declared in `src/data/retailers.ts`. The `RETAILERS` constant is the single source of truth - the scraper, normalizer, and SQLite persistence all iterate over it.
 
 To add a new Shopify retailer:
 
@@ -119,7 +121,7 @@ export const RETAILERS: readonly Retailer[] = [
 ] as const;
 ```
 
-The `name` field becomes the `retailer` column value in SQLite. The `baseUrl` must not have a trailing slash — the scraper appends `/products.json?limit=250&page=N` automatically.
+The `name` field becomes the `retailer` column value in SQLite. The `baseUrl` must not have a trailing slash - the scraper appends `/products.json?limit=250&page=N` automatically.
 
 **Before adding a retailer**, verify the store's endpoint is accessible:
 
@@ -127,27 +129,33 @@ The `name` field becomes the `retailer` column value in SQLite. The `baseUrl` mu
 curl -s 'https://www.mynewstore.com/products.json?limit=1&page=1' | head -c 200
 ```
 
-A valid response starts with `{"products":[`. Stores returning 403, a redirect to a login page, or an empty non-JSON response will cause `runSearch()` to log a per-retailer error and continue — they will not crash the app.
+A valid response starts with `{"products":[`. Stores returning 403, a redirect to a login page, or an empty non-JSON response will cause `runSearch()` to log a per-retailer error and continue - they will not crash the app.
 
 ### Shopify pagination
 
-The scraper in `src/data/shopify.ts` uses `?limit=250&page=N` and loops until the response array is empty. The Shopify public `products.json` endpoint hard-caps at 250 items per page. Do not change `limit=250` — values above 250 are silently capped by Shopify and result in incomplete pagination.
+The scraper in `src/data/shopify.ts` uses `?limit=250&page=N` and loops until the response array is empty. The Shopify public `products.json` endpoint hard-caps at 250 items per page. Do not change `limit=250` - values above 250 are silently capped by Shopify and result in incomplete pagination.
 
 ## Adding Compatibility Rules
 
-Compatibility logic lives in `src/domain/compatibility/`. The three hard rules and the flex advisory are all pure functions — no I/O, no side effects.
+Compatibility logic lives in `src/domain/compatibility/`. Every rule, advisory, and sizing helper is a pure function - no I/O, no side effects, never throws.
 
 ### Directory layout
 
 ```
 src/domain/compatibility/
-  types.ts          # GearSetup, RuleResult, MountPattern, Verdict — no runtime code
-  rules.ts          # bootToBindingSize, bootToBoardWaist, discToMount
-  engine.ts         # runRules() — calls all three hard rules, returns RuleResult[]
-  flex-advisory.ts  # flexPairing advisory — the only source of verdict 'unknown'
-  sizing-tables.ts  # Boot sizing lookup tables
-  filter-spec.ts    # (domain) Search filter specification types
+  types.ts             # GearSetup, RuleResult, MountPattern, Verdict - no runtime code
+  rules.ts             # bootToBindingSize, bootToBoardWaist, discToMount (the 3 hard rules)
+  flex-advisory.ts     # flexAdvisory - riding-style flex pairing, the only source of verdict 'unknown'
+  engine.ts            # runRules() (3 hard rules) and evaluateCompatibility() (hard rules + flex advisory)
+  board-sizing.ts      # recommendBoardLength() + parseBoardLengthsCm() - weight/height/skill/style -> length window, used to RANK not filter
+  setup-badges.ts      # badgeFor / sortedCandidates / annotateCandidates / trayVerdict - fit badges for the setup builder
+  product-adapter.ts   # toBoard / toBinding / toBoot / bootFit - maps NormalizedProduct into rule inputs
+  sizing-tables.ts     # Boot sizing lookup tables
 ```
+
+`engine.ts` exposes two entry points. `runRules()` returns the three hard verdicts; `evaluateCompatibility()` returns those three plus the riding-style flex advisory and is the entry point the UI consumes.
+
+`board-sizing.ts` recommends a board-length window from the rider's weight (primary), height, skill, and style; it feeds the candidate ranking so well-sized boards surface first. `setup-badges.ts` builds on the rules, the board-sizing model, and `rank.ts` to produce the per-candidate fit badges, the compatible-first candidate ordering, and the whole-setup tray verdict rendered in the setup builder.
 
 ### Adding a new hard rule
 
@@ -155,7 +163,7 @@ src/domain/compatibility/
 
 ```typescript
 export function myNewRule(setup: GearSetup): RuleResult {
-  // pure — no I/O, no throws, every code path returns RuleResult
+  // pure - no I/O, no throws, every code path returns RuleResult
   return {
     ruleId: 'my-new-rule',   // stable kebab-case identifier
     verdict: 'pass',          // 'pass' | 'warn' | 'fail'
@@ -184,7 +192,7 @@ export function runRules(setup: GearSetup, _rider: RiderProfile): RuleResult[] {
 **Hard rule contract:**
 - Never emit verdict `'unknown'` (that is reserved for `flexPairing` advisory only).
 - Never set `advisory: true`.
-- Never throw — every code path must return a `RuleResult`.
+- Never throw - every code path must return a `RuleResult`.
 
 ### Mounting pattern note
 
@@ -192,7 +200,7 @@ export function runRules(setup: GearSetup, _rider: RiderProfile): RuleResult[] {
 
 ## Ink Component Constraints
 
-These constraints are non-negotiable — violating them causes silent breakage or demo-killing crashes.
+These constraints are non-negotiable - violating them causes silent breakage or demo-killing crashes.
 
 ### TTY detection
 
@@ -207,12 +215,12 @@ Never call `process.stdout.write()` or `console.log()` inside a React component 
 Instead, accumulate output into React state (via `useReducer` or `useState`) and let Ink render it on the next tick.
 
 ```typescript
-// Wrong — corrupts Ink output
+// Wrong - corrupts Ink output
 useEffect(() => {
   console.log('search complete');
 }, [results]);
 
-// Correct — drives state, Ink renders it
+// Correct - drives state, Ink renders it
 useEffect(() => {
   dispatch({ type: 'SEARCH_COMPLETE', payload: results });
 }, [results]);
@@ -220,13 +228,19 @@ useEffect(() => {
 
 ### React version pinning
 
-Ink 6 requires exactly React 18. The `package.json` `overrides` field pins `react` and `@types/react` to prevent dual-React drift when adding dependencies. After any `npm install`, verify with:
+Ink 6.8.0 requires React >=19, and this project pins React 19.1.0. The `package.json` `overrides` field pins `react` to `19.1.0` and `@types/react` to `^19.1.5` to prevent dual-React drift when adding dependencies. After any `npm install`, verify with:
 
 ```bash
 npm ls react
 ```
 
-There must be exactly one version in the tree. If a second version appears, the new dependency has pulled in a conflicting React — check `peerDependencies` and use `overrides` to enforce the pinned version.
+There must be exactly one version in the tree. The expected output is `react@19.1.0` deduped across Ink and `react-reconciler`, with the root entry marked `overridden`:
+
+```
+└── react@19.1.0 overridden
+```
+
+If a second version appears, the new dependency has pulled in a conflicting React - check its `peerDependencies` and use `overrides` to enforce the pinned version.
 
 ## Testing
 
@@ -241,7 +255,7 @@ A shared setup file at `tests/setup.ts` runs in each worker before tests. It set
 
 Test timeout is 15 seconds per test (`testTimeout: 15000` in `vitest.config.ts`). Tests run in isolated forks (`pool: 'forks'`).
 
-For component tests, use `ink-testing-library` — see existing files like `tests/result-card.test.tsx` for the pattern.
+For component tests, use `ink-testing-library` - see existing files like `tests/result-card.test.tsx` for the pattern.
 
 ## Next Steps
 
