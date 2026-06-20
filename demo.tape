@@ -17,6 +17,7 @@ Set Width 1180
 Set Height 760
 Set Padding 18
 Set Theme "Catppuccin Mocha"
+Set PlaybackSpeed 1.6
 
 Hide
 Type "export PATH=/opt/homebrew/bin:$PATH && clear"
