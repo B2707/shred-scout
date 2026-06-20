@@ -1,7 +1,7 @@
 /**
  * Price drop alert computation for Shred Scout.
  *
- * Pure function — no I/O, no side effects. Called by the watch daemon
+ * Pure function - no I/O, no side effects. Called by the watch daemon
  * after priceRepo.history() to determine whether to fire an OS notification.
  */
 import type { PriceObservation } from '../../data/repos/priceRepo.js';

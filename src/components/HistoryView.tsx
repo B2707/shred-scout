@@ -1,7 +1,7 @@
 /**
- * HistoryView — price history table for a single product.
+ * HistoryView - price history table for a single product.
  *
- * Shows all observations newest-first: relative timestamp | $price | trend (▼/▲/—).
+ * Shows all observations newest-first: relative timestamp | $price | trend (▼/▲/-).
  * No arrow-key navigation needed (read-only table). q/Escape returns to wishlist.
  */
 
@@ -40,7 +40,7 @@ export function HistoryView({
       <Box flexDirection="column" paddingX={1}>
         <Box>
           <Text color="cyanBright" bold>
-            Price History —{' '}
+            Price History -{' '}
           </Text>
           <Text>{productTitle}</Text>
         </Box>
@@ -62,7 +62,7 @@ export function HistoryView({
     <Box flexDirection="column" paddingX={1}>
       <Box>
         <Text color="cyanBright" bold>
-          Price History —{' '}
+          Price History -{' '}
         </Text>
         <Text>{productTitle}</Text>
       </Box>
@@ -76,7 +76,7 @@ export function HistoryView({
 
       {observations.map((obs, i) => {
         const prior = observations[i + 1];
-        let trend = '—';
+        let trend = '-';
         let trendColor: string | undefined;
         if (prior) {
           if (obs.priceCents < prior.priceCents) {

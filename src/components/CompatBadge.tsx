@@ -1,7 +1,7 @@
 /**
- * CompatBadge — inline colored verdict badge for a single RuleResult.
+ * CompatBadge - inline colored verdict badge for a single RuleResult.
  *
- * Format: [VERDICT:ruleId] — e.g. "[PASS:boot-to-binding-size]"
+ * Format: [VERDICT:ruleId] - e.g. "[PASS:boot-to-binding-size]"
  *
  * This component is BUILT but NOT RENDERED anywhere yet.
  * runRules() requires a complete GearSetup (board + binding + boot), which

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { assertTTY, isTTY } from './lib/tty.js';
+import { assertTTY } from './lib/tty.js';
 
 // ESM equivalent of __dirname (no __dirname in ESM scope)
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -16,7 +16,7 @@ try {
   ) as { version: string };
   pkgVersion = pkg.version;
 } catch {
-  // package.json unreadable — fall back to placeholder
+  // package.json unreadable - fall back to placeholder
 }
 
 const program = new Command();
@@ -36,7 +36,7 @@ program.addHelpText(
   [
     '',
     'Getting started:',
-    '  npm run setup     One-time install — enables `shred-scout` globally',
+    '  npm run setup     One-time install - enables `shred-scout` globally',
     '  shred-scout       Run after setup',
     '',
     'Without installing:',
@@ -49,7 +49,7 @@ program
   .description('Search for compatible snowboard gear (interactive)')
   .option(
     '--demo',
-    'Run with cached fixture data — no network or API keys required',
+    'Run with cached fixture data - no network or API keys required',
   )
   .action(async (options: { demo?: boolean }) => {
     assertTTY(); // Gate: only enforce TTY for interactive commands
@@ -57,7 +57,7 @@ program
     const { App } = await import('./components/App.js');
     const { createElement } = await import('react');
     render(createElement(App, { isDemoMode: options.demo ?? false }));
-    // waitUntilExit() resolves prematurely with React 19 + Ink 6 — rely on
+    // waitUntilExit() resolves prematurely with React 19 + Ink 6 - rely on
     // process.exit(0) from the global 'q' useInput handler to terminate instead.
     await new Promise<never>(() => {});
   });
@@ -81,8 +81,14 @@ program
     const { makeRetailerRepo } = await import('./data/repos/retailerRepo.js');
     const { priceDropAlert } = await import('./domain/alerts/diff.js');
     const { execFile } = await import('node:child_process');
-    const { fetch } = await import('undici');
+    const { RequestPipeline } = await import('./data/pipeline.js');
     const { parsePriceCents } = await import('./data/normalizer.js');
+
+    // Route price polls through the shared pipeline so they inherit the global pacing,
+    // 429-abort, 15s timeout, and the browser DEFAULT_USER_AGENT - the same protections
+    // the rest of the data layer uses. A bare undici.fetch with a bot UA would trip the
+    // per-IP rate limit and get blocked.
+    const pipeline = new RequestPipeline();
 
     const db = openDatabase();
     const setupRepo = makeSetupRepo(db);
@@ -132,9 +138,8 @@ program
               const storeUrl = storeUrlByRetailer.get(product.retailer);
               if (storeUrl) {
                 try {
-                  const res = await fetch(
+                  const res = await pipeline.fetch(
                     `${storeUrl}/products/${product.handle}.json`,
-                    { headers: { 'User-Agent': 'shred-scout/1.0.0' } },
                   );
                   if (res.ok) {
                     const json = (await res.json()) as {
@@ -153,7 +158,7 @@ program
                     }
                   }
                 } catch {
-                  // Price fetch failed — skip this product this poll cycle
+                  // Price fetch failed - skip this product this poll cycle
                 }
               }
             }
@@ -175,7 +180,7 @@ program
               const message = `${title}: $${oldDollars} → $${newDollars} (-${pct}%)`;
               if (process.platform === 'darwin') {
                 // Pass message as an argv item so it is never interpolated into AppleScript
-                // source code. This eliminates the command-injection surface entirely —
+                // source code. This eliminates the command-injection surface entirely -
                 // osascript receives the message as a process argument, not as script text.
                 execFile(
                   'osascript',
@@ -207,7 +212,7 @@ program
 
     const initialWatched = setupRepo.list().filter((s) => s.alertEnabled);
     console.log(
-      `Shred Scout Watch — polling ${initialWatched.length} watched items every ${intervalMins} min. Ctrl+C to stop.`,
+      `Shred Scout Watch - polling ${initialWatched.length} watched items every ${intervalMins} min. Ctrl+C to stop.`,
     );
 
     void pollOnce().catch(console.error);
@@ -215,7 +220,7 @@ program
       void pollOnce().catch((err) => console.error('Poll error:', err));
     }, intervalMs);
 
-    // Block forever — SIGINT handler calls process.exit(0) to exit
+    // Block forever - SIGINT handler calls process.exit(0) to exit
     await new Promise<never>(() => {});
   });
 
@@ -225,7 +230,7 @@ program
     'Add a new store URL to the search list (persists to SQLite and stores.json)',
   )
   .action(async (url: string) => {
-    // Validate the URL — exits early with code 1 on invalid input (ASVS input validation)
+    // Validate the URL - exits early with code 1 on invalid input (ASVS input validation)
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(url);
@@ -234,11 +239,19 @@ program
       process.exit(1);
     }
 
+    // Require an http(s) scheme - reject file:, data:, javascript:, etc. so a bogus
+    // scheme can never reach the fetch/scrape paths or be persisted as a "store".
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      console.error('Store URL must use http or https:', url);
+      process.exit(1);
+    }
+
     const host = parsedUrl.hostname.replace(/^www\./, '');
     const name = host.split('.')[0] || host;
-    const type: 'shopify' | 'html' = host.includes('evo.com')
-      ? 'html'
-      : 'shopify';
+    // Match evo.com on the exact host or a real subdomain - never a substring, so a
+    // host like 'evo.com.attacker.example' or 'notevo.com' can't be misclassified.
+    const type: 'shopify' | 'html' =
+      host === 'evo.com' || host.endsWith('.evo.com') ? 'html' : 'shopify';
 
     const { openDatabase } = await import('./data/db.js');
     const { makeRetailerRepo } = await import('./data/repos/retailerRepo.js');
@@ -254,16 +267,12 @@ program
     db.close();
   });
 
-// Show help when invoked with no arguments and running in a TTY.
-// When stdin is not a TTY (piped), fall through to program.parseAsync() so the
-// default search action fires and assertTTY() produces the expected exit(1).
-if (process.argv.length <= 2 && isTTY()) {
-  program.outputHelp();
-  process.exit(0);
-}
-
+// Running `shred-scout` with no arguments launches the default `search` command
+// (it's marked isDefault), which renders the interactive app. Help is still
+// available explicitly via `shred-scout --help` / `-h` / `shred-scout help`.
+//
 // Note: parseAsync() never resolves for the interactive `search`/`watch`
-// commands — their actions return a never-resolving promise to hold the process
+// commands - their actions return a never-resolving promise to hold the process
 // open for Ink. Using a top-level `await` here would make Node emit an
 // "unsettled top-level await" warning (which also leaks into demo recordings).
 // Attaching a rejection handler instead lets the module finish evaluating with

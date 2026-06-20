@@ -1,7 +1,7 @@
 /**
- * SaleDisplay — renders sale pricing in yellow: "(was $X.XX)  $Y.YY  (N% OFF)"
+ * SaleDisplay - renders sale pricing in yellow: "(was $X.XX)  $Y.YY  (N% OFF)"
  *
- * Does NOT perform variants_json parsing — caller is responsible for computing
+ * Does NOT perform variants_json parsing - caller is responsible for computing
  * priceCents and compareAtCents before passing to this component.
  *
  * Design: Ink does not support text strikethrough universally (ANSI SGR 9 is
@@ -23,7 +23,7 @@ export interface SaleDisplayProps {
 
 /**
  * Renders the sale pricing line.
- * Format: (was $X.XX)  $Y.YY  (N% OFF) — entire line in yellow.
+ * Format: (was $X.XX)  $Y.YY  (N% OFF) - entire line in yellow.
  */
 export function SaleDisplay({
   priceCents,

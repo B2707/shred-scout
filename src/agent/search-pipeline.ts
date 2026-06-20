@@ -6,13 +6,13 @@
  * aborting the overall search.
  *
  * Retailer sources are loaded dynamically from the retailer_configs SQLite table
- * (managed by makeRetailerRepo). No stores are hardcoded — any Shopify URL works.
+ * (managed by makeRetailerRepo). No stores are hardcoded - any Shopify URL works.
  *
  * Each source uses SmartShopifySource which prefers the official Shopify Storefront
  * GraphQL API when a public token is available, and falls back to /products.json
  * for stores without one. Token auto-detection runs on first fetch.
  *
- * Fully deterministic — no event-based streaming and no AbortController.
+ * Fully deterministic - no event-based streaming and no AbortController.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -29,7 +29,7 @@ import { loadStores } from '../data/stores.js';
 import { resolveAssetPath } from '../lib/assets.js';
 import type { RiderProfile } from '../types/profile.js';
 
-/** Bundled category icon used as the offline demo thumbnail for each gear type. */
+/** Bundled category icon used as the demo fallback thumbnail for each gear type. */
 const DEMO_CATEGORY_ASSET: Record<string, string> = {
   board: 'cat-board.png',
   binding: 'cat-binding.png',
@@ -37,30 +37,54 @@ const DEMO_CATEGORY_ASSET: Record<string, string> = {
 };
 
 /**
- * In --demo mode there is no network, so the fixtures' real product photo URLs can't load
- * (and several 404 anyway). Point every demo card at a bundled local category icon so cards
- * always render an image instead of an empty reserved box.
+ * Each demo fixture carries a real, verified product-photo URL on a retailer CDN, so the
+ * ProductDetail view fetches and renders the actual product image at view time - same code
+ * path as a live search. (--demo skips the scrape, not the photo fetch.)
+ *
+ * The bundled category icon is kept only as defense-in-depth: if a fixture ever lacks a
+ * usable remote URL, fall back to a local icon so a card is never an empty reserved box.
  */
-function withDemoImages(products: NormalizedProduct[]): NormalizedProduct[] {
+export function withDemoImages(
+  products: NormalizedProduct[],
+): NormalizedProduct[] {
   return products.map((p) => {
+    if (p.image_url && /^https?:\/\//i.test(p.image_url)) return p;
     const asset =
       DEMO_CATEGORY_ASSET[String(p.gear_category)] ?? 'cat-setup.png';
     return { ...p, image_url: resolveAssetPath(asset) };
   });
 }
 
+/** A live snapshot of search progress, emitted via RunSearchOptions.onProgress. */
+export interface SearchProgress {
+  /** Total retailers being queried this search. */
+  total: number;
+  /** Retailers finished so far (succeeded or failed). */
+  completed: number;
+  /** Retailer currently being fetched, if any. */
+  current?: string;
+  /** Per-retailer outcomes in completion order (excludes the silent best-effort evo scrape). */
+  results: Array<{ name: string; ok: boolean; count: number }>;
+}
+
 /** Options for controlling runSearch behavior. */
 export interface RunSearchOptions {
   /** When true, skip all HTTP and return fixture products from demo-products.json */
   demo?: boolean;
-  /** Database path — ':memory:' for demo mode. Defaults to platform data dir. */
+  /** Database path - ':memory:' for demo mode. Defaults to platform data dir. */
   dbPath?: string;
   /**
    * Caller-owned database connection. When provided, runSearch will use it directly
-   * and will NOT close it on completion — the caller retains ownership. This prevents
+   * and will NOT close it on completion - the caller retains ownership. This prevents
    * double-open when the App UI already holds an open connection.
    */
   db?: Database.Database;
+  /**
+   * Invoked with a fresh progress snapshot as each retailer starts and finishes, so the UI
+   * can show stage / N-of-M / per-retailer status instead of an opaque spinner. Never called
+   * in demo mode (fixtures resolve synchronously).
+   */
+  onProgress?: (progress: SearchProgress) => void;
 }
 
 /**
@@ -68,7 +92,7 @@ export interface RunSearchOptions {
  *
  * On first run the retailer_configs table is empty; loadStores() seeds it
  * automatically from stores.json (or embedded defaults if the file is absent).
- * Subsequent runs load whatever the user has configured — including
+ * Subsequent runs load whatever the user has configured - including
  * any stores added via `shred-scout add-store`.
  *
  * @param query    - Search query string. Reserved for future keyword filtering.
@@ -109,7 +133,7 @@ export async function runSearch(
     };
   }
 
-  // Use caller-provided connection when available — avoids double-open and SQLite
+  // Use caller-provided connection when available - avoids double-open and SQLite
   // locking races when the App UI already holds an open connection to the same file.
   const db = options.db ?? openDatabase(options.dbPath);
   const shouldClose = !options.db;
@@ -123,7 +147,7 @@ export async function runSearch(
 
   // One source per configured store, picking the scraper by host: evo.com uses the HTML
   // scraper, everything else the Shopify source. Previously evo was ALSO appended
-  // unconditionally, so it was queried twice — once as Shopify against evo, once as HTML.
+  // unconditionally, so it was queried twice - once as Shopify against evo, once as HTML.
   const sources: ProductSource[] = configs.map((c) => {
     let host = '';
     try {
@@ -131,30 +155,49 @@ export async function runSearch(
     } catch {
       /* keep '' */
     }
-    return host.includes('evo.com')
+    // Match evo.com on the exact host or a real subdomain - never a substring, so a
+    // host like 'evo.com.example.com' can't be routed to the evo HTML scraper.
+    return host === 'evo.com' || host.endsWith('.evo.com')
       ? new EvoHtmlScrapeSource()
       : new SmartShopifySource(c.name, c.storeUrl, c.storefrontToken);
   });
 
   const all: NormalizedProduct[] = [];
   const errors: string[] = [];
+  const results: SearchProgress['results'] = [];
+  let completed = 0;
+  const emit = (current?: string): void =>
+    options.onProgress?.({
+      total: sources.length,
+      completed,
+      current,
+      results: [...results],
+    });
 
   try {
+    emit();
     for (const source of sources) {
+      emit(source.name);
       try {
         const normalized = await source.fetchAll(pipeline);
         for (const product of normalized) {
           productRepo.upsert(product);
           all.push(product);
         }
+        results.push({ name: source.name, ok: true, count: normalized.length });
       } catch (err) {
         // evo is a best-effort HTML scraper behind Cloudflare; its failure must not spam a
-        // yellow error banner on every live search — skip it silently.
-        if (source instanceof EvoHtmlScrapeSource) continue;
-        errors.push(
-          `${source.name}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        // yellow error banner (or a red progress line) on every live search - skip it
+        // silently, though it still counts toward the completed total.
+        if (!(source instanceof EvoHtmlScrapeSource)) {
+          errors.push(
+            `${source.name}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          results.push({ name: source.name, ok: false, count: 0 });
+        }
       }
+      completed++;
+      emit();
     }
 
     return { products: filterByQuery(all, query), errors };
@@ -186,7 +229,7 @@ const CATEGORY_SYNONYMS: Record<string, 'board' | 'binding' | 'boot'> = {
  * Tokens split on non-alphanumerics. Recognized category words (board/boots/...) constrain
  * gear_category; all remaining tokens must each appear (substring, case-insensitive) in the
  * product's title or vendor. An empty/whitespace query returns the list unchanged.
- * Pure function — no I/O.
+ * Pure function - no I/O.
  */
 export function filterByQuery(
   products: NormalizedProduct[],

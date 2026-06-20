@@ -2,8 +2,8 @@
  * Domain types for the Shred Scout compatibility engine.
  *
  * GearSetup is the single input to all hard rules and the flexPairing advisory.
- * RuleResult is the single output type — used directly as badge data.
- * No runtime code lives here — types only.
+ * RuleResult is the single output type - used directly as badge data.
+ * No runtime code lives here - types only.
  */
 
 /**
@@ -16,14 +16,14 @@
  */
 export type MountPattern = '4x4' | '2x4' | 'channel';
 
-/** Compatibility verdict severity — 'unknown' is reserved for advisory-only results. */
+/** Compatibility verdict severity - 'unknown' is reserved for advisory-only results. */
 export type Verdict = 'pass' | 'warn' | 'fail' | 'unknown';
 
 /** Snowboard physical properties required by the compatibility rules. */
 export interface Board {
-  /** Waist width in millimeters — industry standard measurement location (narrowest point). */
+  /** Waist width in millimeters - industry standard measurement location (narrowest point). */
   waistWidthMm: number;
-  /** Board mounting pattern — determines which binding discs are compatible. */
+  /** Board mounting pattern - determines which binding discs are compatible. */
   mountingPattern: MountPattern;
   /** Optional flex rating on a 1-10 scale. Used by flexPairing advisory only. */
   flexRating?: number;
@@ -33,7 +33,7 @@ export interface Board {
 export interface Binding {
   /** Resolved boot size range this binding fits: [minUS, maxUS]. Already-resolved for the specific size variant. */
   sizeRange: [number, number];
-  /** Binding disc mounting pattern — must be compatible with board.mountingPattern. */
+  /** Binding disc mounting pattern - must be compatible with board.mountingPattern. */
   discPattern: MountPattern;
 }
 
@@ -44,7 +44,7 @@ export interface Boot {
 }
 
 /**
- * Complete gear setup — the single input object for all compatibility rules.
+ * Complete gear setup - the single input object for all compatibility rules.
  * All three hard rules consume only the fields defined here.
  */
 export interface GearSetup {
@@ -55,15 +55,15 @@ export interface GearSetup {
 
 /**
  * Result of a single compatibility rule evaluation.
- * ruleId is stable and human-readable — used as badge key.
+ * ruleId is stable and human-readable - used as badge key.
  *
  * Hard vs advisory contract:
  *   - bootToBindingSize and discToMount return pass/warn/fail only (advisory absent).
  *   - bootToBoardWaist returns pass/warn/fail, plus an 'unknown' ADVISORY when the board's
- *     waist width is unavailable (most Shopify boards) — missing data must not read as fail.
+ *     waist width is unavailable (most Shopify boards) - missing data must not read as fail.
  *   - flexPairing/flexAdvisory always sets advisory:true and may return pass/warn/unknown.
  *   - Badge rendering should check `result.advisory === true` to identify advisory results.
- *     Checking `!result.advisory` treats both explicit false AND undefined as "hard rule" — which
+ *     Checking `!result.advisory` treats both explicit false AND undefined as "hard rule" - which
  *     is correct given the contract above, but relying on it implicitly is fragile.
  */
 export interface RuleResult {
@@ -71,10 +71,10 @@ export interface RuleResult {
   ruleId: string;
   /** Verdict severity. Hard rules return pass/warn/fail only. flexPairing returns pass or unknown. */
   verdict: Verdict;
-  /** Human-readable reason string — rendered directly as badge tooltip/label. */
+  /** Human-readable reason string - rendered directly as badge tooltip/label. */
   reason: string;
   /**
-   * True only for flexPairing advisory — distinguishes soft recommendations from hard rules.
+   * True only for flexPairing advisory - distinguishes soft recommendations from hard rules.
    * Absent (undefined) on all hard-rule results. Use `advisory === true` for strict checks.
    */
   advisory?: boolean;

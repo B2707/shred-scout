@@ -14,7 +14,7 @@ import type { NormalizedProduct } from '../data/normalizer.js';
 export interface FilterSpec {
   /** Maximum price in USD (e.g. 400 = $400.00). Excludes products where price_cents > priceMax * 100. */
   priceMax?: number;
-  /** Best-effort title keyword match — real spec data to come from PDP scraping. */
+  /** Best-effort title keyword match - real spec data to come from PDP scraping. */
   flex?: 'soft' | 'medium' | 'stiff';
   /** Case-insensitive substring match against product title. */
   color?: string;
@@ -27,7 +27,7 @@ export interface FilterSpec {
 /**
  * Filters products by the given FilterSpec.
  * Empty spec returns all products. Multi-field spec combines with AND.
- * Pure function — does not mutate input.
+ * Pure function - does not mutate input.
  */
 export function applyFilterSpec(
   products: NormalizedProduct[],

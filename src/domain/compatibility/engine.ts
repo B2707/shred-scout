@@ -3,7 +3,7 @@
  *
  * runRules() calls all three hard rule functions synchronously and returns their
  * combined results as a RuleResult[]. No I/O, no external state.
- * The async flexPairing advisory is NOT called here — it is a separate call.
+ * The async flexPairing advisory is NOT called here - it is a separate call.
  */
 
 import type { RiderProfile } from '../../types/profile.js';
@@ -29,8 +29,8 @@ export function runRules(setup: GearSetup, _rider: RiderProfile): RuleResult[] {
 /**
  * Full compatibility evaluation for a complete setup: the 3 hard rules PLUS the
  * riding-style-aware flex advisory. This is the rider-consuming entry point the UI
- * should use — the flex advisory is the rule that actually reads rider.ridingStyle,
- * so it was previously dead (flexAdvisory was never called anywhere — A6/B23).
+ * should use - the flex advisory is the rule that actually reads rider.ridingStyle,
+ * so it was previously dead (flexAdvisory was never called anywhere - A6/B23).
  *
  * @returns 4 RuleResults: the 3 hard verdicts followed by the flex advisory (advisory:true).
  */

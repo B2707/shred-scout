@@ -1,11 +1,10 @@
 /**
- * ResultCard — single-product card: a small image thumbnail on the left and the title,
- * price, compatibility badge, specs, and sale info on the right.
+ * ResultCard - single-product card: title, price, compatibility badge, specs, and sale info.
  *
- * Image rendering is delegated to <TerminalImage> (terminal-image on iTerm2/Kitty, chafa
- * fallback elsewhere, fetch validated so a 404 page never renders as garbage). Using a
- * compact left thumbnail in a row layout — instead of a full-width image under a 20-row
- * blank spacer — keeps cards dense and scannable.
+ * Text-only by design - no inline image. Piping an iTerm2/Kitty pixel-image escape through
+ * Ink's re-rendering paged list corrupts it (the base64 leaks as text), so product photos
+ * render only in the render-once <ProductDetail> view (open via the card's number key). This
+ * keeps cards dense, scannable, and immune to the inline-image desync.
  */
 
 import { Box, Text, useStdout } from 'ink';
@@ -15,7 +14,6 @@ import { productFit } from '../domain/compatibility/product-adapter.js';
 import type { RuleResult } from '../domain/compatibility/types.js';
 import type { RiderProfile } from '../types/profile.js';
 import { SaleDisplay } from './SaleDisplay.js';
-import { TerminalImage } from './TerminalImage.js';
 
 /** Per-category accent color for the metadata line. */
 const CATEGORY_COLOR: Record<string, string> = {
@@ -31,7 +29,7 @@ interface VariantForSale {
 }
 
 /**
- * Detects whether the cheapest variant is on sale. Pure — no I/O.
+ * Detects whether the cheapest variant is on sale. Pure - no I/O.
  * Returns the resolved cents values for SaleDisplay (compareAtCents=0 when no sale).
  */
 function detectSale(
@@ -65,7 +63,7 @@ export interface ResultCardProps {
   supportsImages: boolean;
   /** 1-based display index for "[N]" save-item prefix. Omit to hide the prefix. */
   index?: number;
-  /** Rider profile — when present, the card shows a per-product compatibility badge. */
+  /** Rider profile - when present, the card shows a per-product compatibility badge. */
   rider?: RiderProfile;
 }
 
@@ -135,26 +133,21 @@ function fitBadge(
 
 export function ResultCard({
   product,
-  supportsImages,
   index,
   rider,
 }: ResultCardProps): React.JSX.Element {
   const { stdout } = useStdout();
   const columns = stdout.columns ?? 80;
 
-  // Title truncation — leave room for the [N] prefix, border, and the left thumbnail.
+  // Title truncation - leave room for the [N] prefix and border.
   const indexPrefix = index !== undefined ? `[${index}] ` : '';
-  const imgCols = product.image_url ? 15 : 0;
-  const maxTitleWidth = Math.max(
-    10,
-    columns - 24 - indexPrefix.length - imgCols,
-  );
+  const maxTitleWidth = Math.max(10, columns - 24 - indexPrefix.length);
   const displayTitle =
     product.title.length > maxTitleWidth
       ? `${product.title.slice(0, maxTitleWidth - 1)}…`
       : product.title;
 
-  // Price — non-positive means "not scraped" (e.g. evo PDP); show "Price unavailable".
+  // Price - non-positive means "not scraped" (e.g. evo PDP); show "Price unavailable".
   const hasPrice = product.price_cents > 0;
   const priceLabel = hasPrice
     ? `$${(product.price_cents / 100).toFixed(2)}`
@@ -171,6 +164,9 @@ export function ResultCard({
   const fitView = fit && rider ? fitBadge(fit, rider.bootSize) : null;
 
   return (
+    // Text-only card. Real product photos can't render inline here: piping the iTerm2/Kitty
+    // pixel-image escape through Ink's re-rendering, paged card list corrupts it (base64 leaks
+    // as text). Crisp photos belong in a dedicated, render-once product view; see task #2.
     <Box
       flexDirection="row"
       borderStyle="round"
@@ -178,19 +174,8 @@ export function ResultCard({
       paddingX={1}
       marginBottom={1}
     >
-      {product.image_url && (
-        <Box marginRight={1} flexShrink={0}>
-          <TerminalImage
-            source={product.image_url}
-            supportsImages={supportsImages}
-            width={13}
-            height={6}
-          />
-        </Box>
-      )}
-
       <Box flexDirection="column" flexGrow={1}>
-        {/* Title + price row — price right-aligned into a scannable column */}
+        {/* Title + price row - price right-aligned into a scannable column */}
         <Box justifyContent="space-between">
           <Box>
             {index !== undefined && <Text dimColor>[{index}] </Text>}
@@ -201,7 +186,7 @@ export function ResultCard({
           </Text>
         </Box>
 
-        {/* Metadata row — color-coded gear category · retailer */}
+        {/* Metadata row - color-coded gear category · retailer */}
         <Text>
           <Text color={CATEGORY_COLOR[categoryLabel] ?? 'white'}>
             {categoryLabel}
@@ -209,7 +194,7 @@ export function ResultCard({
           <Text dimColor> · {product.retailer}</Text>
         </Text>
 
-        {/* Compatibility badge — whether this product fits the rider */}
+        {/* Compatibility badge - whether this product fits the rider */}
         {fitView && (
           <Text
             color={fitView.color}
@@ -220,7 +205,7 @@ export function ResultCard({
           </Text>
         )}
 
-        {/* Spec line — only for products with scraped PDP data (evo.com). */}
+        {/* Spec line - only for products with scraped PDP data (evo.com). */}
         {(product.waist_width_mm !== null || product.flex_rating !== null) && (
           <Text color="gray">
             {[
@@ -237,7 +222,7 @@ export function ResultCard({
           </Text>
         )}
 
-        {/* Sale display — only when the cheapest variant is on sale */}
+        {/* Sale display - only when the cheapest variant is on sale */}
         {isSale && (
           <SaleDisplay
             priceCents={product.price_cents}

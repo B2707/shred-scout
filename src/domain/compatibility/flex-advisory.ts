@@ -12,7 +12,7 @@ import type { RiderProfile } from '../../types/profile.js';
 import type { GearSetup, RuleResult } from './types.js';
 
 // Recommended board flex (1 = soft … 10 = stiff) per riding style. Covers every
-// canonical style the wizard/onboarding can produce — previously only
+// canonical style the wizard/onboarding can produce - previously only
 // beginner/all-mountain/freeride existed, so freestyle/park/powder/backcountry
 // returned 'unknown'.
 const FLEX_RANGES: Record<string, [number, number]> = {
@@ -70,7 +70,7 @@ export function flexAdvisory(
   const reason =
     verdict === 'pass'
       ? `Flex ${flexRating}/10 suits ${rider.ridingStyle} riding style`
-      : `Flex ${flexRating}/10 outside recommended range ${lo}–${hi} for ${rider.ridingStyle}`;
+      : `Flex ${flexRating}/10 outside recommended range ${lo}-${hi} for ${rider.ridingStyle}`;
 
   return { ruleId: 'flex-pairing', verdict, reason, advisory: true };
 }

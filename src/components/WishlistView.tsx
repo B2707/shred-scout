@@ -1,5 +1,5 @@
 /**
- * WishlistView — full-screen saved setups list with arrow-key navigation.
+ * WishlistView - full-screen saved setups list with arrow-key navigation.
  *
  * Arrow keys move selectedIndex. d = delete, h = open history, a = toggle alert.
  * Screen switching (q → search) is handled in App.tsx to avoid duplicate useInput handlers.
@@ -22,7 +22,7 @@ export interface WishlistViewProps {
   onOpenHistory: (productId: number) => void;
   /**
    * Reports whether an input-blocking prompt (the delete-confirm [y/n]) is active, so App.tsx
-   * can gate its global 'q' back-navigation — otherwise 'q' at the prompt bubbles up and
+   * can gate its global 'q' back-navigation - otherwise 'q' at the prompt bubbles up and
    * navigates away mid-confirm. Mirrors SearchView's onModalChange/blockQuitRef pattern.
    */
   onModalChange?: (active: boolean) => void;
@@ -162,13 +162,13 @@ export function WishlistView({
               <Text color={isSelected ? 'green' : undefined} bold={isSelected}>
                 {titleLine}
               </Text>
-              <Text dimColor> — saved {relativeTime(setup.savedAt)} </Text>
+              <Text dimColor> - saved {relativeTime(setup.savedAt)} </Text>
               {setup.alertEnabled ? (
                 <Text color="green" bold>
                   [WATCHING]
                 </Text>
               ) : (
-                <Text dimColor>–</Text>
+                <Text dimColor>-</Text>
               )}
             </Box>
             {setup.compatibility && setup.compatibility.length > 0 && (

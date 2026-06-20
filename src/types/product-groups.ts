@@ -1,5 +1,5 @@
 /**
- * ProductGroup discriminated union — output of groupProducts().
+ * ProductGroup discriminated union - output of groupProducts().
  *
  * SearchView consumes ProductGroup[] to drive <Static items={groups}>.
  * 'single' groups → <ResultCard>; 'comparison' groups → <ComparisonGroup>.
@@ -27,11 +27,11 @@ export type ProductGroup = SingleGroup | ComparisonGroupData;
 /**
  * Groups NormalizedProduct[] by exact normalized title (lowercase + trim).
  *
- * Pure function — no I/O, no side effects. Safe to call inside useMemo.
+ * Pure function - no I/O, no side effects. Safe to call inside useMemo.
  * Products with the same normalized title from 2+ retailers become a 'comparison' group.
  * Products with a unique title (or 1 retailer) become 'single' entries.
  *
- * Preserves insertion order — products appear in the order they arrived from the agent.
+ * Preserves insertion order - products appear in the order they arrived from the agent.
  *
  * @param products - Raw product array from search state
  * @returns ProductGroup[] suitable for <Static items={groups}>
