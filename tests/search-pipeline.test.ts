@@ -3,7 +3,7 @@ import type { NormalizedProduct } from '../src/data/normalizer.js';
 import type { RequestPipeline } from '../src/data/pipeline.js';
 import type { RiderProfile } from '../src/types/profile.js';
 
-// Shared mock for SmartShopifySource.fetchAll — reassigned per-test as needed
+// Shared mock for SmartShopifySource.fetchAll - reassigned per-test as needed
 const mockShopifyFetchAll = vi.fn();
 
 // Mock SmartShopifySource to avoid network calls
@@ -73,7 +73,12 @@ vi.mock('../src/data/pipeline.js', () => ({
   RequestPipeline: class MockRequestPipeline {},
 }));
 
-import { filterByQuery, runSearch } from '../src/agent/search-pipeline.js';
+import {
+  filterByQuery,
+  runSearch,
+  type SearchProgress,
+  withDemoImages,
+} from '../src/agent/search-pipeline.js';
 
 function makeProfile(): RiderProfile {
   return {
@@ -188,7 +193,7 @@ describe('runSearch', () => {
       }
     });
 
-    it('gives every demo product a resolvable offline image so cards are never empty', async () => {
+    it('serves every demo product a real remote photo URL so the detail view shows the actual product', async () => {
       const { copyFileSync, unlinkSync, existsSync } = await import('node:fs');
       const { fileURLToPath } = await import('node:url');
       const { dirname: getDirname, join: pathJoin } = await import('node:path');
@@ -209,7 +214,7 @@ describe('runSearch', () => {
       if (copied) copyFileSync(fixtureSourcePath, tempFixturePath);
 
       try {
-        // No query → all fixtures, including the ones that had null/404 image URLs.
+        // No query → all fixtures.
         const result = await runSearch('', makeProfile(), mockPipeline, {
           demo: true,
         });
@@ -220,16 +225,37 @@ describe('runSearch', () => {
             p.image_url,
             `${p.shopify_id} should carry an image`,
           ).toBeTruthy();
-          // Offline demo: images must be local files, not network URLs that can 404.
-          expect(/^https?:/i.test(p.image_url ?? '')).toBe(false);
+          // Fetch-live demo: product photos are real remote CDN URLs, fetched at
+          // render time in the ProductDetail view - not bundled placeholder icons.
           expect(
-            existsSync(p.image_url ?? ''),
-            `${p.image_url} should exist on disk`,
+            /^https:\/\//i.test(p.image_url ?? ''),
+            `${p.shopify_id} image_url should be a remote https URL, got: ${p.image_url}`,
           ).toBe(true);
         }
       } finally {
         if (copied && existsSync(tempFixturePath)) unlinkSync(tempFixturePath);
       }
+    });
+
+    it('withDemoImages leaves a real remote photo URL untouched', () => {
+      const [p] = withDemoImages([
+        {
+          ...defaultProduct,
+          gear_category: 'board',
+          image_url: 'https://cdn.shopify.com/s/files/board.jpg?v=1',
+        },
+      ]);
+      expect(p.image_url).toBe('https://cdn.shopify.com/s/files/board.jpg?v=1');
+    });
+
+    it('withDemoImages falls back to a bundled local icon when image_url is missing', async () => {
+      const { existsSync } = await import('node:fs');
+      const [p] = withDemoImages([
+        { ...defaultProduct, gear_category: 'boot', image_url: null },
+      ]);
+      // Defense-in-depth: a card is never empty even if a fixture lacks a photo.
+      expect(/^https?:/i.test(p.image_url ?? '')).toBe(false);
+      expect(existsSync(p.image_url ?? '')).toBe(true);
     });
   });
 
@@ -273,7 +299,7 @@ describe('runSearch', () => {
     mockEvoFetchAll.mockReset();
     mockEvoFetchAll.mockRejectedValue(
       new Error(
-        'evo.com listing returned no products — possible Cloudflare block',
+        'evo.com listing returned no products - possible Cloudflare block',
       ),
     );
 
@@ -283,10 +309,38 @@ describe('runSearch', () => {
     expect(mockShopifyFetchAll).not.toHaveBeenCalled(); // evo not also hit as Shopify
     expect(errors).toEqual([]); // failure is silent, no banner
   });
+
+  it('emits progress snapshots as each retailer starts and finishes', async () => {
+    const snapshots: SearchProgress[] = [];
+    await runSearch('board', makeProfile(), mockPipeline, {
+      onProgress: (p) => snapshots.push(p),
+    });
+    expect(snapshots.length).toBeGreaterThan(0);
+    // A mid-search snapshot names the retailer currently being fetched.
+    expect(snapshots.some((s) => s.current === 'TestRetailer')).toBe(true);
+    const last = snapshots[snapshots.length - 1];
+    expect(last.total).toBe(1);
+    expect(last.completed).toBe(1);
+    expect(last.results).toEqual([
+      { name: 'TestRetailer', ok: true, count: 1 },
+    ]);
+  });
+
+  it('marks a failed retailer as ok:false in the progress results', async () => {
+    mockShopifyFetchAll.mockRejectedValueOnce(new Error('boom'));
+    const snapshots: SearchProgress[] = [];
+    await runSearch('board', makeProfile(), mockPipeline, {
+      onProgress: (p) => snapshots.push(p),
+    });
+    const last = snapshots[snapshots.length - 1];
+    expect(last.results).toEqual([
+      { name: 'TestRetailer', ok: false, count: 0 },
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// filterByQuery — keyword/category filtering
+// filterByQuery - keyword/category filtering
 // ---------------------------------------------------------------------------
 
 describe('filterByQuery', () => {

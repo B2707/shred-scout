@@ -118,7 +118,7 @@ describe('toBoard / toBinding', () => {
   });
 });
 
-describe('productFit — per-card compatibility for the rider', () => {
+describe('productFit - per-card compatibility for the rider', () => {
   const rider = (bootSize = 10): RiderProfile => ({
     bootSize,
     heightCm: 180,
@@ -190,7 +190,7 @@ describe('productFit — per-card compatibility for the rider', () => {
   });
 });
 
-describe('bootFit — boot cards show a size-availability signal', () => {
+describe('bootFit - boot cards show a size-availability signal', () => {
   const bootNP = (variants: Array<{ option1: string }>): NormalizedProduct =>
     baseNP({ gear_category: 'boot', variants_json: JSON.stringify(variants) });
 

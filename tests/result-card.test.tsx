@@ -1,7 +1,8 @@
 /**
  * ResultCard component tests.
- * Images render via the iTerm2 inline-image escape; fetch is mocked so no real
- * network or terminal is required.
+ * Cards are text-only - real product photos render in a dedicated product view, not inline
+ * (inline pixel escapes corrupt through Ink's paged, re-rendering card list). fetch/execa are
+ * mocked so no real network or subprocess is required.
  */
 
 import { render } from 'ink-testing-library';
@@ -13,7 +14,7 @@ vi.mock('execa', () => ({
   execa: vi.fn().mockRejectedValue(new Error('chafa not found')),
 }));
 
-// A successful image response — ResultCard validates res.ok + content-type before rendering.
+// A successful image response - ResultCard validates res.ok + content-type before rendering.
 const okImageResponse = () => ({
   ok: true,
   headers: {
@@ -170,7 +171,7 @@ describe('ResultCard', () => {
     expect(lastFrame()).not.toContain(']1337;File=');
   });
 
-  it('sets imageAnsi state when supportsImages=true and image_url is set', async () => {
+  it('never emits an inline image escape, even when supportsImages=true', async () => {
     const { ResultCard } = await import('../src/components/ResultCard.js');
     const { lastFrame } = render(
       React.createElement(ResultCard, {
@@ -181,7 +182,9 @@ describe('ResultCard', () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
-    expect(lastFrame()).toContain(']1337;File=');
+    // Cards are text-only - no raw base64 leaks into the results list.
+    expect(lastFrame()).not.toContain(']1337;File=');
+    expect(lastFrame()).toContain('Never Summer Proto Synthesis');
   });
 
   it('does NOT render an image when the fetch is a 404 HTML page', async () => {
@@ -204,7 +207,7 @@ describe('ResultCard', () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
-    // No corrupt escape sequence decoded from the 404 HTML — image simply omitted.
+    // No corrupt escape sequence decoded from the 404 HTML - image simply omitted.
     expect(lastFrame()).not.toContain(']1337;File=');
   });
 
@@ -267,7 +270,7 @@ describe('ResultCard', () => {
         supportsImages: false,
       }),
     );
-    // Spec line absent — no ⬙ diamond character
+    // Spec line absent - no ⬙ diamond character
     expect(lastFrame()).not.toContain('⬙');
     // Existing metadata still present
     expect(lastFrame()).toContain('board · evo');
@@ -283,52 +286,5 @@ describe('ResultCard', () => {
     );
     // Ink's borderStyle="round" uses ╭ (U+256D) as the top-left corner character
     expect(lastFrame()).toContain('╭');
-  });
-
-  it('aborts image fetch when component unmounts mid-fetch', async () => {
-    const abortSpy = vi.fn();
-    // Replace global fetch with a fetch that never resolves so the effect stays active
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => new Promise(() => {})),
-    );
-
-    const OrigAbortController = globalThis.AbortController;
-    vi.stubGlobal(
-      'AbortController',
-      class MockAbortController extends OrigAbortController {
-        constructor() {
-          super();
-          // Override abort to spy on it
-          const origAbort = this.abort.bind(this);
-          this.abort = () => {
-            abortSpy();
-            origAbort();
-          };
-        }
-      },
-    );
-
-    const { ResultCard } = await import('../src/components/ResultCard.js');
-    const { unmount } = render(
-      React.createElement(ResultCard, {
-        product: baseProduct,
-        supportsImages: true,
-      }),
-    );
-
-    // Allow the useEffect to kick off
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 20));
-    });
-
-    // Unmounting should call abort() via the cleanup return value
-    unmount();
-
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 10));
-    });
-
-    expect(abortSpy).toHaveBeenCalledTimes(1);
   });
 });

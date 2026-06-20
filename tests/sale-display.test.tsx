@@ -1,5 +1,5 @@
 /**
- * SaleDisplay component tests — covers PRES-03.
+ * SaleDisplay component tests - covers PRES-03.
  */
 
 import { render } from 'ink-testing-library';
@@ -79,7 +79,7 @@ describe('SaleDisplay', () => {
         compareAtCents: 0,
       }),
     );
-    // When compareAtCents=0 the component returns <></> — output should be empty or blank
+    // When compareAtCents=0 the component returns <></> - output should be empty or blank
     expect(lastFrame() ?? '').not.toContain('% OFF');
   });
 });

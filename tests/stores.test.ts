@@ -1,5 +1,5 @@
 /**
- * Tests for src/data/stores.ts — loadStores() and syncStoreToJson().
+ * Tests for src/data/stores.ts - loadStores() and syncStoreToJson().
  * Covers the fallback-to-defaults contract and dedup logic.
  */
 

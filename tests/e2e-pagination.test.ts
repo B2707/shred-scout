@@ -5,12 +5,12 @@
  * Shopify store (evo.com), proving that the pagination loop is not silently truncating
  * at the 250-item per-page limit.
  *
- * REQUIRES LIVE NETWORK — skipped in CI via process.env.CI guard.
+ * REQUIRES LIVE NETWORK - skipped in CI via process.env.CI guard.
  * Run manually: `vitest run tests/e2e-pagination.test.ts`
  */
 import { describe, expect, it } from 'vitest';
 
-// Guard: only run when E2E=1 is explicitly set — never runs in CI or standard npm test
+// Guard: only run when E2E=1 is explicitly set - never runs in CI or standard npm test
 const RUN_E2E = process.env.E2E === '1';
 
 describe.skipIf(!RUN_E2E)(
@@ -21,7 +21,7 @@ describe.skipIf(!RUN_E2E)(
       const { fetchAllProducts } = await import('../src/data/shopify.js');
 
       const pipeline = new RequestPipeline({
-        concurrency: 1, // polite — single concurrent request for e2e test
+        concurrency: 1, // polite - single concurrent request for e2e test
         timeout: 30_000,
       });
 
@@ -29,7 +29,7 @@ describe.skipIf(!RUN_E2E)(
 
       // DATA-02: must return more than 250 to prove pagination is working
       expect(products.length).toBeGreaterThan(250);
-    }, 60_000); // 60s timeout — live network, large paginated response
+    }, 60_000); // 60s timeout - live network, large paginated response
 
     it('each product has required fields (shopify_id, title, variants)', async () => {
       const { RequestPipeline } = await import('../src/data/pipeline.js');

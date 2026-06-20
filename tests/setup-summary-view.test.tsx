@@ -1,5 +1,5 @@
 /**
- * SetupSummaryView tests — renders the "Setup Complete" summary screen
+ * SetupSummaryView tests - renders the "Setup Complete" summary screen
  * after all three gear slots (board, binding, boot) have been saved.
  */
 

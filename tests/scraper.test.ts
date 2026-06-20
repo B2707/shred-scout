@@ -64,7 +64,7 @@ describe('fetchAllProducts()', () => {
     expect(results[1]?.id).toBe(2);
   });
 
-  it('paginates beyond 250 — returns 350 products from a two-page store', async () => {
+  it('paginates beyond 250 - returns 350 products from a two-page store', async () => {
     const pool = mockAgent.get('https://www.tactics.com');
 
     // Page 1: 250 products

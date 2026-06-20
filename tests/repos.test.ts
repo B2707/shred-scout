@@ -72,7 +72,7 @@ describe('priceRepo', () => {
   it('throws on invalid productId (foreign key enforcement)', () => {
     const db = openDatabase(':memory:');
     const repo = makePriceRepo(db);
-    // product_id=9999 does not exist — foreign_keys=ON must throw
+    // product_id=9999 does not exist - foreign_keys=ON must throw
     expect(() => repo.record(9999, 44995)).toThrow();
   });
 });
@@ -189,10 +189,10 @@ describe('setupRepo', () => {
 });
 
 // ---------------------------------------------------------------------------
-// setupRepo — extensions
+// setupRepo - extensions
 // ---------------------------------------------------------------------------
 
-describe('setupRepo — extensions', () => {
+describe('setupRepo - extensions', () => {
   it('list() maps alert_enabled column to alertEnabled boolean (false by default)', () => {
     const db = openDatabase(':memory:');
     const repo = makeSetupRepo(db);
@@ -227,7 +227,7 @@ describe('setupRepo — extensions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// setupRepo — findCompleteSetup
+// setupRepo - findCompleteSetup
 // ---------------------------------------------------------------------------
 
 function insertThreeProducts(db: Database.Database): [number, number, number] {
@@ -265,7 +265,7 @@ function insertThreeProducts(db: Database.Database): [number, number, number] {
   return [p1, p2, p3];
 }
 
-describe('setupRepo — findCompleteSetup', () => {
+describe('setupRepo - findCompleteSetup', () => {
   it('returns null when table is empty', () => {
     const db = openDatabase(':memory:');
     const repo = makeSetupRepo(db);
@@ -298,20 +298,20 @@ describe('setupRepo — findCompleteSetup', () => {
     const [p1, p2, p3] = insertThreeProducts(db);
     const repo = makeSetupRepo(db);
     repo.save({ boardId: p1, bindingId: p2, bootId: p3 });
-    // Second save must also have valid product IDs — reuse same products for simplicity
+    // Second save must also have valid product IDs - reuse same products for simplicity
     const id2 = repo.save({ boardId: p1, bindingId: p2, bootId: p3 });
     const result = repo.findCompleteSetup();
     expect(result).not.toBeNull();
-    // Most recent by saved_at DESC, id DESC — id2 was saved later
+    // Most recent by saved_at DESC, id DESC - id2 was saved later
     expect(result?.id).toBe(id2);
   });
 });
 
 // ---------------------------------------------------------------------------
-// setupRepo — saveSlot merges into one in-progress setup
+// setupRepo - saveSlot merges into one in-progress setup
 // ---------------------------------------------------------------------------
 
-describe('setupRepo — saveSlot', () => {
+describe('setupRepo - saveSlot', () => {
   it('accumulates board+binding+boot into a SINGLE complete row', () => {
     const db = openDatabase(':memory:');
     const [p1, p2, p3] = insertThreeProducts(db);
@@ -364,10 +364,58 @@ describe('setupRepo — saveSlot', () => {
 });
 
 // ---------------------------------------------------------------------------
-// productRepo — extensions
+// setupRepo - saveComplete always INSERTs a fresh complete row
 // ---------------------------------------------------------------------------
 
-describe('productRepo — extensions', () => {
+describe('setupRepo - saveComplete', () => {
+  it('INSERTs a new complete row and returns its id', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    const id = repo.saveComplete({ boardId: p1, bindingId: p2, bootId: p3 });
+    const setups = repo.list();
+    expect(setups).toHaveLength(1);
+    expect(setups[0]?.id).toBe(id);
+    const complete = repo.findCompleteSetup();
+    expect(complete?.id).toBe(id);
+    expect(complete?.boardId).toBe(p1);
+    expect(complete?.bindingId).toBe(p2);
+    expect(complete?.bootId).toBe(p3);
+  });
+
+  it('does NOT merge into an existing incomplete row - leaves the stale row untouched', () => {
+    const db = openDatabase(':memory:');
+    const [p1, p2, p3] = insertThreeProducts(db);
+    const repo = makeSetupRepo(db);
+    // A stale board-only in-progress row (e.g. left by SearchView's single-slot accumulation).
+    const staleId = repo.saveSlot({ boardId: p1 });
+    // The builder's full save must INSERT a brand-new row, not COALESCE into the stale one.
+    const completeId = repo.saveComplete({
+      boardId: p2,
+      bindingId: p2,
+      bootId: p3,
+    });
+    expect(completeId).not.toBe(staleId);
+    expect(repo.list()).toHaveLength(2);
+    // The stale board-only row is preserved exactly - its board was NOT overwritten.
+    const stale = repo.list().find((s) => s.id === staleId);
+    expect(stale?.boardId).toBe(p1);
+    expect(stale?.bindingId).toBeNull();
+    expect(stale?.bootId).toBeNull();
+    // The new complete row holds the builder's picks.
+    const complete = repo.findCompleteSetup();
+    expect(complete?.id).toBe(completeId);
+    expect(complete?.boardId).toBe(p2);
+    expect(complete?.bindingId).toBe(p2);
+    expect(complete?.bootId).toBe(p3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// productRepo - extensions
+// ---------------------------------------------------------------------------
+
+describe('productRepo - extensions', () => {
   it('findById returns product by primary key', () => {
     const db = openDatabase(':memory:');
     const repo = makeProductRepo(db);
@@ -385,7 +433,7 @@ describe('productRepo — extensions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// productRepo — upsert id correctness
+// productRepo - upsert id correctness
 // ---------------------------------------------------------------------------
 
 function makeNP(
@@ -411,13 +459,13 @@ function makeNP(
   } as unknown as NormalizedProduct;
 }
 
-describe('productRepo — upsert id correctness', () => {
+describe('productRepo - upsert id correctness', () => {
   it('re-upserting an existing product returns its OWN id, not the last-inserted rowid', () => {
     const db = openDatabase(':memory:');
     const repo = makeProductRepo(db);
     const idA = repo.upsert(makeNP({ shopify_id: 'A', title: 'Board A' }));
     const idB = repo.upsert(makeNP({ shopify_id: 'B', title: 'Binding B' }));
-    // Re-upsert A (ON CONFLICT UPDATE path) — must return A's id, not B's.
+    // Re-upsert A (ON CONFLICT UPDATE path) - must return A's id, not B's.
     const idA2 = repo.upsert(
       makeNP({ shopify_id: 'A', title: 'Board A (updated)' }),
     );
@@ -436,7 +484,7 @@ describe('productRepo — upsert id correctness', () => {
       makeNP({ shopify_id: 'X', retailer: 'tactics' }),
     );
     expect(idEvo).not.toBe(idTactics);
-    // Re-upsert the evo one — should resolve back to idEvo.
+    // Re-upsert the evo one - should resolve back to idEvo.
     expect(repo.upsert(makeNP({ shopify_id: 'X', retailer: 'evo' }))).toBe(
       idEvo,
     );
