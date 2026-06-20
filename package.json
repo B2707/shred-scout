@@ -29,7 +29,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/cli.ts",
-    "setup": "npm run build && npm link",
+    "setup": "npm run build && npm rebuild better-sqlite3 && npm link",
     "start": "node bin/shred-scout search",
     "demo": "npm run build && node dist/cli.js --demo",
     "test": "npm run build && vitest run",

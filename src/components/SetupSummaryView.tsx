@@ -1,5 +1,5 @@
 /**
- * SetupSummaryView — shown automatically when all three gear slots (board, binding, boot)
+ * SetupSummaryView - shown automatically when all three gear slots (board, binding, boot)
  * have been saved to the wishlist. Displays the saved products with compatibility verdict.
  *
  * Final screen in the save flow. Triggered by handleSetupSaved in App.tsx
@@ -27,13 +27,13 @@ export interface SetupSummaryViewProps {
   productRepo: ReturnType<typeof makeProductRepo>;
   /** Rider profile passed to runRules for compatibility evaluation. */
   rider: RiderProfile;
-  /** Invoked when user presses 'q' — routes back to wishlist. */
+  /** Invoked when user presses 'q' - routes back to wishlist. */
   onWishlist: () => void;
-  /** Invoked when user presses 'n' — routes to new search. */
+  /** Invoked when user presses 'n' - routes to new search. */
   onNewSearch: () => void;
   /**
    * Toggles the price alert for this setup. Surfaced here because the completing (3rd) save
-   * unmounts SearchView before its alert opt-in modal can show — so the opt-in would otherwise
+   * unmounts SearchView before its alert opt-in modal can show - so the opt-in would otherwise
    * be silently skipped on the very setup that just completed.
    */
   onToggleAlert?: (id: number, enabled: boolean) => void;
@@ -138,7 +138,7 @@ export function SetupSummaryView({
       <Box marginTop={1}>
         {missing ? (
           <Text color="yellow">
-            Cannot compute compatibility — missing product data
+            Cannot compute compatibility - missing product data
           </Text>
         ) : (
           <Text color={verdictColor} bold>
@@ -150,11 +150,11 @@ export function SetupSummaryView({
       <Box marginTop={1}>
         {alertEnabled ? (
           <Text color="green">
-            🔔 Price alert on — watching this setup for price drops
+            🔔 Price alert on - watching this setup for price drops
           </Text>
         ) : (
           <Text dimColor>
-            Price alert off — press [a] to watch this setup for price drops
+            Price alert off - press [a] to watch this setup for price drops
           </Text>
         )}
       </Box>

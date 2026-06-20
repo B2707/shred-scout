@@ -9,7 +9,7 @@
  *     boot-to-binding rule a meaningless always-pass. We now resolve a real US range
  *     from numeric variants, falling back to the per-brand BINDING_SIZE_RANGES span.
  *   - Board flexRating was never derived from the product, so the flex advisory was always
- *     'unknown'. We parse the flex_rating string ("6/10", "Medium-Stiff") into a 1–10 number.
+ *     'unknown'. We parse the flex_rating string ("6/10", "Medium-Stiff") into a 1-10 number.
  */
 import type { NormalizedProduct } from '../../data/normalizer.js';
 import type { RiderProfile } from '../../types/profile.js';
@@ -18,7 +18,7 @@ import { BINDING_SIZE_RANGES } from './sizing-tables.js';
 import type { Binding, Board, Boot, RuleResult } from './types.js';
 
 /**
- * Parses a free-text flex rating into a 1–10 number, or undefined when unknown.
+ * Parses a free-text flex rating into a 1-10 number, or undefined when unknown.
  * Handles "6/10", "8/10 flex", and word forms ("Soft", "Medium-Stiff", "Stiff").
  */
 export function parseFlexRating(raw: string | null): number | undefined {
@@ -44,7 +44,7 @@ export function parseFlexRating(raw: string | null): number | undefined {
 
 /**
  * Standard US boot-size range covered by each binding letter size (PROJECT.md sizing chart:
- * S 5–8, M 7–10, L 9–12, XL 11+). Brand-independent — the industry letter→US mapping is
+ * S 5-8, M 7-10, L 9-12, XL 11+). Brand-independent - the industry letter→US mapping is
  * consistent enough for a per-card fit signal, and far more honest than the full vendor span.
  */
 const LETTER_SIZE_RANGES: Record<string, [number, number]> = {
@@ -83,7 +83,7 @@ export function letterToRange(
  *   1. Explicit numeric sizes from the variants → exact [min, max].
  *   2. Letter sizes (S/M/L/XL) → the UNION of only the standard US ranges for the letters
  *      actually offered. Collapsing letter bindings to the full vendor span made an
- *      S-only binding "fit" a size-13 boot — a meaningless always-pass.
+ *      S-only binding "fit" a size-13 boot - a meaningless always-pass.
  *   3. No recognizable sizes at all → the per-brand (or generic) overall span.
  *
  * Never returns the meaningless [0,999] that made every fit "pass".
@@ -100,7 +100,7 @@ export function resolveBindingSizeRange(
     if (sizes.length >= 2) return [Math.min(...sizes), Math.max(...sizes)];
     if (sizes.length === 1) return [sizes[0] - 1, sizes[0] + 1];
 
-    // No numeric sizes — try mapping the offered letter sizes to their standard US ranges.
+    // No numeric sizes - try mapping the offered letter sizes to their standard US ranges.
     const letterRanges = variants
       .map((v) => letterToRange(v.option1))
       .filter((r): r is [number, number] => r !== null);
@@ -146,8 +146,14 @@ export function toBoot(bootSizeUS: number): Boot {
 
 // Permissive placeholders so a single-product card can be checked against the rider
 // without a full setup. Each rule reads only the piece relevant to that gear type.
-const PLACEHOLDER_BINDING: Binding = { sizeRange: [0, 99], discPattern: '4x4' };
-const PLACEHOLDER_BOARD: Board = { waistWidthMm: 300, mountingPattern: '4x4' };
+export const PLACEHOLDER_BINDING: Binding = {
+  sizeRange: [0, 99],
+  discPattern: '4x4',
+};
+export const PLACEHOLDER_BOARD: Board = {
+  waistWidthMm: 300,
+  mountingPattern: '4x4',
+};
 
 /** Extracts the numeric US sizes from a product's variant options ("10", "10.5", "US 10.5"). */
 function parseVariantSizes(variantsJson: string): number[] {
@@ -165,13 +171,13 @@ function parseVariantSizes(variantsJson: string): number[] {
 }
 
 /**
- * Whether a boot product is offered in the rider's US size — the per-card signal that was
+ * Whether a boot product is offered in the rider's US size - the per-card signal that was
  * missing on boot cards. A boot has nothing to cross-check against a board/binding,
  * but "do they make it in my size?" is the relevant fit question, so we answer that:
  *
  *  - pass:    the rider's exact US size is among the offered variants
  *  - warn:    the boot lists sizes, but not the rider's
- *  - unknown: no parseable sizes (advisory reference only — never reads as incompatible)
+ *  - unknown: no parseable sizes (advisory reference only - never reads as incompatible)
  */
 export function bootFit(
   product: NormalizedProduct,
@@ -182,7 +188,7 @@ export function bootFit(
     return {
       ruleId: 'boot-size-fit',
       verdict: 'unknown',
-      reason: `Boot — confirm US ${bootSizeUS} is offered before buying`,
+      reason: `Boot - confirm US ${bootSizeUS} is offered before buying`,
       advisory: true,
     };
   }
@@ -195,16 +201,16 @@ export function bootFit(
   }
   const min = Math.min(...sizes);
   const max = Math.max(...sizes);
-  const range = min === max ? `US ${min}` : `US ${min}–${max}`;
+  const range = min === max ? `US ${min}` : `US ${min}-${max}`;
   return {
     ruleId: 'boot-size-fit',
     verdict: 'warn',
-    reason: `Offered in ${range} — not your US ${bootSizeUS}`,
+    reason: `Offered in ${range} - not your US ${bootSizeUS}`,
   };
 }
 
 /**
- * The single most relevant compatibility verdict for one product, relative to the rider —
+ * The single most relevant compatibility verdict for one product, relative to the rider -
  * the per-card "compatibility-verified" signal that was missing during shopping.
  *
  *  - board:   boot-to-board waist clearance for the rider's boot size

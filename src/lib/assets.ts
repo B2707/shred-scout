@@ -3,7 +3,7 @@
  *
  * Assets live in src/fixtures/assets and are copied to dist/assets by tsup's publicDir.
  * Because the build bundles to a flat dist/cli.js, import.meta.url points at dist/ at
- * runtime and at src/lib during dev/test — so we try both layouts.
+ * runtime and at src/lib during dev/test - so we try both layouts.
  */
 
 import { existsSync } from 'node:fs';

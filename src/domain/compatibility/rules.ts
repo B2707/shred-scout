@@ -1,12 +1,12 @@
 /**
  * Hard compatibility rule functions for the Shred Scout engine.
  *
- * All functions are pure — no I/O, no side effects, no throws.
+ * All functions are pure - no I/O, no side effects, no throws.
  * Every code path returns a typed RuleResult. Called by runRules() in engine.ts.
  *
  * Rule thresholds:
  *   boot-to-binding-size: warn within 0.25 US size of either edge (strict <, not <=)
- *   boot-to-board-waist:  overhang per side = (bootSole − waist)/2; pass ≤20mm, warn ≤35mm,
+ *   boot-to-board-waist:  overhang per side = (bootSole - waist)/2; pass ≤20mm, warn ≤35mm,
  *                         fail >35mm; missing waist → 'unknown' advisory
  *   binding-disc-to-mount: fail when exactly one side is 'channel' (XOR)
  */
@@ -33,7 +33,7 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-binding-size',
       verdict: 'fail',
-      reason: `Invalid numeric input — sizeUS=${sizeUS}, range=[${min}–${max}]`,
+      reason: `Invalid numeric input - sizeUS=${sizeUS}, range=[${min}-${max}]`,
     };
   }
 
@@ -41,7 +41,7 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-binding-size',
       verdict: 'fail',
-      reason: `Boot size must be a positive number — got ${sizeUS}`,
+      reason: `Boot size must be a positive number - got ${sizeUS}`,
     };
   }
 
@@ -49,7 +49,7 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-binding-size',
       verdict: 'fail',
-      reason: `Binding size range is invalid ([${min}–${max}] US) — min must be less than max`,
+      reason: `Binding size range is invalid ([${min}-${max}] US) - min must be less than max`,
     };
   }
 
@@ -57,20 +57,20 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-binding-size',
       verdict: 'fail',
-      reason: `Boot size US ${sizeUS} is outside binding range [${min}–${max} US]`,
+      reason: `Boot size US ${sizeUS} is outside binding range [${min}-${max} US]`,
     };
   }
   if (sizeUS - min < 0.25 || max - sizeUS < 0.25) {
     return {
       ruleId: 'boot-to-binding-size',
       verdict: 'warn',
-      reason: `Boot size US ${sizeUS} is near the edge of binding range [${min}–${max} US] — borderline fit`,
+      reason: `Boot size US ${sizeUS} is near the edge of binding range [${min}-${max} US] - borderline fit`,
     };
   }
   return {
     ruleId: 'boot-to-binding-size',
     verdict: 'pass',
-    reason: `Boot size US ${sizeUS} fits comfortably within binding range [${min}–${max} US]`,
+    reason: `Boot size US ${sizeUS} fits comfortably within binding range [${min}-${max} US]`,
   };
 }
 
@@ -78,17 +78,17 @@ export function bootToBindingSize(setup: GearSetup): RuleResult {
  * Checks whether the board's waist width provides adequate toe/heel clearance.
  *
  * Models overhang per side, since some overhang is normal (and desirable for leverage),
- * and binding angles reduce real-world drag — the old "waist must be within 15–25mm of
- * boot length" thresholds false-failed standard 250–258mm boards for size-10 riders.
+ * and binding angles reduce real-world drag - the old "waist must be within 15-25mm of
+ * boot length" thresholds false-failed standard 250-258mm boards for size-10 riders.
  *
  *   bootSoleMm    = sizeUS × 8.1 + 209   (outer-sole length estimate)
- *   overhangPerSide = (bootSoleMm − waistWidthMm) / 2
+ *   overhangPerSide = (bootSoleMm - waistWidthMm) / 2
  *   Pass:  overhangPerSide ≤ 20mm
  *   Warn:  20mm < overhangPerSide ≤ 35mm
  *   Fail:  overhangPerSide > 35mm
  *
  * Missing / non-positive waist width returns an 'unknown' ADVISORY rather than a hard
- * fail — most Shopify boards expose no waist spec, and "unknown" must not read as
+ * fail - most Shopify boards expose no waist spec, and "unknown" must not read as
  * "incompatible".
  */
 export function bootToBoardWaist(setup: GearSetup): RuleResult {
@@ -99,7 +99,7 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'fail',
-      reason: `Invalid boot size — sizeUS=${sizeUS}`,
+      reason: `Invalid boot size - sizeUS=${sizeUS}`,
     };
   }
 
@@ -107,7 +107,7 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'unknown',
-      reason: `Board waist width unavailable — can't verify toe/heel clearance for US ${sizeUS} boots`,
+      reason: `Board waist width unavailable - can't verify toe/heel clearance for US ${sizeUS} boots`,
       advisory: true,
     };
   }
@@ -120,14 +120,14 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'fail',
-      reason: `Board waist ${waistWidthMm}mm is too narrow for US ${sizeUS} boots (~${Math.round(overhangPerSide)}mm overhang per side — significant toe/heel drag)`,
+      reason: `Board waist ${waistWidthMm}mm is too narrow for US ${sizeUS} boots (~${Math.round(overhangPerSide)}mm overhang per side - significant toe/heel drag)`,
     };
   }
   if (overhangPerSide > 20) {
     return {
       ruleId: 'boot-to-board-waist',
       verdict: 'warn',
-      reason: `Board waist ${waistWidthMm}mm gives ~${Math.round(overhangPerSide)}mm overhang per side with US ${sizeUS} boots — a slightly wider board would reduce drag risk`,
+      reason: `Board waist ${waistWidthMm}mm gives ~${Math.round(overhangPerSide)}mm overhang per side with US ${sizeUS} boots - a slightly wider board would reduce drag risk`,
     };
   }
   return {
@@ -143,7 +143,7 @@ export function bootToBoardWaist(setup: GearSetup): RuleResult {
  * Fail: exactly one of board.mountingPattern or binding.discPattern is 'channel' (XOR).
  *       Channel boards require Burton EST/Re:Flex only; channel bindings have no screw disc.
  * Pass: both channel, or both non-channel (4x4+4x4, 4x4+2x4, 2x4+4x4, 2x4+2x4 all pass).
- * Note: no warn tier for disc mismatch — incompatibility is always a hard fail.
+ * Note: no warn tier for disc mismatch - incompatibility is always a hard fail.
  *
  * IMPORTANT: 'channel' here means Burton Channel (EST/Re:Flex) ONLY.
  * Non-Burton channel systems (Nitro 3D, Sparks track) must be mapped to '4x4'
@@ -163,7 +163,7 @@ export function discToMount(setup: GearSetup): RuleResult {
     return {
       ruleId: 'binding-disc-to-mount',
       verdict: 'fail',
-      reason: `Unrecognized mounting pattern — mountingPattern=${String(mountingPattern)}, discPattern=${String(discPattern)}`,
+      reason: `Unrecognized mounting pattern - mountingPattern=${String(mountingPattern)}, discPattern=${String(discPattern)}`,
     };
   }
 
@@ -172,7 +172,7 @@ export function discToMount(setup: GearSetup): RuleResult {
 
   if (isChannelBoard !== isChannelBinding) {
     const detail = isChannelBoard
-      ? `Channel board requires Burton EST/Re:Flex bindings — got ${discPattern} disc`
+      ? `Channel board requires Burton EST/Re:Flex bindings - got ${discPattern} disc`
       : `channel binding disc (Burton EST/Re:Flex) cannot mount on a ${mountingPattern} board`;
     return { ruleId: 'binding-disc-to-mount', verdict: 'fail', reason: detail };
   }

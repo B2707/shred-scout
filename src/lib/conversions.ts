@@ -1,7 +1,7 @@
 /**
  * Imperial → metric conversion utilities for Shred Scout.
  *
- * All functions are pure — no I/O, no side effects.
+ * All functions are pure - no I/O, no side effects.
  * Used by the onboarding wizard to convert user input before storing.
  */
 
@@ -36,4 +36,17 @@ export function parseWeight(raw: string): number {
   const lbs = parseFloat(raw.trim());
   if (Number.isNaN(lbs)) return NaN;
   return Math.round(lbs * 0.453592);
+}
+
+/**
+ * Converts kilograms back to pounds (rounded to nearest integer).
+ *
+ * Inverse of {@link parseWeight}, used to DISPLAY a stored (metric) weight under the
+ * wizard's lbs prompt so the shown number is in the same unit the prompt parses - a
+ * returning rider who re-types it round-trips instead of silently corrupting their weight.
+ *
+ * Examples: 75 → 165, 80 → 176
+ */
+export function kgToLbs(kg: number): number {
+  return Math.round(kg / 0.453592);
 }

@@ -1,5 +1,5 @@
 /**
- * ComparisonGroup — renders a grouped multi-retailer price comparison.
+ * ComparisonGroup - renders a grouped multi-retailer price comparison.
  *
  * Triggered when groupProducts() finds 2+ NormalizedProduct entries sharing
  * the same normalized title (lowercase + trim). Renders:
@@ -7,8 +7,8 @@
  *       {retailer}  ${price}  [Best Price]  ← cheapest row (green+bold)
  *       {retailer}  ${price}               ← other rows
  *
- * CompatBadges are NOT shown in comparison rows — comparison is price-only.
- * No image rendering in comparison rows — price comparison is the focus.
+ * CompatBadges are NOT shown in comparison rows - comparison is price-only.
+ * No image rendering in comparison rows - price comparison is the focus.
  *
  * Sub-rows indented paddingLeft={4}. Cheapest retailer identified
  * by minimum price_cents; [Best Price] label rendered inline on that row.
@@ -23,13 +23,16 @@ export interface ComparisonGroupProps {
   normalizedTitle: string;
   /** 2+ products sharing the same normalized title, from different retailers. */
   products: NormalizedProduct[];
+  /** 1-based page-relative selector - pressing [N] views/saves this group's best price. */
+  index?: number;
 }
 
 export function ComparisonGroup({
   normalizedTitle,
   products,
+  index,
 }: ComparisonGroupProps): React.JSX.Element {
-  // Cheapest among POSITIVE prices only — a $0 (unpriced, e.g. evo PDP-not-scraped)
+  // Cheapest among POSITIVE prices only - a $0 (unpriced, e.g. evo PDP-not-scraped)
   // product must never win [Best Price]. null when no product has a real price.
   const positivePrices = products
     .map((p) => p.price_cents)
@@ -39,10 +42,13 @@ export function ComparisonGroup({
 
   return (
     <Box flexDirection="column" paddingX={1} marginBottom={1}>
-      {/* Group header — bold normalized title */}
-      <Text bold>{normalizedTitle}</Text>
+      {/* Group header - page-relative [N] selector + bold normalized title */}
+      <Text>
+        {index !== undefined && <Text dimColor>{`[${index}] `}</Text>}
+        <Text bold>{normalizedTitle}</Text>
+      </Text>
 
-      {/* Sub-rows — each retailer's price, indented, cheapest highlighted */}
+      {/* Sub-rows - each retailer's price, indented, cheapest highlighted */}
       {products.map((p) => {
         const hasPrice = p.price_cents > 0;
         const isCheapest = hasPrice && p.price_cents === minPrice;
