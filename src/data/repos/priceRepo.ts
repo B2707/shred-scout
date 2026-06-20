@@ -1,10 +1,10 @@
 /**
  * Price observation repository for Shred Scout.
  *
- * Factory function pattern — accepts a Database instance, returns a plain object
+ * Factory function pattern - accepts a Database instance, returns a plain object
  * of typed methods backed by prepared statements. All SQL is in this file.
  *
- * price_observations is append-only — price alerts read the full history
+ * price_observations is append-only - price alerts read the full history
  * to compute price diffs. Never delete or update rows.
  */
 import type Database from 'better-sqlite3';

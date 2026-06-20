@@ -21,7 +21,7 @@ interface RiderRow {
 
 /**
  * Creates a riderRepo bound to the given Database instance.
- * The rider_profile table is created by the 002_rider_profile migration in db.ts —
+ * The rider_profile table is created by the 002_rider_profile migration in db.ts -
  * openDatabase() must be called before makeRiderRepo().
  * @param db - Initialized Database from openDatabase()
  */

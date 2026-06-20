@@ -4,7 +4,7 @@
  * Stores board+binding+boot product ID triples plus a JSON snapshot of RuleResult[]
  * at save time. These saved setups are rendered in the wishlist view.
  *
- * setupRepo references products.id FKs — products must exist before saving setups
+ * setupRepo references products.id FKs - products must exist before saving setups
  * with product IDs (null IDs are allowed for partial saves).
  */
 import type Database from 'better-sqlite3';
@@ -68,7 +68,7 @@ export function makeSetupRepo(db: Database.Database) {
     'UPDATE saved_setups SET compatibility = ? WHERE id = ?',
   );
 
-  // Most recent setup still missing at least one gear slot — the "in progress" setup.
+  // Most recent setup still missing at least one gear slot - the "in progress" setup.
   const selectIncompleteStmt = db.prepare<[], SetupRow>(
     'SELECT id, board_id, binding_id, boot_id, compatibility, saved_at, alert_enabled FROM saved_setups WHERE board_id IS NULL OR binding_id IS NULL OR boot_id IS NULL ORDER BY saved_at DESC, id DESC LIMIT 1',
   );
@@ -137,6 +137,27 @@ export function makeSetupRepo(db: Database.Database) {
     },
 
     /**
+     * Always INSERTs a fresh, complete board+binding+boot setup row and returns its id.
+     *
+     * Unlike saveSlot (which COALESCE-merges into the most-recent INCOMPLETE row to accumulate
+     * SearchView's single-slot picks), this never touches an existing row. The setup builder
+     * saves a whole setup at once, so merging would hijack a stale board-only row left by
+     * SearchView and overwrite its board. This guarantees an independent new row every time.
+     */
+    saveComplete(input: SaveSetupInput): number {
+      const result = insertStmt.run({
+        boardId: input.boardId ?? null,
+        bindingId: input.bindingId ?? null,
+        bootId: input.bootId ?? null,
+        compatibility: input.compatibility
+          ? JSON.stringify(input.compatibility)
+          : null,
+        savedAt: Date.now(),
+      });
+      return result.lastInsertRowid as number;
+    },
+
+    /**
      * Returns all saved setups, newest first.
      */
     list(): SavedSetup[] {
@@ -150,7 +171,7 @@ export function makeSetupRepo(db: Database.Database) {
           try {
             return JSON.parse(row.compatibility) as RuleResult[];
           } catch {
-            // Corrupt or manually-edited row — treat as no compatibility data
+            // Corrupt or manually-edited row - treat as no compatibility data
             return null;
           }
         })(),
@@ -203,7 +224,7 @@ export function makeSetupRepo(db: Database.Database) {
 
     /**
      * Persists a compatibility snapshot (RuleResult[]) for a setup. Called when a setup
-     * becomes complete so the wishlist can render its CompatBadge — previously the column
+     * becomes complete so the wishlist can render its CompatBadge - previously the column
      * was always NULL because handleSave never passed it.
      */
     setCompatibility(id: number, results: RuleResult[]): void {
