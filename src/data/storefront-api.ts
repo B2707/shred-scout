@@ -2,19 +2,25 @@
  * Shopify Storefront GraphQL API client for Shred Scout.
  *
  * Uses the official Shopify Storefront API (2025-01) with cursor-based pagination.
- * Requires a public Storefront Access Token per store — stores generate these via
+ * Requires a public Storefront Access Token per store - stores generate these via
  * Shopify Admin → Sales Channels → Storefront API.
  *
  * Endpoint: POST {storeUrl}/api/2025-01/graphql.json
  * Header:   X-Shopify-Storefront-Access-Token: {token}
  */
 
-import { fetch } from 'undici';
 import type { ShopifyProductInput } from './normalizer.js';
 import type { RequestPipeline } from './pipeline.js';
 
 const STOREFRONT_API_VERSION = '2025-01';
 const PAGE_SIZE = 250;
+/**
+ * Hard page cap, mirroring the REST path's MAX_PAGES (shopify.ts). 2 pages × 250 = up to 500
+ * products - plenty for a deal search, and few enough that paced requests stay under the per-IP
+ * rate limit. Without this, the cursor loop crawls every page and re-creates the 429 burst the
+ * throttle exists to prevent.
+ */
+const MAX_GRAPHQL_PAGES = 2;
 
 // ---------------------------------------------------------------------------
 // GraphQL response types
@@ -58,7 +64,7 @@ interface StorefrontProductsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// GraphQL query — cursor-based pagination (production Shopify pattern)
+// GraphQL query - cursor-based pagination (production Shopify pattern)
 // ---------------------------------------------------------------------------
 
 const PRODUCTS_QUERY = `
@@ -115,25 +121,32 @@ const PRODUCTS_QUERY = `
 export function adaptStorefrontProduct(
   node: StorefrontProductNode,
 ): ShopifyProductInput {
-  // GID format: "gid://shopify/Product/12345678" → numeric ID
-  const numericId = parseInt(node.id.split('/').pop() ?? '0', 10);
+  // GID format: "gid://shopify/Product/12345678" → numeric ID. Guard against a missing /
+  // unexpected id shape: parseInt of an empty/garbage tail yields NaN, so coalesce to 0.
+  const idTail = typeof node.id === 'string' ? node.id.split('/').pop() : null;
+  const parsedId = parseInt(idTail ?? '0', 10);
+  const numericId = Number.isFinite(parsedId) ? parsedId : 0;
+
+  // Defensive: a malformed node (missing variants/tags edges) must not throw - coalesce the
+  // nested arrays so a single bad listing degrades to safe/empty fields, not a store-wide abort.
+  const variantEdges = node.variants?.edges ?? [];
 
   return {
     id: numericId,
-    title: node.title,
-    handle: node.handle,
-    product_type: node.productType,
-    vendor: node.vendor,
-    tags: node.tags,
-    images: node.featuredImage
+    title: node.title ?? '',
+    handle: node.handle ?? '',
+    product_type: node.productType ?? '',
+    vendor: node.vendor ?? '',
+    tags: Array.isArray(node.tags) ? node.tags : [],
+    images: node.featuredImage?.url
       ? [{ src: node.featuredImage.url, position: 1 }]
       : [],
-    variants: node.variants.edges.map((e) => ({
-      price: e.node.price.amount,
+    variants: variantEdges.map((e) => ({
+      price: e.node.price?.amount ?? '',
       compare_at_price: e.node.compareAtPrice?.amount ?? null,
-      option1: e.node.selectedOptions[0]?.value ?? null,
+      option1: e.node.selectedOptions?.[0]?.value ?? null,
       // Carry availability through so the in-stock price filter also works on the
-      // preferred GraphQL path — not just /products.json.
+      // preferred GraphQL path - not just /products.json.
       available: e.node.availableForSale,
     })),
   };
@@ -146,71 +159,81 @@ export function adaptStorefrontProduct(
 /**
  * Fetches all products from a Shopify store via the Storefront GraphQL API.
  *
- * Uses cursor-based pagination (pageInfo.hasNextPage + endCursor) — the
+ * Uses cursor-based pagination (pageInfo.hasNextPage + endCursor) - the
  * production Shopify pattern, more robust than page-number approaches.
  *
  * @param storeUrl  - Base store URL without trailing slash (e.g. 'https://stokedboardshop.com')
  * @param token     - Public Storefront Access Token from the store's Shopify Admin
- * @param pipeline  - RequestPipeline for per-host rate limiting (timeout only — POST bodies
- *                    bypass the queue to avoid deadlock; concurrency is handled by the caller)
+ * @param pipeline  - RequestPipeline - the POST is routed through pipeline.fetch() so it inherits
+ *                    the global pacing + per-host queue (and 429-abort) just like the REST path
+ * @param maxPages  - Cursor-page cap (default MAX_GRAPHQL_PAGES), mirroring the REST page cap
  * @returns Normalized ShopifyProductInput[] ready for normalizeProduct()
  */
 export async function fetchAllProductsGraphQL(
   storeUrl: string,
   token: string,
   pipeline: RequestPipeline,
+  maxPages: number = MAX_GRAPHQL_PAGES,
 ): Promise<ShopifyProductInput[]> {
   const endpoint = `${storeUrl}/api/${STOREFRONT_API_VERSION}/graphql.json`;
   const all: ShopifyProductInput[] = [];
   let cursor: string | null = null;
 
-  while (true) {
+  for (let page = 0; page < maxPages; page++) {
     const variables: Record<string, unknown> = { first: PAGE_SIZE };
     if (cursor) variables.after = cursor;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), pipeline.timeout);
-
-    let response: StorefrontProductsResponse;
+    let res: Awaited<ReturnType<RequestPipeline['fetch']>>;
     try {
-      const res = await fetch(endpoint, {
+      // Route through the pipeline so the POST is paced/queued and 4xx (incl. 429) abort -
+      // pipeline.fetch resolves only on a 2xx/3xx response, so no manual res.ok check is needed.
+      res = await pipeline.fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Storefront-Access-Token': token,
-          'User-Agent': pipeline.userAgent,
         },
         body: JSON.stringify({ query: PRODUCTS_QUERY, variables }),
-        signal: controller.signal,
       });
-
-      if (res.status === 401 || res.status === 403) {
+    } catch (err) {
+      // Partial-result parity with the REST path (shopify.ts): once at least one page has
+      // succeeded, a later-page block (429/5xx/timeout) returns what we already have rather
+      // than discarding it. Only a FIRST-page failure surfaces as a store error.
+      if (all.length > 0) break;
+      // The pipeline aborts 4xx as a thrown error; surface the descriptive auth message the
+      // caller relies on for 401/403, and rethrow everything else (429/5xx/timeout) unchanged.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('401') || msg.includes('403')) {
         throw new Error(
-          `Storefront API auth failed (HTTP ${res.status}) — token invalid or API disabled for ${storeUrl}`,
+          `Storefront API auth failed - token invalid or API disabled for ${storeUrl} (${msg})`,
         );
       }
-      if (!res.ok) {
-        throw new Error(`Storefront API HTTP ${res.status} from ${storeUrl}`);
-      }
+      throw err;
+    }
 
+    // Parsing / GraphQL errors get the same partial-result treatment: keep earlier pages
+    // when we already have some, only surface a first-page failure.
+    let response: StorefrontProductsResponse;
+    try {
       response = (await res.json()) as StorefrontProductsResponse;
-    } finally {
-      clearTimeout(timer);
+      if (response.errors?.length) {
+        throw new Error(
+          `Storefront API errors: ${response.errors.map((e) => e.message).join('; ')}`,
+        );
+      }
+    } catch (err) {
+      if (all.length > 0) break;
+      throw err;
     }
 
-    if (response.errors?.length) {
-      throw new Error(
-        `Storefront API errors: ${response.errors.map((e) => e.message).join('; ')}`,
-      );
-    }
-
-    const page = response.data.products;
-    for (const edge of page.edges) {
+    const pageData = response.data?.products;
+    if (!pageData) break;
+    for (const edge of pageData.edges ?? []) {
       all.push(adaptStorefrontProduct(edge.node));
     }
 
-    if (!page.pageInfo.hasNextPage || !page.pageInfo.endCursor) break;
-    cursor = page.pageInfo.endCursor;
+    if (!pageData.pageInfo?.hasNextPage || !pageData.pageInfo?.endCursor) break;
+    cursor = pageData.pageInfo.endCursor;
   }
 
   return all;
@@ -220,7 +243,7 @@ export async function fetchAllProductsGraphQL(
  * Attempts to extract a public Storefront Access Token from a Shopify store's HTML.
  *
  * Many headless Shopify stores (Hydrogen, custom storefronts) embed their public
- * token in the page HTML or JavaScript bundles. Returns null if not found — the
+ * token in the page HTML or JavaScript bundles. Returns null if not found - the
  * caller should fall back to the /products.json REST endpoint.
  *
  * Token format: 32 hex characters (e.g. "a1b2c3d4e5f6...").

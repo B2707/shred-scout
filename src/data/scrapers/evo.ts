@@ -1,7 +1,7 @@
 /**
  * evo.com HTML scraper for Shred Scout.
  *
- * EvoHtmlScrapeSource implements ProductSource — fetches the evo.com snowboard
+ * EvoHtmlScrapeSource implements ProductSource - fetches the evo.com snowboard
  * listing page, extracts product URLs, then concurrently fetches PDPs via
  * RequestPipeline to extract waist_width_mm and flex_rating using Cheerio.
  *
@@ -9,7 +9,7 @@
  * Source: github.com/johnwdunn20/ScrapingEvo (2024-03-08). May have changed.
  *
  * Cloudflare note: evo.com uses Cloudflare WAF. If blocked, fetchAll() throws
- * and the error surfaces in runSearch()'s errors[] — Shopify sources continue unaffected.
+ * and the error surfaces in runSearch()'s errors[] - Shopify sources continue unaffected.
  */
 import * as cheerio from 'cheerio';
 import type { MountPattern } from '../../domain/compatibility/types.js';
@@ -35,7 +35,7 @@ export interface EvoSpecs {
 
 /**
  * Extracts snowboard specs from evo.com PDP HTML.
- * Pure function — accepts raw HTML string, returns spec fields.
+ * Pure function - accepts raw HTML string, returns spec fields.
  * Exported for direct unit testing without HTTP.
  */
 export function extractSpecs(html: string): EvoSpecs {
@@ -92,7 +92,7 @@ function buildNormalizedProduct(
   specs: EvoSpecs,
   $: ReturnType<typeof cheerio.load>,
 ): NormalizedProduct {
-  // Extract handle from URL path — last path segment before any query string
+  // Extract handle from URL path - last path segment before any query string
   const pathSegments = pdpUrl.replace(/\?.*$/, '').split('/').filter(Boolean);
   const handle = pathSegments[pathSegments.length - 1] ?? 'unknown';
 
@@ -102,7 +102,7 @@ function buildNormalizedProduct(
     $('title').text().split('|')[0]?.trim() ||
     handle;
 
-  const gear_category: GearCategory = 'board'; // evo.com snowboards listing — always board
+  const gear_category: GearCategory = 'board'; // evo.com snowboards listing - always board
 
   // mount_pattern inference from mount_pattern_raw
   let mount_pattern: MountPattern = '4x4';
@@ -123,7 +123,7 @@ function buildNormalizedProduct(
     mount_pattern,
     mount_pattern_raw: specs.mount_pattern_raw ?? '',
     image_url: null,
-    price_cents: 0, // PDP price extraction out of scope — use 0 sentinel
+    price_cents: 0, // PDP price extraction out of scope - use 0 sentinel
     variants_json: '[]',
     fetched_at: Date.now(),
   };
@@ -158,8 +158,8 @@ export class EvoHtmlScrapeSource implements ProductSource {
         listingHtml.includes('Attention Required');
       throw new Error(
         isCloudflare
-          ? 'evo.com listing returned no products — possible Cloudflare block'
-          : 'evo.com listing returned no products — selectors may have changed',
+          ? 'evo.com listing returned no products - possible Cloudflare block'
+          : 'evo.com listing returned no products - selectors may have changed',
       );
     }
 
@@ -181,7 +181,7 @@ export class EvoHtmlScrapeSource implements ProductSource {
       const specs = extractSpecs(html);
       return buildNormalizedProduct(url, specs, $);
     } catch {
-      return null; // Individual PDP failure — skip, not fatal
+      return null; // Individual PDP failure - skip, not fatal
     }
   }
 }

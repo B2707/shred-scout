@@ -6,7 +6,7 @@
  * before priceRepo.record() can be called (priceRepo takes a products.id FK).
  *
  * Upsert semantics: ON CONFLICT(shopify_id, retailer) updates all mutable columns
- * and refreshes fetched_at — the integer primary key (id) is preserved across updates.
+ * and refreshes fetched_at - the integer primary key (id) is preserved across updates.
  */
 import type Database from 'better-sqlite3';
 import type { NormalizedProduct } from '../normalizer.js';
@@ -51,11 +51,11 @@ export function makeProductRepo(db: Database.Database) {
   return {
     /**
      * Inserts or updates a normalized product row.
-     * @returns The products.id (integer PK) of the upserted row — pass to priceRepo.record().
+     * @returns The products.id (integer PK) of the upserted row - pass to priceRepo.record().
      *
      * Uses INSERT ... ON CONFLICT DO UPDATE ... RETURNING id so the returned id is
      * always the affected row's own PK. (lastInsertRowid is wrong on the UPDATE path:
-     * it reports the last *inserted* rowid, returning a DIFFERENT product's id — B1.)
+     * it reports the last *inserted* rowid, returning a DIFFERENT product's id - B1.)
      */
     upsert(product: NormalizedProduct): number {
       const row = upsertStmt.get(product) as { id: number };

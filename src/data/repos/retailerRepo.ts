@@ -2,7 +2,7 @@
  * Repository for dynamically configured Shopify retailer sources.
  *
  * Replaces the hardcoded RETAILERS constant with a user-extensible SQLite table.
- * Any Shopify store URL can be added at runtime — Shred Scout is not limited to
+ * Any Shopify store URL can be added at runtime - Shred Scout is not limited to
  * a predefined list of shops.
  *
  * makeRetailerRepo() is passed an open Database instance. Call openDatabase() first.
@@ -17,7 +17,7 @@ export interface RetailerConfig {
   /** Base store URL without trailing slash (e.g. 'https://stokedboardshop.com'). */
   storeUrl: string;
   /**
-   * Public Shopify Storefront Access Token — enables the GraphQL Storefront API.
+   * Public Shopify Storefront Access Token - enables the GraphQL Storefront API.
    * Null means the store hasn't exposed one; the scraper falls back to /products.json.
    */
   storefrontToken: string | null;

@@ -27,7 +27,7 @@ export type { PriceObservation } from './repos/priceRepo.js';
 export { makePriceRepo } from './repos/priceRepo.js';
 // Repositories
 export { makeProductRepo } from './repos/productRepo.js';
-// Retailer repository (dynamic store management) — stores live in retailer_configs +
+// Retailer repository (dynamic store management) - stores live in retailer_configs +
 // stores.json (see loadStores); the old hardcoded retailers.ts seed list is gone.
 export type {
   RetailerConfig,

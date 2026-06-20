@@ -4,7 +4,7 @@
  * loadStores() reads stores.json from the project root at runtime, enabling
  * users to add, remove, or modify stores without changing source code.
  *
- * Falls back to EMBEDDED_DEFAULTS on any read/parse/schema failure — so the
+ * Falls back to EMBEDDED_DEFAULTS on any read/parse/schema failure - so the
  * global-install (npx) case works even if stores.json is not bundled.
  *
  * syncStoreToJson() appends a new entry to stores.json, deduplicating on baseUrl.
@@ -21,7 +21,7 @@ export interface StoreEntry {
 }
 
 /**
- * Embedded defaults — identical to the 10 entries in stores.json.
+ * Embedded defaults - identical to the 10 entries in stores.json.
  * Used as fallback when stores.json is missing, malformed, or has a schema error.
  */
 const EMBEDDED_DEFAULTS: StoreEntry[] = [
@@ -51,7 +51,7 @@ const EMBEDDED_DEFAULTS: StoreEntry[] = [
 
 /**
  * Returns the resolved path to stores.json using process.cwd().
- * Does NOT depend on dist/ layout — works for both dev and production installs.
+ * Does NOT depend on dist/ layout - works for both dev and production installs.
  */
 function resolveStoresPath(): string {
   return join(process.cwd(), 'stores.json');
@@ -105,7 +105,7 @@ export function loadStores(): RetailerConfigInput[] {
 }
 
 /**
- * Appends a new store entry to stores.json — idempotent on baseUrl.
+ * Appends a new store entry to stores.json - idempotent on baseUrl.
  *
  * Reads the current file (or starts with an empty array if missing/malformed),
  * checks for an existing entry with the same baseUrl, and writes back with
@@ -121,7 +121,7 @@ export async function syncStoreToJson(entry: StoreEntry): Promise<void> {
     arr = [];
   }
 
-  // Dedup on baseUrl — idempotent
+  // Dedup on baseUrl - idempotent
   if (arr.some((e) => e.baseUrl === entry.baseUrl)) {
     return;
   }

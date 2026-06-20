@@ -7,7 +7,7 @@
  * Migrations are inlined as template literals (not file-based) to avoid tsup copy
  * configuration. All schema changes go here as new migration entries in MIGRATIONS.
  *
- * Run once at startup — pass the returned Database instance to all repo factory functions.
+ * Run once at startup - pass the returned Database instance to all repo factory functions.
  */
 
 import { mkdirSync } from 'node:fs';
@@ -15,7 +15,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
 
-/** A single migration entry — name must be stable (used as PK in schema_versions). */
+/** A single migration entry - name must be stable (used as PK in schema_versions). */
 interface Migration {
   name: string;
   sql: string;
@@ -23,7 +23,7 @@ interface Migration {
 
 /**
  * Ordered list of all schema migrations.
- * Append new entries here — never modify existing entries (breaks idempotency).
+ * Append new entries here - never modify existing entries (breaks idempotency).
  */
 const MIGRATIONS: Migration[] = [
   {
@@ -91,12 +91,12 @@ CREATE TABLE IF NOT EXISTS rider_profile (
   },
   {
     // flex_rating column for PDP-scraped spec data.
-    // ALTER TABLE ADD COLUMN is safe — existing rows get NULL (no data migration needed).
+    // ALTER TABLE ADD COLUMN is safe - existing rows get NULL (no data migration needed).
     name: '004_flex_rating',
     sql: `ALTER TABLE products ADD COLUMN flex_rating TEXT;`.trim(),
   },
   {
-    // Dynamic retailer configs — replaces the hardcoded RETAILERS constant.
+    // Dynamic retailer configs - replaces the hardcoded RETAILERS constant.
     // Any Shopify store URL can be added at runtime; storefront_token enables the
     // GraphQL Storefront API path (null = fall back to /products.json).
     name: '005_retailer_configs',

@@ -2,7 +2,7 @@
  * ProductSource abstraction for Shred Scout.
  *
  * ProductSource is the common interface over Shopify and HTML scrapers.
- * runSearch() iterates an array of ProductSource instances — each source
+ * runSearch() iterates an array of ProductSource instances - each source
  * is responsible for fetching and normalizing its own products.
  *
  * ShopifySource wraps the existing fetchAllProducts() + normalizeProduct()
