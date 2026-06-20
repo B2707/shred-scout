@@ -52,7 +52,7 @@
     "p-retry": "8.0.0",
     "react": "19.1.0",
     "terminal-image": "4.3.0",
-    "undici": "8.1.0"
+    "undici": "8.5.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
