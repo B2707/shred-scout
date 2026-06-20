@@ -33,6 +33,12 @@ const ACCENT = [250, 204, 21]; // yellow accent
 const RAMP = [251, 146, 60]; // orange ramp/rail accent
 const STEEL = [148, 163, 184]; // metal / coin rim
 const GREEN = [34, 197, 94]; // beginner "green circle" trail symbol
+const BLUE = [59, 130, 246]; // intermediate "blue square" trail symbol
+// Distinct dominant hues so each riding-style icon reads as a different COLOR at thumbnail
+// scale - shape is lost when chafa downsamples to ~12×4 cells, but the dominant color survives,
+// so all-mountain/powder/freeride/backcountry no longer collapse to the same cyan smudge.
+const RED = [239, 68, 68]; // freeride - steep/aggressive
+const BOARDFILL = [30, 64, 92]; // dim cyan under-board fill (profile silhouettes)
 
 // ── tiny RGBA canvas ────────────────────────────────────────────────────────
 function canvas() {
@@ -64,6 +70,11 @@ function disc(d, cx, cy, r, c) {
     for (let xx = -r; xx <= r; xx++)
       if (xx * xx + yy * yy <= r * r) px(d, cx + xx, cy + yy, c);
 }
+function diamond(d, cx, cy, r, c) {
+  for (let yy = -r; yy <= r; yy++)
+    for (let xx = -r; xx <= r; xx++)
+      if (Math.abs(xx) + Math.abs(yy) <= r) px(d, cx + xx, cy + yy, c);
+}
 function roundRect(d, x, y, w, h, r, c) {
   rect(d, x + r, y, w - 2 * r, h, c);
   rect(d, x, y + r, w, h - 2 * r, c);
@@ -77,21 +88,24 @@ function drawProfile(d, yOffset) {
   const x0 = 16,
     x1 = W - 16,
     groundY = H - 22;
-  rect(d, x0 - 4, groundY + 7, x1 - x0 + 8, 2, SNOW); // ground line
-  const thickness = 7;
+  rect(d, x0 - 4, groundY + 7, x1 - x0 + 8, 3, STEEL); // bright ground line
+  const thickness = 12; // much thicker so the curve survives downsampling
   for (let x = x0; x <= x1; x++) {
     const t = (x - x0) / (x1 - x0);
     let y = groundY - yOffset(t);
     // upturned tips on both ends (snowboard nose/tail)
     if (t < 0.08) y -= (0.08 - t) * 130;
     if (t > 0.92) y -= (t - 0.92) * 130;
-    for (let k = 0; k < thickness; k++) px(d, x, y - k, BOARD);
+    // Dim fill from the board down to the ground: turns each profile into a FILLED silhouette,
+    // so camber (mass high in the middle) vs rocker (mass at the tips) vs flat (uniform bar) vs
+    // hybrid (wavy) differ as a vertical mass pattern even when the thin curve is unreadable.
+    for (let yy = y; yy < groundY + 5; yy++) px(d, x, yy, BOARDFILL);
+    for (let k = 0; k < thickness; k++) px(d, x, y - k, BOARD); // bright top edge
   }
   // contact-point ticks
   for (const t of [0.2, 0.8]) {
     const x = x0 + t * (x1 - x0);
-    px(d, x, groundY + 4, ACCENT);
-    px(d, x, groundY + 5, ACCENT);
+    rect(d, x, groundY + 4, 2, 3, ACCENT);
   }
 }
 
@@ -141,13 +155,6 @@ function ring(d, cx, cy, r, thick, color) {
     for (let k = 0; k < thick; k++)
       px(d, cx + Math.cos(rad) * (r - k), cy + Math.sin(rad) * (r - k), color);
   }
-}
-function snowflake(d, x, y, color) {
-  px(d, x, y, color);
-  px(d, x - 1, y, color);
-  px(d, x + 1, y, color);
-  px(d, x, y - 1, color);
-  px(d, x, y + 1, color);
 }
 function coin(d, cx, cy) {
   for (let yy = -7; yy <= 7; yy++)
@@ -252,68 +259,75 @@ const categories = {
 };
 
 // ── riding-style icons ──────────────────────────────────────────────────────
+// Each style fills the frame boldly in ONE dominant hue (cyan / orange / yellow / white / red /
+// green) so the six icons are unmistakable at thumbnail scale by color alone.
 function styleAllMountain(d) {
-  const base = H - 24;
-  rect(d, 16, base, W - 32, 2, SNOW);
-  mountain(d, W / 2 - 36, base, 20, 30, BOARD, SNOWW);
-  mountain(d, W / 2, base, 28, 46, BOARD, SNOWW);
-  mountain(d, W / 2 + 36, base, 20, 30, BOARD, SNOWW);
+  // CYAN - three bold peaks (the do-it-all baseline).
+  const base = H - 16;
+  rect(d, 12, base, W - 24, 3, SNOW);
+  mountain(d, W / 2 - 42, base, 28, 44, BOARD, SNOWW);
+  mountain(d, W / 2, base, 40, 70, BOARD, SNOWW);
+  mountain(d, W / 2 + 42, base, 28, 44, BOARD, SNOWW);
 }
 function stylePark(d) {
-  const base = H - 24;
-  rect(d, 16, base, W - 32, 2, SNOW);
-  rect(d, W / 2 - 42, base - 24, 44, 5, STEEL); // rail
-  rect(d, W / 2 - 40, base - 24, 3, 24, STEEL);
-  rect(d, W / 2 - 2, base - 24, 3, 24, STEEL); // legs
-  for (let i = 0; i < 28; i++) {
-    const w = Math.round(28 * (i / 28));
-    for (let x = W / 2 + 12; x <= W / 2 + 12 + w; x++) px(d, x, base - i, RAMP);
+  // ORANGE - a big kicker ramp + rail.
+  const base = H - 16;
+  rect(d, 12, base, W - 24, 3, SNOW);
+  rect(d, 16, base - 34, 60, 9, RAMP); // rail
+  rect(d, 20, base - 34, 7, 34, RAMP);
+  rect(d, 68, base - 34, 7, 34, RAMP); // rail legs
+  for (let i = 0; i < 58; i++) {
+    const w = Math.round(72 * (i / 58));
+    for (let x = W / 2 + 4; x <= W / 2 + 4 + w; x++) px(d, x, base - i, RAMP);
   } // ramp
 }
 function styleFreestyle(d) {
+  // YELLOW - a bold spin donut (filled so yellow dominates even when downsampled) + arrowhead.
   const cx = W / 2,
     cy = H / 2 - 2;
-  ring(d, cx, cy, 24, 4, ACCENT);
-  line(d, cx + 2, cy - 24, cx + 16, cy - 21, 3, ACCENT);
-  line(d, cx + 2, cy - 24, cx + 6, cy - 10, 3, ACCENT); // rotation arrowhead
+  disc(d, cx, cy, 36, ACCENT); // solid yellow disc
+  disc(d, cx, cy, 18, BG); // donut hole
+  rect(d, cx - 4, cy - 38, 8, 22, BG); // rotation gap at top
+  line(d, cx + 4, cy - 34, cx + 24, cy - 27, 6, ACCENT);
+  line(d, cx + 4, cy - 34, cx + 12, cy - 13, 6, ACCENT); // arrowhead
 }
 function stylePowder(d) {
-  const base = H - 24;
-  rect(d, 16, base, W - 32, 2, SNOW);
-  mountain(d, W / 2, base, 32, 48, BOARD, SNOWW);
-  for (const [x, y] of [
-    [36, 24],
-    [124, 18],
-    [58, 42],
-    [112, 48],
-    [80, 14],
-    [30, 52],
+  // WHITE - a deep snow mound + big snowflakes.
+  for (let yy = 0; yy < 50; yy++) {
+    const w = Math.round(Math.sqrt(Math.max(0, 1 - (yy / 50) ** 2)) * 74);
+    for (let x = W / 2 - w; x <= W / 2 + w; x++) px(d, x, H - 14 - yy, SNOWW);
+  }
+  for (const [x, y, r] of [
+    [30, 24, 4],
+    [128, 18, 4],
+    [58, 38, 3],
+    [112, 44, 3],
+    [82, 14, 4],
   ])
-    snowflake(d, x, y, SNOWW);
+    disc(d, x, y, r, SNOWW);
 }
 function styleFreeride(d) {
-  const base = H - 24;
-  rect(d, 16, base, W - 32, 2, SNOW);
-  mountain(d, W / 2 + 8, base, 36, 58, BOARD, SNOWW);
-  for (let i = 0; i < 16; i++)
-    if (i % 2 === 0) {
-      const x = W / 2 + 34 - i * 4,
-        y = base - 54 + i * 3.2;
-      line(d, x, y, x - 3, y + 2, 2, RAMP);
-    } // descent line
+  // RED - a tall steep peak + a bold descent line.
+  const base = H - 16;
+  rect(d, 12, base, W - 24, 3, SNOW);
+  mountain(d, W / 2, base, 44, 74, RED, SNOWW);
+  let x = W / 2 + 8,
+    y = base - 66;
+  for (let i = 0; i < 6; i++) {
+    line(d, x, y, x - 11, y + 9, 3, SNOWW);
+    x -= 11;
+    y += 9;
+    line(d, x, y, x + 7, y + 7, 3, SNOWW);
+    x += 7;
+    y += 7;
+  } // zigzag descent
 }
 function styleBackcountry(d) {
-  const base = H - 24;
-  rect(d, 16, base, W - 32, 2, SNOW);
-  mountain(d, W / 2, base, 30, 48, BOARD, SNOWW);
-  const pole = W / 2,
-    peakY = base - 48;
-  rect(d, pole, peakY - 18, 2, 18, STEEL); // touring flag pole
-  for (let i = 0; i < 10; i++) {
-    const w = Math.round(14 * (1 - i / 10));
-    for (let x = pole + 2; x <= pole + 2 + w; x++)
-      px(d, x, peakY - 16 + i, RAMP);
-  }
+  // GREEN - an untracked peak under a sun.
+  const base = H - 16;
+  rect(d, 12, base, W - 24, 3, SNOW);
+  disc(d, W / 2 + 40, 26, 14, ACCENT); // sun
+  mountain(d, W / 2 - 6, base, 42, 64, GREEN, SNOWW);
 }
 function styleBeginner(d) {
   disc(d, W / 2, H / 2 - 2, 24, GREEN);
@@ -365,6 +379,14 @@ const budgets = {
   'budget-any': budgetAny,
 };
 
+// ── skill-level icons (universal trail-difficulty symbols) ───────────────────
+const skills = {
+  'skill-beginner': (d) => disc(d, W / 2, H / 2 - 2, 26, GREEN), // green circle
+  'skill-intermediate': (d) =>
+    rect(d, W / 2 - 24, H / 2 - 2 - 24, 48, 48, BLUE), // blue square
+  'skill-advanced': (d) => diamond(d, W / 2, H / 2 - 2, 30, SNOWW), // black diamond
+};
+
 let count = 0;
 for (const [name, fn] of Object.entries(profiles)) {
   const d = canvas();
@@ -372,7 +394,7 @@ for (const [name, fn] of Object.entries(profiles)) {
   writeFileSync(join(OUT_DIR, `${name}.png`), encodePNG(d));
   count++;
 }
-for (const group of [categories, styles, flexes, budgets]) {
+for (const group of [categories, styles, flexes, budgets, skills]) {
   for (const [name, fn] of Object.entries(group)) {
     const d = canvas();
     fn(d);
